@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://co6hyc6tb4h00"]
+[gd_scene load_steps=4 format=3 uid="uid://co6hyc6tb4h00"]
 
 [ext_resource type="Script" path="res://scenes/enemies/Drone.gd" id="1_2hqsw"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/drone.png" id="2_drone"]
 
 [sub_resource type="RectangleShape2D" id="2_4rqj8"]
 size = Vector2(36, 36)
@@ -10,7 +11,7 @@ collision_mask = 3
 script = ExtResource("1_2hqsw")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-color = Color(0.3, 0.8, 0.9, 1)
+texture = ExtResource("2_drone")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("2_4rqj8")

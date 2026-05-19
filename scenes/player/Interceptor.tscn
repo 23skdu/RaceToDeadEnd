@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://dplwyoiqf6v4g"]
+[gd_scene load_steps=4 format=3 uid="uid://dplwyoiqf6v4g"]
 
 [ext_resource type="Script" path="res://scenes/player/Interceptor.gd" id="1_x2ela"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2_svg"]
 
 [sub_resource type="RectangleShape2D" id="2_vm4f2"]
 size = Vector2(32, 48)
@@ -10,7 +11,8 @@ script = ExtResource("1_x2ela")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -8)
-color = Color(0.2, 0.6, 1, 1)
+texture = ExtResource("2_svg")
+self_modulate = Color(0.2, 0.6, 1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("2_vm4f2")

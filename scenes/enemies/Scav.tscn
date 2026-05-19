@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://dq0g1mn0g24c3"]
+[gd_scene load_steps=4 format=3 uid="uid://dq0g1mn0g24c3"]
 
 [ext_resource type="Script" path="res://scenes/enemies/Scav.gd" id="1_yu224"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/scav.png" id="2_scav"]
 
 [sub_resource type="RectangleShape2D" id="2_o2x83"]
 size = Vector2(40, 56)
@@ -10,7 +11,7 @@ collision_mask = 3
 script = ExtResource("1_yu224")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-color = Color(0.8, 0.5, 0.1, 1)
+texture = ExtResource("2_scav")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("2_o2x83")

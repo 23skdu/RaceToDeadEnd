@@ -6,7 +6,7 @@
 layer = 30
 script = ExtResource("1_v8yp2")
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="ColorRect" parent="."]
 offset_left = 240.0
 offset_top = 60.0
 offset_right = 1040.0

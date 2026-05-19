@@ -39,11 +39,11 @@ func init(type: EnemyType, start_lane: int, player_speed: float) -> void:
 func _update_sprite() -> void:
 	match enemy_type:
 		EnemyType.ROTOR:
-			sprite.texture = preload("res://assets/sprites/enemies/rotor.png") if ResourceLoader.exists("res://assets/sprites/enemies/rotor.png") else null
+			sprite.texture = load("res://assets/sprites/enemies/rotor.png") if ResourceLoader.exists("res://assets/sprites/enemies/rotor.png") else null
 		EnemyType.SCAV:
-			sprite.texture = preload("res://assets/sprites/enemies/scav.png") if ResourceLoader.exists("res://assets/sprites/enemies/scav.png") else null
+			sprite.texture = load("res://assets/sprites/enemies/scav.png") if ResourceLoader.exists("res://assets/sprites/enemies/scav.png") else null
 		EnemyType.DRONE:
-			sprite.texture = preload("res://assets/sprites/enemies/drone.png") if ResourceLoader.exists("res://assets/sprites/enemies/drone.png") else null
+			sprite.texture = load("res://assets/sprites/enemies/drone.png") if ResourceLoader.exists("res://assets/sprites/enemies/drone.png") else null
 
 func take_damage(amount: int = 1) -> void:
 	hp -= amount

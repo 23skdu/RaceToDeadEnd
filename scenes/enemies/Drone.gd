@@ -1,29 +1,50 @@
 extends "res://scenes/enemies/Enemy.gd"
 
+const BOMB_SCRIPT = preload("res://scenes/weapons/DroneBomb.gd")
+
 var bomb_timer: float = 0.0
 var bomb_interval: float = 3.0
 var target_x: float = 0.0
-var marker_visible: bool = false
-
-signal bomb_dropped(position: Vector2)
+var player: Node = null
 
 func _ready() -> void:
 	super._ready()
 	bomb_timer = bomb_interval * randf_range(0.5, 1.5)
 
 func _physics_process(delta: float) -> void:
-	bomb_timer -= delta
-	var diff = target_x - position.x
-	velocity.x = move_toward(velocity.x, diff * 4.0, 100.0 * delta)
-	velocity.y = -speed * 0.6
-	move_and_slide()
-	if bomb_timer <= 0.0 and not marker_visible:
-		_drop_bomb()
+	if not player or not is_instance_valid(player):
+		var players = get_tree().get_nodes_in_group("player")
+		if players.size() > 0:
+			player = players[0]
+			
+	if player:
+		target_x = player.global_position.x
+		
+		# Hover 180 pixels ahead of player to drop markers
+		var target_y = player.global_position.y - 180.0
+		var diff_y = target_y - position.y
+		velocity.y = player.velocity.y + diff_y * 2.0
+		
+		var diff_x = target_x - position.x
+		velocity.x = move_toward(velocity.x, diff_x * 4.0, 150.0 * delta)
+	else:
+		velocity.x = 0.0
+		velocity.y = -speed * 0.6
 
-func set_target_x(player_x: float) -> void:
-	target_x = player_x
+	bomb_timer -= delta
+	if bomb_timer <= 0.0:
+		_drop_bomb()
+		
+	move_and_slide()
 
 func _drop_bomb() -> void:
-	marker_visible = true
 	bomb_timer = bomb_interval
-	bomb_dropped.emit(global_position + Vector2(0, 64))
+	if not player:
+		return
+	# Instantiate script-based Area2D bomb
+	var bomb = Area2D.new()
+	bomb.set_script(BOMB_SCRIPT)
+	get_parent().add_child(bomb)
+	
+	# Drop slightly behind the drone on the road
+	bomb.global_position = global_position + Vector2(0, 48)

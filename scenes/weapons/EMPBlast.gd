@@ -9,6 +9,7 @@ var current_radius: float = 0.0
 func _ready() -> void:
 	add_to_group("emp")
 	body_entered.connect(_on_body_entered)
+	$CollisionShape2D.disabled = false
 	scale = Vector2.ZERO
 
 func init(pos: Vector2) -> void:

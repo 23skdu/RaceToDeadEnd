@@ -1,10 +1,10 @@
 extends CanvasLayer
 
 @onready var score_label: Label = $ScoreLabel
-@onready var health_bar: TextureProgressBar = $HealthBar
+@onready var health_bar: ProgressBar = $HealthBar
 @onready var multiplier_label: Label = $MultiplierLabel
 @onready var boost_container: HBoxContainer = $BoostContainer
-@onready var weapon_icon: TextureRect = $WeaponIcon
+@onready var weapon_icon: ColorRect = $WeaponIcon
 @onready var ammo_label: Label = $AmmoLabel
 @onready var tier_label: Label = $TierLabel
 
@@ -15,7 +15,7 @@ func _ready() -> void:
 	GameManager.health_updated.connect(_on_health_updated)
 	GameManager.multiplier_updated.connect(_on_multiplier_updated)
 	GameManager.difficulty_tier_changed.connect(_on_tier_changed)
-	boost_indicators = boost_container.get_children()
+	boost_indicators.assign(boost_container.get_children())
 
 func _on_score_updated(score: int) -> void:
 	score_label.text = str(score)
@@ -34,7 +34,6 @@ func update_boost_charges(charges: int) -> void:
 		boost_indicators[i].visible = i < charges
 
 func update_weapon_display(weapon_index: int, ammo: int) -> void:
-	var names = ["MISSILE", "MINE", "EMP"]
 	weapon_icon.modulate = [Color.RED, Color.YELLOW, Color.CYAN][weapon_index]
 	ammo_label.text = str(ammo)
 

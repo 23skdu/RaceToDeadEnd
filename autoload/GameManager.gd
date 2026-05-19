@@ -38,6 +38,7 @@ func _ready() -> void:
 func start_game() -> void:
 	state = GameState.PLAYING
 	score = 0
+	max_health = 4 + upgrade_levels.get("max_health", 1)
 	health = max_health
 	multiplier = 1
 	difficulty_tier = 1
@@ -53,7 +54,7 @@ func add_score(points: int) -> void:
 	score_updated.emit(score)
 	if score > 0 and score % BOSS_INTERVAL < points * multiplier:
 		pass
-	if score > 0 and score / 1000 > (score - points * multiplier) / 1000:
+	if score > 0 and floori(score / 1000.0) > floori((score - points * multiplier) / 1000.0):
 		_advance_difficulty()
 
 func add_health(amount: int) -> void:
@@ -81,7 +82,7 @@ func _advance_difficulty() -> void:
 
 func end_game() -> void:
 	state = GameState.GAME_OVER
-	credits += score / 10
+	credits += floori(score / 10.0)
 	if score > high_score:
 		high_score = score
 	save_progress()

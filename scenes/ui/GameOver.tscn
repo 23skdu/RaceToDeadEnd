@@ -6,7 +6,7 @@
 layer = 20
 script = ExtResource("1_ds21r")
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="ColorRect" parent="."]
 offset_left = 340.0
 offset_top = 160.0
 offset_right = 940.0

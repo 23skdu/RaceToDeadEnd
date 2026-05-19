@@ -46,10 +46,14 @@ func _find_nearest(enemies: Array) -> Node:
 
 func _on_body_entered(body: Node) -> void:
 	hit_target.emit(body)
+	if body.has_method("take_damage"):
+		body.take_damage(damage)
 	_die()
 
 func _on_area_entered(area: Area2D) -> void:
 	hit_target.emit(area)
+	if area.has_method("take_damage"):
+		area.take_damage(damage)
 	_die()
 
 func _die() -> void:
