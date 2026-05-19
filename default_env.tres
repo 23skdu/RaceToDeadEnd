@@ -1,0 +1,14 @@
+[gd_resource type="Environment" load_steps=2 format=3 uid="uid://default_env"]
+
+[sub_resource type="Sky" id="Sky_subres"]
+sky_top_color = Color(0.1, 0.05, 0.15, 1)
+sky_horizon_color = Color(0.15, 0.1, 0.2, 1)
+sky_curve = 0.5
+sky_energy = 1.0
+
+[resource]
+background_mode = 0
+background_sky = SubResource("Sky_subres")
+background_color = Color(0.1, 0.05, 0.15, 1)
+ambient_light_color = Color(0.15, 0.1, 0.2, 1)
+ambient_light_energy = 0.5

@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://cdvpi36s1m3j2"]
+
+[ext_resource type="Script" path="res://scenes/weapons/EMPBlast.gd" id="1_1ynyj"]
+
+[sub_resource type="CircleShape2D" id="2_p112j"]
+radius = 200.0
+
+[node name="EMPBlast" type="Area2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_1ynyj")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("2_p112j")
+disabled = true
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+color = Color(0.3, 0.8, 1, 0.5)

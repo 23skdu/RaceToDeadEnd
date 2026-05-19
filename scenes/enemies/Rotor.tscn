@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://bxr7c0uvlyiw"]
+
+[ext_resource type="Script" path="res://scenes/enemies/Rotor.gd" id="1_0ok3b"]
+
+[sub_resource type="RectangleShape2D" id="2_qb02c"]
+size = Vector2(24, 32)
+
+[node name="Rotor" type="CharacterBody2D"]
+collision_mask = 3
+script = ExtResource("1_0ok3b")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+color = Color(0.9, 0.2, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("2_qb02c")
+
+[node name="HitFlashTimer" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true

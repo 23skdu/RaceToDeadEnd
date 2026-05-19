@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3 uid="uid://cv21dsb0ip6rx"]
+
+[ext_resource type="Script" path="res://scenes/ui/GameOver.gd" id="1_ds21r"]
+
+[node name="GameOver" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_ds21r")
+
+[node name="Panel" type="Panel" parent="."]
+offset_left = 340.0
+offset_top = 160.0
+offset_right = 940.0
+offset_bottom = 560.0
+color = Color(0.1, 0.1, 0.15, 0.9)
+
+[node name="GameOverLabel" type="Label" parent="Panel"]
+offset_left = 150.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 90.0
+theme_override_colors/font_color = Color(0.9, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 36
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="FinalScore" type="Label" parent="Panel"]
+offset_left = 80.0
+offset_top = 120.0
+offset_right = 520.0
+offset_bottom = 170.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "SCORE: 0"
+horizontal_alignment = 1
+
+[node name="HighScore" type="Label" parent="Panel"]
+offset_left = 80.0
+offset_top = 180.0
+offset_right = 520.0
+offset_bottom = 220.0
+theme_override_colors/font_color = Color(1, 0.8, 0, 1)
+theme_override_font_sizes/font_size = 20
+text = "BEST: 0"
+horizontal_alignment = 1
+
+[node name="CreditsEarned" type="Label" parent="Panel"]
+offset_left = 80.0
+offset_top = 230.0
+offset_right = 520.0
+offset_bottom = 270.0
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "CREDITS EARNED: +0"
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="Panel"]
+offset_left = 150.0
+offset_top = 310.0
+offset_right = 450.0
+offset_bottom = 360.0
+text = "RUN AGAIN"
+
+[node name="GarageButton" type="Button" parent="Panel"]
+offset_left = 150.0
+offset_top = 370.0
+offset_right = 450.0
+offset_bottom = 420.0
+text = "GARAGE"
+
+[node name="MenuButton" type="Button" parent="Panel"]
+offset_left = 150.0
+offset_top = 430.0
+offset_right = 450.0
+offset_bottom = 480.0
+text = "MAIN MENU"

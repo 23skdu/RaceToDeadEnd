@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://dti2ljbmb7f7w"]
+
+[ext_resource type="Script" path="res://scenes/weapons/Mine.gd" id="1_8vxmc"]
+
+[sub_resource type="CircleShape2D" id="2_yiqrp"]
+radius = 12.0
+
+[node name="Mine" type="Area2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_8vxmc")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("2_yiqrp")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+color = Color(1, 0.5, 0, 1)
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
+rect = Rect2(-32, -32, 64, 64)

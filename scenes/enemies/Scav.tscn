@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://dq0g1mn0g24c3"]
+
+[ext_resource type="Script" path="res://scenes/enemies/Scav.gd" id="1_yu224"]
+
+[sub_resource type="RectangleShape2D" id="2_o2x83"]
+size = Vector2(40, 56)
+
+[node name="Scav" type="CharacterBody2D"]
+collision_mask = 3
+script = ExtResource("1_yu224")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+color = Color(0.8, 0.5, 0.1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("2_o2x83")
+
+[node name="WeaponMount" type="Marker2D" parent="."]
+position = Vector2(0, 32)
+
+[node name="HitFlashTimer" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true
