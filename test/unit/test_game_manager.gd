@@ -1,12 +1,12 @@
 extends GutTest
 
-var GameManager
+var GameManagerScript
 
 func before_all():
-	GameManager = load("res://autoload/GameManager.gd")
+	GameManagerScript = load("res://autoload/GameManager.gd")
 
 func before_each():
-	var gm = GameManager.new()
+	var gm = GameManagerScript.new()
 	add_child_autofree(gm)
 	gm._ready()
 	set_meta("gm", gm)
@@ -179,8 +179,10 @@ func test_upgrade_levels_default():
 	var gm = get_gm()
 	assert_eq(gm.upgrade_levels["max_health"], 1, "Default max_health upgrade")
 	assert_eq(gm.upgrade_levels["boost_capacity"], 1, "Default boost_capacity upgrade")
-	assert_eq(gm.upgrade_levels["starting_ammo"], 1, "Default starting_ammo upgrade")
 	assert_eq(gm.upgrade_levels["fire_rate"], 1, "Default fire_rate upgrade")
+	assert_eq(gm.upgrade_levels["missile_ammo"], 1, "Default missile_ammo upgrade")
+	assert_eq(gm.upgrade_levels["mine_ammo"], 1, "Default mine_ammo upgrade")
+	assert_eq(gm.upgrade_levels["emp_ammo"], 1, "Default emp_ammo upgrade")
 
 func test_score_timer_ticks():
 	var gm = get_gm()
@@ -290,3 +292,142 @@ func test_difficulty_progress_increments_on_segment():
 	gm.start_game()
 	gm.advance_segment()
 	assert_eq(gm._difficulty_progress, 200.0, "Segment should add 200 to difficulty progress")
+
+func test_game_state_enum_values():
+	assert_eq(GameManagerScript.GameState.MENU, 0, "MENU = 0")
+	assert_eq(GameManagerScript.GameState.PLAYING, 1, "PLAYING = 1")
+	assert_eq(GameManagerScript.GameState.PAUSED, 2, "PAUSED = 2")
+	assert_eq(GameManagerScript.GameState.GAME_OVER, 3, "GAME_OVER = 3")
+
+func test_constants():
+	assert_eq(GameManagerScript.BASE_SCORE_RATE, 10, "Base score rate")
+	assert_eq(GameManagerScript.SEGMENT_DISTANCE, 10.0, "Segment distance")
+	assert_eq(GameManagerScript.DIFFICULTY_TIER_INTERVAL, 5, "Difficulty tier interval")
+	assert_eq(GameManagerScript.MULTIPLIER_DURATION, 10.0, "Multiplier duration")
+
+func test_process_does_not_tick_score_when_paused():
+	var gm = get_gm()
+	gm.state = gm.GameState.PAUSED
+	gm._process(1.0)
+	assert_eq(gm.score, 0, "Score should not tick when paused")
+
+func test_process_does_not_tick_score_when_game_over():
+	var gm = get_gm()
+	gm.state = gm.GameState.GAME_OVER
+	gm._process(1.0)
+	assert_eq(gm.score, 0, "Score should not tick when game over")
+
+func test_add_score_emits_signal():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.add_score(100)
+	assert_signal_emitted(gm, "score_updated", "Should emit score_updated signal")
+
+func test_add_health_emits_signal():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.add_health(1)
+	assert_signal_emitted(gm, "health_updated", "Should emit health_updated signal")
+
+func test_set_multiplier_emits_signal():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.set_multiplier(3)
+	assert_signal_emitted(gm, "multiplier_updated", "Should emit multiplier_updated signal")
+
+func test_start_game_emits_signals():
+	var gm = get_gm()
+	watch_signals(gm)
+	gm.start_game()
+	assert_signal_emitted(gm, "game_started", "Should emit game_started signal")
+	assert_signal_emitted(gm, "score_updated", "Should emit score_updated signal")
+	assert_signal_emitted(gm, "health_updated", "Should emit health_updated signal")
+
+func test_end_game_emits_signal():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.end_game()
+	assert_signal_emitted(gm, "game_over", "Should emit game_over signal")
+
+func test_advance_segment_emits_signal():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.advance_segment()
+	assert_signal_emitted(gm, "segment_advanced", "Should emit segment_advanced signal")
+
+func test_take_damage_via_add_health():
+	var gm = get_gm()
+	gm.start_game()
+	var initial = gm.health
+	gm.take_damage(3)
+	assert_eq(gm.health, initial - 3, "take_damage should reduce health")
+
+func test_add_health_to_zero_triggers_end_game():
+	var gm = get_gm()
+	gm.start_game()
+	gm.add_health(-gm.max_health)
+	assert_eq(gm.state, gm.GameState.GAME_OVER, "Health reaching zero should end game")
+
+func test_spend_credits_exact_amount():
+	var gm = get_gm()
+	gm.credits = 50
+	assert_true(gm.spend_credits(50), "Should spend exact amount")
+	assert_eq(gm.credits, 0, "Credits should be zero after exact spend")
+
+func test_spend_credits_zero():
+	var gm = get_gm()
+	gm.credits = 10
+	assert_true(gm.spend_credits(0), "Should allow spending zero")
+	assert_eq(gm.credits, 10, "Credits should not change")
+
+func test_upgrade_levels_can_be_modified():
+	var gm = get_gm()
+	gm.upgrade_levels["max_health"] = 2
+	assert_eq(gm.upgrade_levels["max_health"], 2, "Upgrade level should be modifiable")
+
+func test_base_multiplier_tracks_correctly():
+	var gm = get_gm()
+	gm.start_game()
+	gm.set_multiplier(3)
+	gm.add_temporary_multiplier(2)
+	assert_eq(gm._base_multiplier, 3, "Base multiplier should track current before bonus")
+	gm._multiplier_timer = 0.1
+	gm._process(0.2)
+	assert_eq(gm.multiplier, 3, "Should reset to base multiplier")
+
+func test_save_and_load_roundtrip():
+	var gm = get_gm()
+	gm.credits = 777
+	gm.high_score = 9999
+	gm.upgrade_levels["max_health"] = 3
+	gm.upgrade_levels["fire_rate"] = 2
+	gm.upgrade_levels["missile_ammo"] = 4
+	gm.upgrade_levels["mine_ammo"] = 3
+	gm.upgrade_levels["emp_ammo"] = 2
+	gm.save_progress()
+	
+	var gm2 = GameManagerScript.new()
+	add_child_autofree(gm2)
+	gm2.load_progress()
+	assert_eq(gm2.credits, 777, "Credits should roundtrip")
+	assert_eq(gm2.high_score, 9999, "High score should roundtrip")
+	assert_eq(gm2.upgrade_levels["max_health"], 3, "max_health should roundtrip")
+	assert_eq(gm2.upgrade_levels["fire_rate"], 2, "fire_rate should roundtrip")
+	assert_eq(gm2.upgrade_levels["missile_ammo"], 4, "missile_ammo should roundtrip")
+	assert_eq(gm2.upgrade_levels["mine_ammo"], 3, "mine_ammo should roundtrip")
+	assert_eq(gm2.upgrade_levels["emp_ammo"], 2, "emp_ammo should roundtrip")
+
+func test_load_nonexistent_file():
+	var gm = get_gm()
+	var file = FileAccess.open("user://save.dat", FileAccess.READ)
+	if file:
+		file.close()
+	DirAccess.remove_absolute("user://save.dat")
+	gm.credits = 42
+	gm.load_progress()
+	assert_eq(gm.credits, 42, "Credits should not change when no save file")

@@ -79,3 +79,22 @@ func test_hud_ready_connects_signals():
 	assert_true(GameManager.health_updated.is_connected(hud._on_health_updated), "Should connect health signal")
 	assert_true(GameManager.multiplier_updated.is_connected(hud._on_multiplier_updated), "Should connect multiplier signal")
 	assert_true(GameManager.difficulty_tier_changed.is_connected(hud._on_tier_changed), "Should connect tier signal")
+
+func test_hud_weapon_display_bounds_check():
+	var hud = load("res://scenes/ui/HUD.gd").new()
+	add_child_autofree(hud)
+	hud.update_weapon_display(5, 3)
+	assert_eq(hud.ammo_label.text, "3", "Ammo should still update with out-of-bounds index")
+
+func test_hud_weapon_display_negative_index():
+	var hud = load("res://scenes/ui/HUD.gd").new()
+	add_child_autofree(hud)
+	hud.update_weapon_display(-1, 0)
+	assert_eq(hud.ammo_label.text, "0", "Ammo should still update with negative index")
+
+func test_hud_weapon_colors_constant():
+	var hud_script = load("res://scenes/ui/HUD.gd")
+	assert_eq(hud_script.WEAPON_COLORS.size(), 3, "Should have 3 weapon colors")
+	assert_eq(hud_script.WEAPON_COLORS[0], Color.RED, "Missile color should be red")
+	assert_eq(hud_script.WEAPON_COLORS[1], Color.YELLOW, "Mine color should be yellow")
+	assert_eq(hud_script.WEAPON_COLORS[2], Color.CYAN, "EMP color should be cyan")

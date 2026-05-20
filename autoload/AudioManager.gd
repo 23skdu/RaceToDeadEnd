@@ -35,7 +35,7 @@ func _generate_cached_streams() -> void:
 	_stream_boost = _generate_boost_stream()
 	_stream_emp = _generate_emp_stream()
 
-func play_music(stream: AudioStream, _loop: bool = true) -> void:
+func play_music(stream: AudioStream) -> void:
 	if not stream:
 		return
 	music_player.stream = stream
@@ -53,9 +53,10 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 			p.global_position = pos
 			p.play()
 			return
-	_find_lowest_priority_player().stream = stream
-	_find_lowest_priority_player().global_position = pos
-	_find_lowest_priority_player().play()
+	var player = _find_lowest_priority_player()
+	player.stream = stream
+	player.global_position = pos
+	player.play()
 
 func _find_lowest_priority_player() -> AudioStreamPlayer2D:
 	var lowest_idx = 0
@@ -112,7 +113,7 @@ func _generate_explosion_stream() -> AudioStreamWAV:
 		var t = i / sample_rate
 		var amp = lerpf(80.0, 0.0, t / duration)
 		var val = randf_range(-amp, amp)
-		data[i] = int(val) + 128
+		data[i] = clampi(int(val) + 128, 0, 255)
 		
 	var stream = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_8_BITS
@@ -200,4 +201,4 @@ func play_synth_music() -> void:
 	stream.data = data
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = num_samples
-	play_music(stream, true)
+	play_music(stream)

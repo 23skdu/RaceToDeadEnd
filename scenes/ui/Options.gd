@@ -15,10 +15,17 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx_changed)
 	fullscreen_check.toggled.connect(_on_fullscreen_toggled)
 	
+	_load_volume_settings()
+	_load_fullscreen_setting()
+
+func _load_volume_settings() -> void:
 	master_slider.value = db_to_linear(AudioServer.get_bus_volume_db(0))
 	music_slider.value = db_to_linear(AudioServer.get_bus_volume_db(1))
 	sfx_slider.value = db_to_linear(AudioServer.get_bus_volume_db(2))
-	fullscreen_check.button_pressed = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+
+func _load_fullscreen_setting() -> void:
+	var mode = DisplayServer.window_get_mode()
+	fullscreen_check.button_pressed = (mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
 func _on_master_changed(value: float) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(value))

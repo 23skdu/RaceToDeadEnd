@@ -239,3 +239,53 @@ func test_on_pickup_collected_ignores_non_player():
 	var non_player = Node2D.new()
 	s._on_pickup_collected(non_player, "repair", pickup)
 	assert_true(true, "Should not crash with non-player body")
+
+func test_spawn_enemy_missing_scene():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["missing"] = null
+	s._spawn_enemy("missing")
+	assert_true(true, "Should not crash with missing scene")
+
+func test_spawn_enemy_null_player():
+	var s = Spawner.new()
+	add_child_autofree(s)
+	s._ready()
+	s.player = null
+	s._spawn_enemy("rotor")
+	assert_true(true, "Should not crash with null player")
+
+func test_process_finds_player_from_group():
+	var s = Spawner.new()
+	add_child_autofree(s)
+	s.player = null
+	s.wave_timer = 0.0
+	var mock_player = Node2D.new()
+	mock_player.global_position = Vector2(0, 0)
+	mock_player.add_to_group("player")
+	add_child_autofree(mock_player)
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.start_game()
+	s._process(0.1)
+	assert_eq(s.player, mock_player, "Should find player from group")
+
+func test_pickup_type_multiplier():
+	var s = Spawner.new()
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.start_game()
+	s._drop_pickup(Vector2.ZERO)
+	assert_true(true, "Should handle multiplier pickup type")
+
+func test_wave_spawned_signal_contains_wave_number():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	watch_signals(s)
+	s._spawn_wave()
+	var args = get_signal_args(s, "wave_spawned")
+	assert_eq(args[0][0], 1, "Signal should contain wave number 1")

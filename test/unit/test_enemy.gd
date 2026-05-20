@@ -10,6 +10,12 @@ func test_enemy_type_enum():
 	assert_eq(Enemy.EnemyType.SCAV, 1, "SCAV = 1")
 	assert_eq(Enemy.EnemyType.DRONE, 2, "DRONE = 2")
 
+func test_type_names_constant():
+	assert_eq(Enemy.TYPE_NAMES.size(), 3, "Should have 3 type names")
+	assert_eq(Enemy.TYPE_NAMES[0], "rotor", "Type name 0 should be rotor")
+	assert_eq(Enemy.TYPE_NAMES[1], "scav", "Type name 1 should be scav")
+	assert_eq(Enemy.TYPE_NAMES[2], "drone", "Type name 2 should be drone")
+
 func test_init_rotor():
 	var e = _create_enemy()
 	var player = Node2D.new()
@@ -176,6 +182,25 @@ func test_enemy_stun_clears_visual():
 	e.apply_stun(0.5)
 	e._physics_process(0.6)
 	assert_eq(e.sprite.modulate, Color.WHITE, "Visual should reset after stun expires")
+
+func test_destroyed_signal_emits_position():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
+	e.global_position = Vector2(100, 200)
+	var emitted_pos = Vector2.ZERO
+	e.destroyed.connect(func(pos, _type): emitted_pos = pos)
+	e.take_damage(1)
+	assert_eq(emitted_pos, Vector2(100, 200), "Should emit global position")
+
+func test_take_damage_overkill():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
+	var destroyed_emitted = false
+	e.destroyed.connect(func(_pos, _type): destroyed_emitted = true)
+	e.take_damage(100)
+	assert_true(destroyed_emitted, "Should die from overkill damage")
 
 func _create_enemy():
 	var scene = load("res://scenes/enemies/Rotor.tscn")

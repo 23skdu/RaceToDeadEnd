@@ -14,6 +14,7 @@ const BOOST_RECHARGE_TIME: float = 8.0
 const PRIMARY_FIRE_COOLDOWN: float = 0.1
 const DOUBLE_TAP_DELAY: float = 0.25
 const SPEED_MODIFIER: float = 0.5
+const WEAPON_TYPES: Array[String] = ["missile", "mine", "emp"]
 
 var current_lane: int = 1
 var target_x: float = 0.0
@@ -45,15 +46,17 @@ func _ready() -> void:
 	collision_mask = 1
 	add_to_group("player")
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
-	var al = GameManager.upgrade_levels.get("starting_ammo", 1)
+	var missile_level = GameManager.upgrade_levels.get("missile_ammo", 1)
+	var mine_level = GameManager.upgrade_levels.get("mine_ammo", 1)
+	var emp_level = GameManager.upgrade_levels.get("emp_ammo", 1)
 	
 	max_boost_charges = 2 + bl
 	boost_charges = max_boost_charges
 	
 	secondary_ammo = [
-		2 + al, # Missiles
-		1 + al, # Mines
-		al      # EMP
+		2 + missile_level,
+		1 + mine_level,
+		emp_level
 	]
 	
 	target_x = _lane_to_x(current_lane)
@@ -81,9 +84,10 @@ func _physics_process(delta: float) -> void:
 	for i in get_slide_collision_count():
 		var col = get_slide_collision(i)
 		var collider = col.get_collider()
-		if collider.is_in_group("obstacles") or collider is StaticBody2D:
-			if not boost_active:
-				take_damage(1)
+		if collider and is_instance_valid(collider):
+			if collider.is_in_group("obstacles") or collider is StaticBody2D:
+				if not boost_active:
+					take_damage(1)
 
 func _handle_input() -> void:
 	speed_input = 0.0
@@ -168,12 +172,11 @@ func _fire_primary() -> void:
 func _fire_secondary() -> void:
 	if secondary_ammo[current_weapon] <= 0:
 		return
-	var weapon_types = ["missile", "mine", "emp"]
 	secondary_ammo[current_weapon] -= 1
-	weapon_fired.emit(weapon_types[current_weapon], weapon_mount.global_position, Vector2.UP)
+	weapon_fired.emit(WEAPON_TYPES[current_weapon], weapon_mount.global_position, Vector2.UP)
 
 func _cycle_weapon() -> void:
-	current_weapon = (current_weapon + 1) % 3
+	current_weapon = (current_weapon + 1) % secondary_ammo.size()
 	weapon_switched.emit(current_weapon)
 
 func _activate_boost() -> void:
@@ -192,7 +195,7 @@ func _deactivate_boost() -> void:
 	boost_depleted.emit()
 
 func take_damage(amount: int = 1) -> void:
-	if invincible:
+	if invincible or boost_active:
 		return
 	GameManager.take_damage(amount)
 	invincible = true

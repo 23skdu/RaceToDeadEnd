@@ -41,7 +41,8 @@ func _ready() -> void:
 	if game_over and game_over.has_signal("garage_requested"):
 		game_over.garage_requested.connect(_go_to_garage)
 	
-	GameManager.game_over.connect(hud._on_game_over)
+	if hud:
+		GameManager.game_over.connect(hud._on_game_over)
 
 func _on_bridge_fall(body: Node) -> void:
 	if body.has_method("take_damage"):

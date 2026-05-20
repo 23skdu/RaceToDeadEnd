@@ -12,7 +12,8 @@ signal menu_requested
 @onready var menu_button: Button = $Panel/MenuButton
 
 func _ready() -> void:
-	GameManager.game_over.connect(_on_game_over)
+	if not GameManager.game_over.is_connected(_on_game_over):
+		GameManager.game_over.connect(_on_game_over)
 	continue_button.pressed.connect(_on_continue_pressed)
 	garage_button.pressed.connect(_on_garage_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)

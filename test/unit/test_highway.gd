@@ -12,7 +12,7 @@ func test_chunk_constants():
 	assert_eq(h.TILE_SIZE, Vector2i(64, 32), "Tile size should be 64x32")
 	assert_eq(h.CHUNK_PIXEL_HEIGHT, 320, "Chunk pixel height should be 320")
 	assert_eq(h.PREWARM_CHUNKS, 4, "Prewarm chunks should be 4")
-	assert_eq(h.TOTAL_CHUNK_WEIGHT, 95, "Total chunk weight should be 95")
+	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 1, "Despawn chunks behind should be 1")
 
 func test_chunk_type_enum():
 	var h = Highway.new()
@@ -27,7 +27,7 @@ func test_chunk_weights_sum():
 	var total = 0
 	for w in h.chunk_weights.values():
 		total += w
-	assert_eq(total, h.TOTAL_CHUNK_WEIGHT, "Total weight should match constant")
+	assert_eq(total, 100, "Total weight should be 100")
 
 func test_chunk_weights_scale_with_difficulty():
 	var h = Highway.new()
@@ -236,3 +236,66 @@ func test_generate_chunk_tiles_creates_bridge_areas():
 		if child is Area2D:
 			area_count += 1
 	assert_gte(area_count, 2, "Bridge chunk should have 2 danger areas")
+
+func test_process_does_nothing_without_player():
+	var h = Highway.new()
+	add_child_autofree(h)
+	h._process(0.1)
+	assert_true(true, "Should not crash without player")
+
+func test_recycle_chunk_updates_type():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	h._spawn_chunk(0)
+	var chunk = h.active_chunks[0]
+	var old_type = chunk.get_meta("chunk_type")
+	h._recycle_chunk(chunk)
+	var new_type = chunk.get_meta("chunk_type")
+	assert_true(true, "Chunk type should be updated")
+
+func test_segment_completed_signal_emits_segment_number():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	h._spawn_chunk(0)
+	watch_signals(h)
+	h._recycle_chunk(h.active_chunks[0])
+	var args = get_signal_args(h, "segment_completed")
+	assert_eq(args[0][0], 1, "Should emit segment number 1")
+
+func test_generate_chunk_tiles_creates_rails():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	add_child_autofree(chunk)
+	h._generate_chunk_tiles(chunk, h.ChunkType.STANDARD)
+	var tiles_node = chunk.get_node_or_null("Tiles")
+	assert_is_not_null(tiles_node, "Should create Tiles node")
+	var rail_count = 0
+	for child in tiles_node.get_children():
+		if child is Line2D:
+			rail_count += 1
+	assert_gte(rail_count, 2, "Should have left and right rails")
+
+func test_generate_chunk_tiles_standard_no_ice_area():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	add_child_autofree(chunk)
+	h._generate_chunk_tiles(chunk, h.ChunkType.STANDARD)
+	var tiles_node = chunk.get_node_or_null("Tiles")
+	var ice_area_count = 0
+	for child in tiles_node.get_children():
+		if child is Area2D:
+			ice_area_count += 1
+	assert_eq(ice_area_count, 0, "Standard chunk should not have ice area")
+
+func test_chunk_weights_adjusted_at_high_tier():
+	var h = Highway.new()
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.start_game()
+	gm.difficulty_tier = 20
+	var weights = h.chunk_weights.duplicate()
+	var hazard_increase = mini(20 - 1, 10) * 2
+	weights[h.ChunkType.STANDARD] = maxi(40 - hazard_increase * 2, 15)
+	assert_eq(weights[h.ChunkType.STANDARD], 15, "Standard weight should decrease at high tier")

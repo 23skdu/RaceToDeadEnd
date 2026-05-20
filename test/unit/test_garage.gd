@@ -9,15 +9,19 @@ func test_upgrade_costs_defined():
 	var script = Garage
 	assert_true(script.UPGRADE_COSTS.has("max_health"), "max_health costs")
 	assert_true(script.UPGRADE_COSTS.has("boost_capacity"), "boost_capacity costs")
-	assert_true(script.UPGRADE_COSTS.has("starting_ammo"), "starting_ammo costs")
 	assert_true(script.UPGRADE_COSTS.has("fire_rate"), "fire_rate costs")
+	assert_true(script.UPGRADE_COSTS.has("missile_ammo"), "missile_ammo costs")
+	assert_true(script.UPGRADE_COSTS.has("mine_ammo"), "mine_ammo costs")
+	assert_true(script.UPGRADE_COSTS.has("emp_ammo"), "emp_ammo costs")
 
 func test_upgrade_names_defined():
 	var script = Garage
 	assert_eq(script.UPGRADE_NAMES.max_health, "MAX HEALTH", "max_health name")
 	assert_eq(script.UPGRADE_NAMES.boost_capacity, "BOOST CAPACITY", "boost_capacity name")
-	assert_eq(script.UPGRADE_NAMES.starting_ammo, "STARTING AMMO", "starting_ammo name")
 	assert_eq(script.UPGRADE_NAMES.fire_rate, "FIRE RATE", "fire_rate name")
+	assert_eq(script.UPGRADE_NAMES.missile_ammo, "MISSILE AMMO", "missile_ammo name")
+	assert_eq(script.UPGRADE_NAMES.mine_ammo, "MINE AMMO", "mine_ammo name")
+	assert_eq(script.UPGRADE_NAMES.emp_ammo, "EMP AMMO", "emp_ammo name")
 
 func test_upgrade_cost_progression():
 	var script = Garage
@@ -27,10 +31,39 @@ func test_upgrade_cost_progression():
 	assert_eq(health_costs[3], 3000, "Health level 3 cost")
 	assert_eq(health_costs[4], 5000, "Health level 4 cost")
 
+func test_missile_ammo_costs():
+	var script = Garage
+	var costs = script.UPGRADE_COSTS.missile_ammo
+	assert_eq(costs[1], 150, "Missile level 1 cost")
+	assert_eq(costs[2], 400, "Missile level 2 cost")
+	assert_eq(costs[3], 1000, "Missile level 3 cost")
+	assert_eq(costs[4], 2000, "Missile level 4 cost")
+
+func test_mine_ammo_costs():
+	var script = Garage
+	var costs = script.UPGRADE_COSTS.mine_ammo
+	assert_eq(costs[1], 200, "Mine level 1 cost")
+	assert_eq(costs[2], 500, "Mine level 2 cost")
+	assert_eq(costs[3], 1200, "Mine level 3 cost")
+	assert_eq(costs[4], 2500, "Mine level 4 cost")
+
+func test_emp_ammo_costs():
+	var script = Garage
+	var costs = script.UPGRADE_COSTS.emp_ammo
+	assert_eq(costs[1], 250, "EMP level 1 cost")
+	assert_eq(costs[2], 700, "EMP level 2 cost")
+	assert_eq(costs[3], 1500, "EMP level 3 cost")
+	assert_eq(costs[4], 3000, "EMP level 4 cost")
+
 func test_max_level_is_5():
 	var script = Garage
 	var costs = script.UPGRADE_COSTS.max_health
 	assert_eq(costs.size(), 5, "Should have 5 levels (index 0-4)")
+
+func test_all_upgrades_have_5_levels():
+	var script = Garage
+	for key in script.UPGRADE_COSTS:
+		assert_eq(script.UPGRADE_COSTS[key].size(), 5, key + " should have 5 levels")
 
 func test_garage_displays_credits():
 	var gm = load("res://autoload/GameManager.gd").new()
@@ -102,3 +135,71 @@ func test_garage_ready_connects_buttons():
 	add_child_autofree(garage)
 	assert_true(garage.back_button.pressed.is_connected(garage._on_back_pressed), "Back button should be connected")
 	assert_true(garage.start_button.pressed.is_connected(garage._on_start_pressed), "Start button should be connected")
+
+func test_garage_shows_all_weapon_upgrades():
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.credits = 99999
+	var garage = Garage.new()
+	add_child_autofree(garage)
+	garage.refresh()
+	var found_missile = false
+	var found_mine = false
+	var found_emp = false
+	for child in garage.upgrade_container.get_children():
+		if child is Button:
+			if "MISSILE AMMO" in child.text:
+				found_missile = true
+			if "MINE AMMO" in child.text:
+				found_mine = true
+			if "EMP AMMO" in child.text:
+				found_emp = true
+	assert_true(found_missile, "Should show missile ammo upgrade")
+	assert_true(found_mine, "Should show mine ammo upgrade")
+	assert_true(found_emp, "Should show emp ammo upgrade")
+
+func test_garage_upgrade_missile_ammo():
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.credits = 1000
+	gm.upgrade_levels["missile_ammo"] = 1
+	var garage = Garage.new()
+	add_child_autofree(garage)
+	garage._on_upgrade_pressed("missile_ammo", 150)
+	assert_eq(gm.upgrade_levels["missile_ammo"], 2, "Missile ammo level should increase")
+	assert_eq(gm.credits, 850, "Credits should decrease by missile cost")
+
+func test_garage_upgrade_mine_ammo():
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.credits = 1000
+	gm.upgrade_levels["mine_ammo"] = 1
+	var garage = Garage.new()
+	add_child_autofree(garage)
+	garage._on_upgrade_pressed("mine_ammo", 200)
+	assert_eq(gm.upgrade_levels["mine_ammo"], 2, "Mine ammo level should increase")
+	assert_eq(gm.credits, 800, "Credits should decrease by mine cost")
+
+func test_garage_upgrade_emp_ammo():
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.credits = 1000
+	gm.upgrade_levels["emp_ammo"] = 1
+	var garage = Garage.new()
+	add_child_autofree(garage)
+	garage._on_upgrade_pressed("emp_ammo", 250)
+	assert_eq(gm.upgrade_levels["emp_ammo"], 2, "EMP ammo level should increase")
+	assert_eq(gm.credits, 750, "Credits should decrease by emp cost")
+
+func test_garage_six_upgrades_displayed():
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.credits = 99999
+	var garage = Garage.new()
+	add_child_autofree(garage)
+	garage.refresh()
+	var button_count = 0
+	for child in garage.upgrade_container.get_children():
+		if child is Button:
+			button_count += 1
+	assert_eq(button_count, 6, "Should display 6 upgrade buttons")

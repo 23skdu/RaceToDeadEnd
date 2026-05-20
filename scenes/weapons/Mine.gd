@@ -49,9 +49,10 @@ func _explode() -> void:
 	flash.polygon = PackedVector2Array(pts)
 	flash.color = Color(1.0, 0.6, 0.1, 0.8)
 	flash.position = global_position
-	get_parent().add_child(flash)
-	await get_tree().create_timer(0.15).timeout
-	flash.queue_free()
+	if get_parent():
+		get_parent().add_child(flash)
+		await get_tree().create_timer(0.15).timeout
+		flash.queue_free()
 	
 	AudioManager.play_synth_explosion(global_position)
 	ObjectPool.release(self)

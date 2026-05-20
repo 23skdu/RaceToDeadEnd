@@ -21,8 +21,3 @@ func test_constants_cleanup_distance():
 
 func test_constants_base_speed():
 	assert_eq(Constants.BASE_SPEED, 200.0, "Base speed should be 200")
-
-func test_constants_enemy_type_strings():
-	assert_eq(Constants.ENEMY_TYPE_STRINGS[0], "rotor", "ROTOR string")
-	assert_eq(Constants.ENEMY_TYPE_STRINGS[1], "scav", "SCAV string")
-	assert_eq(Constants.ENEMY_TYPE_STRINGS[2], "drone", "DRONE string")

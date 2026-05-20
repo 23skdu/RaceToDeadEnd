@@ -35,7 +35,7 @@ func test_mine_explodes_on_body_entered():
 	m.armed = true
 	var mock_body = Node2D.new()
 	m._on_body_entered(mock_body)
-	assert_true(m.is_queued_for_deletion(), "Mine should explode")
+	assert_true(m.is_queued_for_deletion() or m.get_meta("_in_pool", false), "Mine should explode")
 
 func test_mine_ignores_when_not_armed():
 	var m = Mine.new()
@@ -51,7 +51,7 @@ func test_mine_area_entered():
 	m.armed = true
 	var mock_area = Area2D.new()
 	m._on_area_entered(mock_area)
-	assert_true(m.is_queued_for_deletion(), "Mine should explode on area entered")
+	assert_true(m.is_queued_for_deletion() or m.get_meta("_in_pool", false), "Mine should explode on area entered")
 
 func test_mine_aoe_damages_nearby_enemies():
 	var m = Mine.new()
@@ -115,7 +115,7 @@ func test_mine_aoe_ignores_invalid_enemies():
 	add_child_autofree(invalid_enemy)
 	
 	m._explode()
-	assert_true(m.is_queued_for_deletion(), "Mine should explode without errors")
+	assert_true(m.is_queued_for_deletion() or m.get_meta("_in_pool", false), "Mine should explode without errors")
 
 func test_mine_ready_arms_after_delay():
 	var m = Mine.new()

@@ -166,3 +166,101 @@ func test_find_lowest_priority_player_returns_free():
 	am._ready()
 	var result = am._find_lowest_priority_player()
 	assert_is_not_null(result, "Should return a player")
+
+func test_play_sfx_reuses_free_player():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	am.play_synth_laser(Vector2.ZERO)
+	var first_player = null
+	for p in am.sfx_players:
+		if p.playing:
+			first_player = p
+			break
+	assert_is_not_null(first_player, "Should have a playing player")
+
+func test_play_sfx_all_players_busy():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	for p in am.sfx_players:
+		p.stream = am._stream_laser
+		p.play()
+	am.play_synth_laser(Vector2.ZERO)
+	assert_true(true, "Should handle all players busy without error")
+
+func test_music_player_bus():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	assert_eq(am.music_player.bus, "Master", "Music player should use Master bus")
+
+func test_sfx_players_named():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	for i in am.SFX_PLAYER_COUNT:
+		assert_eq(am.sfx_players[i].name, "SFXPlayer" + str(i), "SFX player should have correct name")
+
+func test_music_player_named():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	assert_eq(am.music_player.name, "MusicPlayer", "Music player should have correct name")
+
+func test_generate_laser_stream():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	var stream = am._generate_laser_stream()
+	assert_is_not_null(stream, "Should generate laser stream")
+	assert_is(stream, AudioStreamWAV, "Should be AudioStreamWAV")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Should be 8-bit")
+
+func test_generate_explosion_stream():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	var stream = am._generate_explosion_stream()
+	assert_is_not_null(stream, "Should generate explosion stream")
+	assert_is(stream, AudioStreamWAV, "Should be AudioStreamWAV")
+
+func test_generate_hurt_stream():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	var stream = am._generate_hurt_stream()
+	assert_is_not_null(stream, "Should generate hurt stream")
+
+func test_generate_boost_stream():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	var stream = am._generate_boost_stream()
+	assert_is_not_null(stream, "Should generate boost stream")
+
+func test_generate_emp_stream():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	var stream = am._generate_emp_stream()
+	assert_is_not_null(stream, "Should generate emp stream")
+
+func test_play_music_sets_stream():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	am.play_music(am._stream_laser)
+	assert_eq(am.music_player.stream, am._stream_laser, "Music player stream should be set")
+
+func test_play_sfx_sets_position():
+	var am = load("res://autoload/AudioManager.gd").new()
+	add_child_autofree(am)
+	am._ready()
+	var pos = Vector2(100, 200)
+	am.play_synth_laser(pos)
+	for p in am.sfx_players:
+		if p.playing:
+			assert_eq(p.global_position, pos, "SFX position should be set")
+			break
+
+func test_bus_enum_values():
+	var am = load("res://autoload/AudioManager.gd").new()
+	assert_eq(am.Bus.MASTER, 0, "MASTER = 0")
+	assert_eq(am.Bus.MUSIC, 1, "MUSIC = 1")
+	assert_eq(am.Bus.SFX, 2, "SFX = 2")

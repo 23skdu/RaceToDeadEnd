@@ -16,7 +16,7 @@ func test_game_over_displays_high_score():
 	var go = load("res://scenes/ui/GameOver.gd").new()
 	add_child_autofree(go)
 	go._on_game_over(1500)
-	assert_eq(go.high_score_label.text, "BEST: " + str(go.get_node("/root/GameManager").high_score if go.has_node("/root/GameManager") else 0), "Should display high score")
+	assert_eq(go.high_score_label.text, "BEST: " + str(GameManager.high_score), "Should display high score")
 
 func test_game_over_displays_credits():
 	var go = load("res://scenes/ui/GameOver.gd").new()
@@ -62,3 +62,32 @@ func test_game_over_ready_connects_signals():
 	add_child_autofree(go)
 	assert_true(GameManager.game_over.is_connected(go._on_game_over), "Should connect game_over signal")
 	assert_false(go.visible, "Should be hidden by default after ready")
+
+func test_game_over_signal_guard_prevents_double_connect():
+	var go = load("res://scenes/ui/GameOver.gd").new()
+	add_child_autofree(go)
+	var connection_count = 0
+	for conn in GameManager.game_over.get_connections():
+		if conn.callable == go._on_game_over:
+			connection_count += 1
+	assert_eq(connection_count, 1, "Should only have one connection to game_over")
+
+func test_game_over_credits_calculation():
+	var go = load("res://scenes/ui/GameOver.gd").new()
+	add_child_autofree(go)
+	go._on_game_over(999)
+	assert_eq(go.credits_label.text, "CREDITS EARNED: +99", "Should floor 999/10 = 99")
+
+func test_game_over_zero_score():
+	var go = load("res://scenes/ui/GameOver.gd").new()
+	add_child_autofree(go)
+	go._on_game_over(0)
+	assert_eq(go.final_score_label.text, "SCORE: 0", "Should display zero score")
+	assert_eq(go.credits_label.text, "CREDITS EARNED: +0", "Should display zero credits")
+
+func test_game_over_signals_exist():
+	var go = load("res://scenes/ui/GameOver.gd").new()
+	add_child_autofree(go)
+	assert_true(go.has_signal("restart_requested"), "Should have restart_requested signal")
+	assert_true(go.has_signal("garage_requested"), "Should have garage_requested signal")
+	assert_true(go.has_signal("menu_requested"), "Should have menu_requested signal")

@@ -77,7 +77,7 @@ func _spawn_enemy(type: String) -> void:
 		
 	var scene = enemy_scenes[type]
 	var enemy = scene.instantiate()
-	var lane = randi() % Constants.LANE_COUNT
+	var lane = randi_range(0, Constants.LANE_COUNT - 1)
 	var lane_x = Constants.LANE_POSITIONS[lane]
 	
 	enemy.global_position = Vector2(lane_x, player.global_position.y - Constants.SPAWN_DISTANCE)

@@ -30,8 +30,10 @@ const MULTIPLIER_DURATION: float = 10.0
 var upgrade_levels: Dictionary = {
 	max_health = 1,
 	boost_capacity = 1,
-	starting_ammo = 1,
 	fire_rate = 1,
+	missile_ammo = 1,
+	mine_ammo = 1,
+	emp_ammo = 1,
 }
 
 var _score_timer: float = 0.0

@@ -101,3 +101,33 @@ func test_drone_bomb_detonate_clears_warning():
 	add_child_autofree(db)
 	db._detonate()
 	assert_true(db.warning_visual.is_queued_for_deletion(), "Warning visual should be queued for deletion")
+
+func test_drone_bomb_constants():
+	assert_eq(DroneBomb.DETONATION_TIME, 1.5, "Detonation time should be 1.5")
+	assert_eq(DroneBomb.BLAST_RADIUS, 80.0, "Blast radius should be 80")
+
+func test_drone_bomb_fades_correctly():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	db._process(1.5)
+	db._detonate()
+	db._process(0.15)
+	assert_false(db.is_queued_for_deletion(), "Should not free before fade completes")
+	db._process(0.2)
+	assert_true(db.is_queued_for_deletion(), "Should free after fade completes")
+
+func test_drone_bomb_explosion_visual_scales():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	db._process(1.5)
+	db._detonate()
+	db._process(0.15)
+	assert_gt(db.explosion_visual.scale.x, 1.0, "Explosion visual should scale up")
+
+func test_drone_bbomb_explosion_visual_fades():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	db._process(1.5)
+	db._detonate()
+	db._process(0.15)
+	assert_lt(db.explosion_visual.color.a, 0.8, "Explosion visual alpha should decrease")

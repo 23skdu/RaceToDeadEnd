@@ -78,4 +78,4 @@ func on_pool_release() -> void:
 	_cache_timer = 0.0
 
 func _on_visible_on_screen_notifier_screen_exited() -> void:
-	queue_free()
+	ObjectPool.release(self)

@@ -53,7 +53,7 @@ func test_drone_drop_bomb_creates_area():
 	drone._drop_bomb()
 	var bombs = []
 	for child in world.get_children():
-		if child is Area2D and child.get_script() == preload("res://scenes/weapons/DroneBomb.gd"):
+		if child is Area2D and child.has_method("_detonate"):
 			bombs.append(child)
 	assert_gt(bombs.size(), 0, "Drone should create a bomb")
 
@@ -70,7 +70,7 @@ func test_drone_drop_bomb_position():
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
 	drone._drop_bomb()
 	for child in world.get_children():
-		if child is Area2D and child.get_script() == preload("res://scenes/weapons/DroneBomb.gd"):
+		if child is Area2D and child.has_method("_detonate"):
 			assert_eq(child.global_position.y, drone.global_position.y + 48, "Bomb should drop below drone")
 			break
 

@@ -47,3 +47,65 @@ func test_pool_items_disabled_when_pooled():
 	ObjectPool.create_pool("test_disabled", preload("res://scenes/weapons/Bullet.tscn"), 2)
 	for item in ObjectPool._pools["test_disabled"]:
 		assert_eq(item.process_mode, Node.PROCESS_MODE_DISABLED, "Pooled items should be disabled")
+
+func test_get_nonexistent_pool():
+	var result = ObjectPool.get("nonexistent")
+	assert_null(result, "Should return null for nonexistent pool")
+
+func test_release_reattaches_to_pool_parent():
+	ObjectPool.create_pool("test_reattach", preload("res://scenes/weapons/Bullet.tscn"), 2)
+	var item = ObjectPool.get("test_reattach")
+	var original_parent = item.get_parent()
+	item.get_parent().remove_child(item)
+	assert_null(item.get_parent(), "Item should be removed from parent")
+	ObjectPool.release(item)
+	assert_eq(item.get_parent(), original_parent, "Item should be reattached to pool parent")
+
+func test_fallback_item_added_to_pool_parent():
+	ObjectPool.create_pool("test_fallback_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var item1 = ObjectPool.get("test_fallback_parent")
+	var item2 = ObjectPool.get("test_fallback_parent")
+	assert_eq(item2.get_parent(), ObjectPool, "Fallback item should be added to ObjectPool")
+
+func test_pool_scene_path_stored():
+	ObjectPool.create_pool("test_scene_path", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	assert_eq(ObjectPool._scene_paths["test_scene_path"], "res://scenes/weapons/Bullet.tscn", "Scene path should be stored")
+
+func test_fallback_uses_stored_scene_path():
+	ObjectPool.create_pool("test_fallback_scene", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var item1 = ObjectPool.get("test_fallback_scene")
+	var item2 = ObjectPool.get("test_fallback_scene")
+	assert_true(item2.has_method("init"), "Fallback item should be a Bullet")
+
+func test_release_unknown_node_without_meta():
+	var unknown = Node2D.new()
+	add_child_autofree(unknown)
+	ObjectPool.release(unknown)
+	assert_true(unknown.is_queued_for_deletion(), "Node without pool meta should be queued")
+
+func test_release_unknown_node_with_invalid_meta():
+	var unknown = Node2D.new()
+	unknown.set_meta("_pool_name", "nonexistent_pool")
+	add_child_autofree(unknown)
+	ObjectPool.release(unknown)
+	assert_true(unknown.is_queued_for_deletion(), "Node with invalid pool name should be queued")
+
+func test_get_sets_process_mode():
+	ObjectPool.create_pool("test_process", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var item = ObjectPool.get("test_process")
+	assert_eq(item.process_mode, Node.PROCESS_MODE_INHERIT, "Item should have inherit process mode")
+
+func test_multiple_pools():
+	ObjectPool.create_pool("pool_a", preload("res://scenes/weapons/Bullet.tscn"), 2)
+	ObjectPool.create_pool("pool_b", preload("res://scenes/weapons/Mine.tscn"), 2)
+	var item_a = ObjectPool.get("pool_a")
+	var item_b = ObjectPool.get("pool_b")
+	assert_true(item_a.has_method("init"), "Pool A should return Bullet")
+	assert_true(item_b.has_method("init"), "Pool B should return Mine")
+
+func test_pool_array_typed():
+	ObjectPool.create_pool("test_typed", preload("res://scenes/weapons/Bullet.tscn"), 2)
+	var pool = ObjectPool._pools["test_typed"]
+	assert_is(pool, Array, "Pool should be an array")
+	for item in pool:
+		assert_true(item is Node, "Pool items should be Nodes")

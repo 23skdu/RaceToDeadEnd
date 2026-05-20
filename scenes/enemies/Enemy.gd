@@ -4,6 +4,8 @@ signal destroyed(position: Vector2, enemy_type: String)
 
 enum EnemyType { ROTOR, SCAV, DRONE }
 
+const TYPE_NAMES: Array[String] = ["rotor", "scav", "drone"]
+
 var enemy_type: EnemyType = EnemyType.ROTOR
 var hp: int = 1
 var speed: float = 200.0
@@ -78,5 +80,5 @@ func _on_hit_flash_timer_timeout() -> void:
 		sprite.modulate = Color.WHITE
 
 func _die() -> void:
-	destroyed.emit(global_position, EnemyType.keys()[enemy_type].to_lower())
+	destroyed.emit(global_position, TYPE_NAMES[enemy_type])
 	queue_free()

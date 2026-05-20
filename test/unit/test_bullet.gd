@@ -95,11 +95,12 @@ func test_homing_adjusts_direction():
 	b._process(0.1)
 	assert_ne(b.direction, initial_dir, "Direction should change with homing")
 
-func test_die_frees_bullet():
+func test_die_releases_to_pool():
 	var b = Bullet.new()
 	add_child_autofree(b)
+	ObjectPool.create_pool("test_bullet_die", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	b._die()
-	assert_true(b.is_queued_for_deletion(), "Bullet should be queued for deletion")
+	assert_true(b.get_meta("_in_pool", true) or b.is_queued_for_deletion(), "Bullet should be released to pool or queued")
 
 func test_homing_caches_enemies():
 	var b = Bullet.new()

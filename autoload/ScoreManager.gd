@@ -21,16 +21,16 @@ func register_civilian_protected(position: Vector2) -> void:
 	score_popped.emit(position, SCORE_VALUES.civilian_protected, "PROTECTED!")
 
 func register_pickup(pickup_type: String, position: Vector2) -> void:
+	var players = get_tree().get_nodes_in_group("player")
+	var player = players[0] if players.size() > 0 else null
 	match pickup_type:
 		"repair":
 			GameManager.add_health(1)
 		"boost":
-			var players = get_tree().get_nodes_in_group("player")
-			if players.size() > 0 and players[0].has_method("add_boost"):
-				players[0].add_boost()
+			if player and player.has_method("add_boost"):
+				player.add_boost()
 		"ammo":
-			var players = get_tree().get_nodes_in_group("player")
-			if players.size() > 0 and players[0].has_method("add_ammo"):
-				players[0].add_ammo()
+			if player and player.has_method("add_ammo"):
+				player.add_ammo()
 		"multiplier":
 			GameManager.add_temporary_multiplier(1)

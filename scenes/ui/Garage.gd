@@ -11,15 +11,19 @@ signal start_run_requested
 const UPGRADE_COSTS: Dictionary = {
 	max_health = [0, 500, 1500, 3000, 5000],
 	boost_capacity = [0, 300, 800, 2000, 4000],
-	starting_ammo = [0, 200, 600, 1500, 3000],
 	fire_rate = [0, 400, 1000, 2500, 5000],
+	missile_ammo = [0, 150, 400, 1000, 2000],
+	mine_ammo = [0, 200, 500, 1200, 2500],
+	emp_ammo = [0, 250, 700, 1500, 3000],
 }
 
 const UPGRADE_NAMES: Dictionary = {
 	max_health = "MAX HEALTH",
 	boost_capacity = "BOOST CAPACITY",
-	starting_ammo = "STARTING AMMO",
 	fire_rate = "FIRE RATE",
+	missile_ammo = "MISSILE AMMO",
+	mine_ammo = "MINE AMMO",
+	emp_ammo = "EMP AMMO",
 }
 
 func _ready() -> void:

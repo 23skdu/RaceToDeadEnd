@@ -11,7 +11,6 @@ const TILE_SIZE: Vector2i = Vector2i(64, 32)
 const CHUNK_PIXEL_HEIGHT: int = 320
 const PREWARM_CHUNKS: int = 4
 const DESPAWN_CHUNKS_BEHIND: int = 1
-const TOTAL_CHUNK_WEIGHT: int = 95
 
 enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
 
@@ -39,7 +38,6 @@ func _process(_delta: float) -> void:
 	for chunk in active_chunks:
 		if chunk.position.y - player_y > threshold:
 			_recycle_chunk(chunk)
-			break
 
 func _spawn_chunk(offset: int) -> void:
 	var chunk = Node2D.new()
@@ -130,13 +128,6 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 					"pos": Vector2(x_pos, y_pos),
 					"color": Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0)
 				})
-	
-	var diamond = PackedVector2Array([
-		Vector2(0, -half_h),
-		Vector2(half_w, 0),
-		Vector2(0, half_h),
-		Vector2(-half_w, 0)
-	])
 	
 	if lane_polygons.size() > 0:
 		var lane_merged = MultiMeshInstance2D.new()

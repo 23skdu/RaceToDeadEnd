@@ -36,7 +36,7 @@ func update_boost_charges(charges: int) -> void:
 		boost_indicators[i].visible = i < charges
 
 func update_weapon_display(weapon_index: int, ammo: int) -> void:
-	weapon_icon.modulate = WEAPON_COLORS[weapon_index]
+	weapon_icon.modulate = WEAPON_COLORS[weapon_index % WEAPON_COLORS.size()]
 	ammo_label.text = str(ammo)
 
 func _on_game_over() -> void:

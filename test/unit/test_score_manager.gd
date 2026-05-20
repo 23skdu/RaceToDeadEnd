@@ -1,12 +1,12 @@
 extends GutTest
 
-var ScoreManager
+var ScoreManagerScript
 
 func before_all():
-	ScoreManager = load("res://autoload/ScoreManager.gd")
+	ScoreManagerScript = load("res://autoload/ScoreManager.gd")
 
 func before_each():
-	var sm = ScoreManager.new()
+	var sm = ScoreManagerScript.new()
 	add_child_autofree(sm)
 	set_meta("sm", sm)
 
@@ -110,8 +110,44 @@ func test_register_pickup_ammo():
 	assert_eq(player.secondary_ammo, [1, 1, 1], "Ammo pickup should add one to each type")
 
 func test_score_values_constants():
-	assert_eq(ScoreManager.SCORE_VALUES.rotor_kill, 50, "Rotor kill value")
-	assert_eq(ScoreManager.SCORE_VALUES.scav_kill, 100, "Scav kill value")
-	assert_eq(ScoreManager.SCORE_VALUES.drone_kill, 200, "Drone kill value")
-	assert_eq(ScoreManager.SCORE_VALUES.civilian_protected, 500, "Civilian protected value")
-	assert_eq(ScoreManager.SCORE_VALUES.segment_bonus, 100, "Segment bonus value")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.rotor_kill, 50, "Rotor kill value")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.scav_kill, 100, "Scav kill value")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.drone_kill, 200, "Drone kill value")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.civilian_protected, 500, "Civilian protected value")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.segment_bonus, 100, "Segment bonus value")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.pickup_collected, 0, "Pickup collected value")
+
+func test_register_kill_emits_signal():
+	var sm = get_sm()
+	watch_signals(sm)
+	sm.register_kill("rotor", Vector2(100, 200))
+	assert_signal_emitted(sm, "score_popped", "Should emit score_popped signal")
+
+func test_register_civilian_protected_emits_signal():
+	var sm = get_sm()
+	watch_signals(sm)
+	sm.register_civilian_protected(Vector2(100, 200))
+	assert_signal_emitted(sm, "score_popped", "Should emit score_popped signal")
+
+func test_register_kill_signal_contains_correct_points():
+	var sm = get_sm()
+	watch_signals(sm)
+	sm.register_kill("drone", Vector2(50, 50))
+	var signal_args = get_signal_args(sm, "score_popped")
+	assert_eq(signal_args[0][1], 200, "Signal should contain 200 points for drone")
+
+func test_register_pickup_boost_no_player():
+	var sm = get_sm()
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.start_game()
+	sm.register_pickup("boost", Vector2(100, 200))
+	assert_true(true, "Should not crash when no player in group")
+
+func test_register_pickup_ammo_no_player():
+	var sm = get_sm()
+	var gm = load("res://autoload/GameManager.gd").new()
+	add_child_autofree(gm)
+	gm.start_game()
+	sm.register_pickup("ammo", Vector2(100, 200))
+	assert_true(true, "Should not crash when no player in group")

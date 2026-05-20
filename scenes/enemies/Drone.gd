@@ -1,6 +1,6 @@
 extends "res://scenes/enemies/Enemy.gd"
 
-const BOMB_SCRIPT = preload("res://scenes/weapons/DroneBomb.gd")
+const BOMB_SCENE = preload("res://scenes/weapons/DroneBomb.tscn")
 
 var bomb_timer: float = 0.0
 var bomb_interval: float = 3.0
@@ -40,8 +40,7 @@ func _drop_bomb() -> void:
 	bomb_timer = bomb_interval
 	if not player:
 		return
-	var bomb = Area2D.new()
-	bomb.set_script(BOMB_SCRIPT)
+	var bomb = BOMB_SCENE.instantiate()
 	if world_node:
 		world_node.add_child(bomb)
 	elif get_parent():
