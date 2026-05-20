@@ -10,29 +10,34 @@ var speed: float = 200.0
 var lane: int = 0
 var score_value: int = 50
 var can_damage_player: bool = true
+var player: Node = null
+var stunned: bool = false
+var stun_timer: float = 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
 @onready var hit_flash_timer: Timer = $HitFlashTimer
 
 func _ready() -> void:
+	collision_layer = 2
 	add_to_group("enemy")
 
-func init(type: EnemyType, start_lane: int, player_speed: float) -> void:
+func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float) -> void:
 	enemy_type = type
 	lane = start_lane
+	player = player_ref
 	match type:
 		EnemyType.ROTOR:
 			hp = 1
-			speed = player_speed * 0.9
+			speed = base_speed * 0.9
 			score_value = 50
 		EnemyType.SCAV:
 			hp = 3
-			speed = player_speed * 0.7
+			speed = base_speed * 0.7
 			score_value = 100
 		EnemyType.DRONE:
 			hp = 2
-			speed = player_speed * 0.5
+			speed = base_speed * 0.5
 			score_value = 200
 	_update_sprite()
 
@@ -45,6 +50,18 @@ func _update_sprite() -> void:
 		EnemyType.DRONE:
 			sprite.texture = load("res://assets/sprites/enemies/drone.png") if ResourceLoader.exists("res://assets/sprites/enemies/drone.png") else null
 
+func _physics_process(delta: float) -> void:
+	if stunned:
+		stun_timer -= delta
+		if stun_timer <= 0.0:
+			stunned = false
+			sprite.modulate = Color.WHITE
+
+func apply_stun(duration: float) -> void:
+	stunned = true
+	stun_timer = duration
+	sprite.modulate = Color(0.5, 0.5, 1.0, 0.7)
+
 func take_damage(amount: int = 1) -> void:
 	hp -= amount
 	_play_hit_flash()
@@ -52,15 +69,14 @@ func take_damage(amount: int = 1) -> void:
 		_die()
 
 func _play_hit_flash() -> void:
-	sprite.modulate = Color.RED
+	if not stunned:
+		sprite.modulate = Color.RED
 	hit_flash_timer.start()
 
 func _on_hit_flash_timer_timeout() -> void:
-	sprite.modulate = Color.WHITE
+	if not stunned:
+		sprite.modulate = Color.WHITE
 
 func _die() -> void:
 	destroyed.emit(global_position, EnemyType.keys()[enemy_type].to_lower())
-	queue_free()
-
-func _on_visible_on_screen_notifier_screen_exited() -> void:
 	queue_free()

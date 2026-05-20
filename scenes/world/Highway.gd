@@ -1,6 +1,9 @@
 extends Node2D
 
 signal segment_completed(segment: int)
+signal ice_entered(body: Node)
+signal ice_exited(body: Node)
+signal bridge_fall(body: Node)
 
 const CHUNK_HEIGHT: int = 10
 const CHUNK_WIDTH: int = 5
@@ -8,6 +11,7 @@ const TILE_SIZE: Vector2i = Vector2i(64, 32)
 const CHUNK_PIXEL_HEIGHT: int = 320
 const PREWARM_CHUNKS: int = 4
 const DESPAWN_CHUNKS_BEHIND: int = 1
+const TOTAL_CHUNK_WEIGHT: int = 95
 
 enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
 
@@ -40,7 +44,6 @@ func _process(_delta: float) -> void:
 func _spawn_chunk(offset: int) -> void:
 	var chunk = Node2D.new()
 	var chunk_type = _pick_chunk_type()
-	# First chunk should be standard to give player time to start
 	if offset < 2:
 		chunk_type = ChunkType.STANDARD
 	chunk.position.y = -offset * CHUNK_PIXEL_HEIGHT
@@ -66,13 +69,22 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	segment_completed.emit(current_segment)
 
 func _pick_chunk_type() -> ChunkType:
-	var total_weight = 0
-	for w in chunk_weights.values():
-		total_weight += w
-	var roll = randi() % total_weight
+	var tier = GameManager.difficulty_tier
+	var adjusted_weights = chunk_weights.duplicate()
+	var hazard_increase = mini(tier - 1, 10) * 2
+	adjusted_weights[ChunkType.STANDARD] = maxi(40 - hazard_increase * 2, 15)
+	adjusted_weights[ChunkType.DEBRIS] = mini(20 + hazard_increase, 35)
+	adjusted_weights[ChunkType.ICE] = mini(10 + hazard_increase, 25)
+	adjusted_weights[ChunkType.CONSTRUCTION] = mini(15 + hazard_increase, 30)
+	adjusted_weights[ChunkType.BRIDGE] = mini(15 + hazard_increase, 30)
+	
+	var total = 0
+	for w in adjusted_weights.values():
+		total += w
+	var roll = randi() % total
 	var cumulative = 0
-	for type in chunk_weights:
-		cumulative += chunk_weights[type]
+	for type in adjusted_weights:
+		cumulative += adjusted_weights[type]
 		if roll < cumulative:
 			return type
 	return ChunkType.STANDARD
@@ -84,101 +96,124 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 	var half_w = TILE_SIZE.x / 2.0
 	var half_h = TILE_SIZE.y / 2.0
 	
-	# 1. Spawn base tile textures / shapes
+	var lane_polygons = []
+	var shoulder_polygons = []
+	var obstacle_positions = []
+	
 	for row in CHUNK_HEIGHT:
 		for col in CHUNK_WIDTH:
 			var tile_variant = _get_tile_variant(chunk_type, row, col)
 			
-			# Generate isometric coordinate stacked offset
 			var x_pos = (col - 2) * TILE_SIZE.x
 			if row % 2 == 1:
 				x_pos += half_w
 			var y_pos = row * TILE_SIZE.y
 			
-			# Create Polygon2D diamond
-			var tile = Polygon2D.new()
-			tile.polygon = PackedVector2Array([
-				Vector2(0, -half_h),
-				Vector2(half_w, 0),
-				Vector2(0, half_h),
-				Vector2(-half_w, 0)
-			])
-			tile.position = Vector2(x_pos, y_pos)
-			
-			# Assign colors for futuristic styling
+			var tile_color: Color
 			if col == 0 or col == CHUNK_WIDTH - 1:
-				# Shoulders / Margins
 				if chunk_type == ChunkType.BRIDGE:
-					tile.color = Color(0.02, 0.02, 0.06) # Abyss
+					tile_color = Color(0.02, 0.02, 0.06)
 				elif chunk_type == ChunkType.CONSTRUCTION:
-					tile.color = Color(0.7, 0.5, 0.0) # Warning Yellow
+					tile_color = Color(0.7, 0.5, 0.0)
 				else:
-					tile.color = Color(0.05, 0.18, 0.08) # Cyber Green
+					tile_color = Color(0.05, 0.18, 0.08)
+				shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 			else:
-				# Main highway lanes
 				if chunk_type == ChunkType.ICE:
-					tile.color = Color(0.2, 0.6, 0.9, 0.6) # Sleek glowing ice blue
+					tile_color = Color(0.2, 0.6, 0.9, 0.6)
 				else:
-					tile.color = Color(0.12, 0.12, 0.16) # Dark asphalt grey
-					
-			chunk_local.add_child(tile)
+					tile_color = Color(0.12, 0.12, 0.16)
+				lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 			
-			# Spawn Collidable obstacles
 			if tile_variant == 1 or tile_variant == 3:
-				var obstacle = StaticBody2D.new()
-				obstacle.collision_layer = 1
-				obstacle.collision_mask = 1
-				obstacle.position = tile.position
-				obstacle.add_to_group("obstacles")
-				
-				var col_poly = CollisionPolygon2D.new()
-				col_poly.polygon = tile.polygon
-				obstacle.add_child(col_poly)
-				
-				# Standout elevated visual diamond representation
-				var visual = Polygon2D.new()
-				var sf = 0.6
-				visual.polygon = PackedVector2Array([
-					Vector2(0, -half_h * sf),
-					Vector2(half_w * sf, 0),
-					Vector2(0, half_h * sf),
-					Vector2(-half_w * sf, 0)
-				])
-				visual.color = Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0)
-				obstacle.add_child(visual)
-				
-				chunk_local.add_child(obstacle)
-
-	# 2. Spawn Side Guardrails / Glowing Laser borders
+				obstacle_positions.append({
+					"pos": Vector2(x_pos, y_pos),
+					"color": Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0)
+				})
+	
+	var diamond = PackedVector2Array([
+		Vector2(0, -half_h),
+		Vector2(half_w, 0),
+		Vector2(0, half_h),
+		Vector2(-half_w, 0)
+	])
+	
+	if lane_polygons.size() > 0:
+		var lane_merged = MultiMeshInstance2D.new()
+		var multimesh = MultiMesh.new()
+		multimesh.mesh = _create_diamond_mesh()
+		multimesh.instance_count = lane_polygons.size()
+		for i in lane_polygons.size():
+			multimesh.set_instance_transform_2d(i, Transform2D(0.0, lane_polygons[i]["pos"]))
+		lane_merged.multimesh = multimesh
+		lane_merged.modulate = lane_polygons[0]["color"]
+		chunk_local.add_child(lane_merged)
+	
+	if shoulder_polygons.size() > 0:
+		var shoulder_merged = MultiMeshInstance2D.new()
+		var multimesh = MultiMesh.new()
+		multimesh.mesh = _create_diamond_mesh()
+		multimesh.instance_count = shoulder_polygons.size()
+		for i in shoulder_polygons.size():
+			multimesh.set_instance_transform_2d(i, Transform2D(0.0, shoulder_polygons[i]["pos"]))
+		shoulder_merged.multimesh = multimesh
+		shoulder_merged.modulate = shoulder_polygons[0]["color"]
+		chunk_local.add_child(shoulder_merged)
+	
+	for obs in obstacle_positions:
+		var obstacle = StaticBody2D.new()
+		obstacle.collision_layer = 1
+		obstacle.collision_mask = 1
+		obstacle.position = obs["pos"]
+		obstacle.add_to_group("obstacles")
+		
+		var col_poly = CollisionPolygon2D.new()
+		var sf = 0.6
+		col_poly.polygon = PackedVector2Array([
+			Vector2(0, -half_h * sf),
+			Vector2(half_w * sf, 0),
+			Vector2(0, half_h * sf),
+			Vector2(-half_w * sf, 0)
+		])
+		obstacle.add_child(col_poly)
+		
+		var visual = Polygon2D.new()
+		visual.polygon = col_poly.polygon
+		visual.color = obs["color"]
+		obstacle.add_child(visual)
+		
+		chunk_local.add_child(obstacle)
+	
+	var left_rail = Line2D.new()
+	left_rail.width = 3.0
+	left_rail.default_color = Color(1.0, 0.0, 0.5) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
+	var left_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT:
 		var y_pos = row * TILE_SIZE.y
-		# Left laser line
-		var left_rail = Line2D.new()
-		left_rail.width = 3.0
-		left_rail.default_color = Color(1.0, 0.0, 0.5) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
-		left_rail.points = PackedVector2Array([
-			Vector2(-96, y_pos - half_h),
-			Vector2(-96 + half_w, y_pos)
-		] if row % 2 == 1 else [
-			Vector2(-128, y_pos - half_h),
-			Vector2(-128 + half_w, y_pos)
-		])
-		chunk_local.add_child(left_rail)
-		
-		# Right laser line
-		var right_rail = Line2D.new()
-		right_rail.width = 3.0
-		right_rail.default_color = Color(1.0, 0.0, 0.5) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
-		right_rail.points = PackedVector2Array([
-			Vector2(96, y_pos - half_h),
-			Vector2(96 + half_w, y_pos)
-		] if row % 2 == 1 else [
-			Vector2(64, y_pos - half_h),
-			Vector2(64 + half_w, y_pos)
-		])
-		chunk_local.add_child(right_rail)
-
-	# 3. Ice Trigger Areas
+		if row % 2 == 1:
+			left_points.append(Vector2(-96, y_pos - half_h))
+			left_points.append(Vector2(-96 + half_w, y_pos))
+		else:
+			left_points.append(Vector2(-128, y_pos - half_h))
+			left_points.append(Vector2(-128 + half_w, y_pos))
+	left_rail.points = left_points
+	chunk_local.add_child(left_rail)
+	
+	var right_rail = Line2D.new()
+	right_rail.width = 3.0
+	right_rail.default_color = Color(1.0, 0.0, 0.5) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
+	var right_points = PackedVector2Array()
+	for row in CHUNK_HEIGHT:
+		var y_pos = row * TILE_SIZE.y
+		if row % 2 == 1:
+			right_points.append(Vector2(96, y_pos - half_h))
+			right_points.append(Vector2(96 + half_w, y_pos))
+		else:
+			right_points.append(Vector2(64, y_pos - half_h))
+			right_points.append(Vector2(64 + half_w, y_pos))
+	right_rail.points = right_points
+	chunk_local.add_child(right_rail)
+	
 	if chunk_type == ChunkType.ICE:
 		var ice_area = Area2D.new()
 		ice_area.collision_layer = 0
@@ -194,10 +229,8 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 		ice_area.body_entered.connect(_on_ice_entered)
 		ice_area.body_exited.connect(_on_ice_exited)
 		chunk_local.add_child(ice_area)
-
-	# 4. Bridge Danger Areas (Death/Fall detection on side margins)
+	
 	if chunk_type == ChunkType.BRIDGE:
-		# Left bridge side Area2D
 		var left_bridge = Area2D.new()
 		left_bridge.collision_layer = 0
 		left_bridge.collision_mask = 1
@@ -212,7 +245,6 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 		left_bridge.body_entered.connect(_on_bridge_fall)
 		chunk_local.add_child(left_bridge)
 		
-		# Right bridge side Area2D
 		var right_bridge = Area2D.new()
 		right_bridge.collision_layer = 0
 		right_bridge.collision_mask = 1
@@ -226,29 +258,35 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 		right_bridge.add_child(right_col)
 		right_bridge.body_entered.connect(_on_bridge_fall)
 		chunk_local.add_child(right_bridge)
-
+	
 	chunk.add_child(chunk_local)
 
+func _create_diamond_mesh() -> ArrayMesh:
+	var mesh = ArrayMesh.new()
+	var half_w = TILE_SIZE.x / 2.0
+	var half_h = TILE_SIZE.y / 2.0
+	var vertices = PackedVector2Array([
+		Vector2(0, -half_h),
+		Vector2(half_w, 0),
+		Vector2(0, half_h),
+		Vector2(-half_w, 0)
+	])
+	var indices = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var arrays = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = indices
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
 func _on_ice_entered(body: Node) -> void:
-	if body.has_method("set_slippery"):
-		body.set_slippery(true)
+	ice_entered.emit(body)
 
 func _on_ice_exited(body: Node) -> void:
-	if body.has_method("set_slippery"):
-		body.set_slippery(false)
+	ice_exited.emit(body)
 
 func _on_bridge_fall(body: Node) -> void:
-	if body.has_method("take_damage"):
-		body.take_damage(2)
-		# Safe repush positioning toward road center
-		if body.position.x < 0:
-			body.position.x = -32
-			if "current_lane" in body:
-				body.current_lane = 1
-		else:
-			body.position.x = 32
-			if "current_lane" in body:
-				body.current_lane = 2
+	bridge_fall.emit(body)
 
 func _get_tile_variant(chunk_type: ChunkType, row: int, col: int) -> int:
 	match chunk_type:
@@ -268,5 +306,6 @@ func _get_tile_variant(chunk_type: ChunkType, row: int, col: int) -> int:
 func _clear_chunk_tiles(chunk: Node2D) -> void:
 	for child in chunk.get_children():
 		if child.name == "Tiles":
+			chunk.remove_child(child)
 			child.queue_free()
-			await child.tree_exited
+			break

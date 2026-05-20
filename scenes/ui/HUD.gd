@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const WEAPON_COLORS = [Color.RED, Color.YELLOW, Color.CYAN]
+
 @onready var score_label: Label = $ScoreLabel
 @onready var health_bar: ProgressBar = $HealthBar
 @onready var multiplier_label: Label = $MultiplierLabel
@@ -34,7 +36,7 @@ func update_boost_charges(charges: int) -> void:
 		boost_indicators[i].visible = i < charges
 
 func update_weapon_display(weapon_index: int, ammo: int) -> void:
-	weapon_icon.modulate = [Color.RED, Color.YELLOW, Color.CYAN][weapon_index]
+	weapon_icon.modulate = WEAPON_COLORS[weapon_index]
 	ammo_label.text = str(ammo)
 
 func _on_game_over() -> void:

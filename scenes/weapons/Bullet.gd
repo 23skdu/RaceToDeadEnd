@@ -1,10 +1,14 @@
 extends Area2D
 
+const ENEMY_CACHE_INTERVAL: float = 0.25
+
 var speed: float = 500.0
 var direction: Vector2 = Vector2.UP
 var damage: int = 1
 var homing_strength: float = 0.0
 var is_player_bullet: bool = true
+var _cached_enemies: Array = []
+var _cache_timer: float = 0.0
 
 signal hit_target(target: Node)
 
@@ -25,8 +29,11 @@ func init(pos: Vector2, dir: Vector2, player_owned: bool = true) -> void:
 
 func _process(delta: float) -> void:
 	if homing_strength > 0.0:
-		var enemies = get_tree().get_nodes_in_group("enemy")
-		var nearest = _find_nearest(enemies)
+		_cache_timer += delta
+		if _cache_timer >= ENEMY_CACHE_INTERVAL:
+			_cache_timer = 0.0
+			_cached_enemies = get_tree().get_nodes_in_group("enemy")
+		var nearest = _find_nearest(_cached_enemies)
 		if nearest:
 			var target_dir = (nearest.global_position - global_position).normalized()
 			direction = direction.lerp(target_dir, homing_strength * delta).normalized()
@@ -57,7 +64,18 @@ func _on_area_entered(area: Area2D) -> void:
 	_die()
 
 func _die() -> void:
-	queue_free()
+	ObjectPool.release(self)
+
+func on_pool_get() -> void:
+	pass
+
+func on_pool_release() -> void:
+	homing_strength = 0.0
+	damage = 1
+	scale = Vector2.ONE
+	modulate = Color.WHITE
+	_cached_enemies.clear()
+	_cache_timer = 0.0
 
 func _on_visible_on_screen_notifier_screen_exited() -> void:
 	queue_free()

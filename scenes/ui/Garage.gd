@@ -48,7 +48,9 @@ func refresh() -> void:
 
 func _on_upgrade_pressed(key: String, cost: int) -> void:
 	if GameManager.spend_credits(cost):
-		GameManager.upgrade_levels[key] += 1
+		var costs = UPGRADE_COSTS[key]
+		if GameManager.upgrade_levels[key] < costs.size() - 1:
+			GameManager.upgrade_levels[key] += 1
 		refresh()
 
 func _on_back_pressed() -> void:

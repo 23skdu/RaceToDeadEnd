@@ -21,7 +21,7 @@ func _ready() -> void:
 func _on_game_over(final_score: int) -> void:
 	final_score_label.text = "SCORE: " + str(final_score)
 	high_score_label.text = "BEST: " + str(GameManager.high_score)
-	credits_label.text = "CREDITS EARNED: +" + str(final_score / 10)
+	credits_label.text = "CREDITS EARNED: +" + str(floori(final_score / 10.0))
 	show()
 
 func _on_continue_pressed() -> void:

@@ -6,20 +6,18 @@ signal boost_depleted
 signal boost_charge_updated(charges: int)
 signal weapon_switched(weapon_index: int)
 
-const BASE_SPEED: float = 200.0
 const BOOST_SPEED_MULTIPLIER: float = 2.0
-const LANE_WIDTH: float = 64.0
-const LANE_COUNT: int = 4
 const WEAVE_DISTANCE: float = 128.0
 const WEAVE_COOLDOWN: float = 0.5
 const BOOST_DURATION: float = 1.5
 const BOOST_RECHARGE_TIME: float = 8.0
 const PRIMARY_FIRE_COOLDOWN: float = 0.1
 const DOUBLE_TAP_DELAY: float = 0.25
+const SPEED_MODIFIER: float = 0.5
 
 var current_lane: int = 1
 var target_x: float = 0.0
-var speed: float = BASE_SPEED
+var speed: float = Constants.BASE_SPEED
 var boost_charges: int = 3
 var max_boost_charges: int = 3
 var boost_active: bool = false
@@ -33,6 +31,7 @@ var secondary_ammo: Array[int] = [3, 2, 1]
 var invincible: bool = false
 var invincible_timer: float = 0.0
 var slippery: bool = false
+var speed_input: float = 0.0
 
 var last_left_tap_time: float = 0.0
 var last_right_tap_time: float = 0.0
@@ -42,6 +41,9 @@ var last_right_tap_time: float = 0.0
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
 func _ready() -> void:
+	collision_layer = 1
+	collision_mask = 1
+	add_to_group("player")
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
 	var al = GameManager.upgrade_levels.get("starting_ammo", 1)
 	
@@ -63,12 +65,11 @@ func _process(delta: float) -> void:
 	_update_timers(delta)
 
 func _physics_process(delta: float) -> void:
-	var current_speed = speed * (BOOST_SPEED_MULTIPLIER if boost_active else 1.0)
+	var current_speed = speed * (BOOST_SPEED_MULTIPLIER if boost_active else 1.0) * (1.0 + speed_input * SPEED_MODIFIER)
 	velocity.y = -current_speed
 	var x_diff = target_x - position.x
 	
 	if abs(x_diff) > 2.0:
-		# Slower slidey steering on ice
 		var lateral_coeff = 2.5 if slippery else 10.0
 		velocity.x = move_toward(velocity.x, x_diff * 8.0, current_speed * delta * lateral_coeff)
 	else:
@@ -77,19 +78,23 @@ func _physics_process(delta: float) -> void:
 		
 	move_and_slide()
 	
-	# Obstacle static collision check
 	for i in get_slide_collision_count():
 		var col = get_slide_collision(i)
 		var collider = col.get_collider()
 		if collider.is_in_group("obstacles") or collider is StaticBody2D:
-			take_damage(1)
+			if not boost_active:
+				take_damage(1)
 
 func _handle_input() -> void:
-	var now = Time.get_ticks_msec() / 1000.0
-	
+	speed_input = 0.0
+	if Input.is_action_pressed("accelerate"):
+		speed_input = 1.0
+	elif Input.is_action_pressed("brake"):
+		speed_input = -0.5
+		
 	if Input.is_action_just_pressed("move_left"):
+		var now = Time.get_ticks_msec() / 1000.0
 		if now - last_left_tap_time < DOUBLE_TAP_DELAY and can_weave:
-			# Weave Weave! (Dodge left)
 			current_lane = maxi(current_lane - 2, 0)
 			target_x = _lane_to_x(current_lane)
 			position.x = move_toward(position.x, target_x, WEAVE_DISTANCE)
@@ -101,15 +106,15 @@ func _handle_input() -> void:
 		last_left_tap_time = now
 
 	if Input.is_action_just_pressed("move_right"):
+		var now = Time.get_ticks_msec() / 1000.0
 		if now - last_right_tap_time < DOUBLE_TAP_DELAY and can_weave:
-			# Weave Weave! (Dodge right)
-			current_lane = mini(current_lane + 2, LANE_COUNT - 1)
+			current_lane = mini(current_lane + 2, Constants.LANE_COUNT - 1)
 			target_x = _lane_to_x(current_lane)
 			position.x = move_toward(position.x, target_x, WEAVE_DISTANCE)
 			can_weave = false
 			weave_timer = WEAVE_COOLDOWN
 		else:
-			current_lane = mini(current_lane + 1, LANE_COUNT - 1)
+			current_lane = mini(current_lane + 1, Constants.LANE_COUNT - 1)
 			target_x = _lane_to_x(current_lane)
 		last_right_tap_time = now
 
@@ -123,8 +128,8 @@ func _handle_input() -> void:
 		_cycle_weapon()
 
 func _lane_to_x(lane: int) -> float:
-	var total_width = LANE_WIDTH * (LANE_COUNT - 1)
-	return -total_width / 2.0 + lane * LANE_WIDTH
+	var total_width = Constants.LANE_WIDTH * (Constants.LANE_COUNT - 1)
+	return -total_width / 2.0 + lane * Constants.LANE_WIDTH
 
 func set_slippery(val: bool) -> void:
 	slippery = val
@@ -197,3 +202,13 @@ func take_damage(amount: int = 1) -> void:
 
 func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
+
+func add_boost() -> void:
+	if boost_charges < max_boost_charges:
+		boost_charges += 1
+		boost_charge_updated.emit(boost_charges)
+
+func add_ammo() -> void:
+	for i in secondary_ammo.size():
+		secondary_ammo[i] += 1
+	weapon_switched.emit(current_weapon)

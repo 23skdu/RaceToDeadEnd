@@ -25,7 +25,9 @@ func _on_garage_pressed() -> void:
 	)
 
 func _on_options_pressed() -> void:
-	pass
+	var options = preload("res://scenes/ui/Options.tscn").instantiate()
+	add_child(options)
+	options.back_to_menu_requested.connect(func(): options.queue_free())
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

@@ -25,3 +25,6 @@ Thumbs.db
 *.dylib
 *.so
 *.lib
+
+# Third-party addons (install locally)
+addons/gut/

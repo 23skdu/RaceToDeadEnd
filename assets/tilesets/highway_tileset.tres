@@ -1,16 +1,20 @@
-[gd_resource type="TileSet" load_steps=2 format=3 uid="uid://dkhym7sibjtvf"]
+[res_resource load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/tilesets/highway_tiles.png" id="1_tiles"]
+
+[sub_resource type="TileSet" id="TileSet_highway"]
+tile_size = Vector2i(64, 32)
+tile_layout = 3
+physics_layer_count = 1
+navigation_layer_count = 0
+occlusion_layer_count = 0
+terrain_set_count = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1"]
+texture = ExtResource("1_tiles")
+texture_region_size = Vector2i(64, 32)
+separation = Vector2i(0, 0)
+margins = Vector2i(0, 0)
+tile_shape = 1
 
 [resource]
-tile_size = Vector2i(64, 32)
-physics_layer_0/collision_layer = 1
-physics_layer_0/collision_mask = 1
-terrain_set_0/mode = 0
-terrain_set_0/terrain_count = 0
-tile_layout = 0
-tile_offset_axis = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_abcde"]
-texture = null
-texture_region_size = Vector2i(64, 32)
-tiles/0/region = Rect2i(0, 0, 64, 32)
-tiles/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)

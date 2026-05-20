@@ -25,8 +25,12 @@ func register_pickup(pickup_type: String, position: Vector2) -> void:
 		"repair":
 			GameManager.add_health(1)
 		"boost":
-			pass
+			var players = get_tree().get_nodes_in_group("player")
+			if players.size() > 0 and players[0].has_method("add_boost"):
+				players[0].add_boost()
 		"ammo":
-			pass
+			var players = get_tree().get_nodes_in_group("player")
+			if players.size() > 0 and players[0].has_method("add_ammo"):
+				players[0].add_ammo()
 		"multiplier":
-			GameManager.set_multiplier(GameManager.multiplier + 1)
+			GameManager.add_temporary_multiplier(1)

@@ -25,6 +25,8 @@ config/icon="res://icon.svg"
 GameManager="*res://autoload/GameManager.gd"
 ScoreManager="*res://autoload/ScoreManager.gd"
 AudioManager="*res://autoload/AudioManager.gd"
+Constants="*res://autoload/Constants.gd"
+ObjectPool="*res://autoload/ObjectPool.gd"
 
 [display]
 
@@ -87,3 +89,9 @@ cycle_weapon={
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
+
+[plugins]
+
+gut={
+"enable": true
+}
