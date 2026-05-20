@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dronebomb123"]
+
+[ext_resource type="Script" path="res://scenes/weapons/DroneBomb.gd" id="1_db"]
+
+[node name="DroneBomb" type="Area2D"]
+script = ExtResource("1_db")

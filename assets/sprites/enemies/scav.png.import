@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c3rrlhkvcuuhh"
-valid=false
+uid="uid://gl50qxwvkha8"
+path="res://.godot/imported/scav.png-7ba7ed936e08945f045b4363732530fb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/enemies/scav.png"
+dest_files=["res://.godot/imported/scav.png-7ba7ed936e08945f045b4363732530fb.ctex"]
 
 [params]
 

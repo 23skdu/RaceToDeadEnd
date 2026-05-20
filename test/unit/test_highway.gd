@@ -204,7 +204,7 @@ func test_generate_chunk_tiles_creates_obstacles_for_debris():
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.DEBRIS)
 	var tiles_node = chunk.get_node_or_null("Tiles")
-	assert_is_not_null(tiles_node, "Should create Tiles node")
+	assert_true(tiles_node != null, "Should create Tiles node")
 	var obstacle_count = 0
 	for child in tiles_node.get_children():
 		if child is StaticBody2D:
@@ -217,7 +217,7 @@ func test_generate_chunk_tiles_creates_ice_area():
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.ICE)
 	var tiles_node = chunk.get_node_or_null("Tiles")
-	assert_is_not_null(tiles_node, "Should create Tiles node")
+	assert_true(tiles_node != null, "Should create Tiles node")
 	var area_count = 0
 	for child in tiles_node.get_children():
 		if child is Area2D:
@@ -230,7 +230,7 @@ func test_generate_chunk_tiles_creates_bridge_areas():
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.BRIDGE)
 	var tiles_node = chunk.get_node_or_null("Tiles")
-	assert_is_not_null(tiles_node, "Should create Tiles node")
+	assert_true(tiles_node != null, "Should create Tiles node")
 	var area_count = 0
 	for child in tiles_node.get_children():
 		if child is Area2D:
@@ -261,7 +261,7 @@ func test_segment_completed_signal_emits_segment_number():
 	h._spawn_chunk(0)
 	watch_signals(h)
 	h._recycle_chunk(h.active_chunks[0])
-	var args = get_signal_args(h, "segment_completed")
+	var args = get_signal_parameters(h, "segment_completed")
 	assert_eq(args[0][0], 1, "Should emit segment number 1")
 
 func test_generate_chunk_tiles_creates_rails():
@@ -270,7 +270,7 @@ func test_generate_chunk_tiles_creates_rails():
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.STANDARD)
 	var tiles_node = chunk.get_node_or_null("Tiles")
-	assert_is_not_null(tiles_node, "Should create Tiles node")
+	assert_true(tiles_node != null, "Should create Tiles node")
 	var rail_count = 0
 	for child in tiles_node.get_children():
 		if child is Line2D:

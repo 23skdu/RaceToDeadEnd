@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgpodtawle57n"
-valid=false
+uid="uid://csiwv1opqno15"
+path="res://.godot/imported/drone.png-53f750da2e13a822acabfa4412bca0ba.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/enemies/drone.png"
+dest_files=["res://.godot/imported/drone.png-53f750da2e13a822acabfa4412bca0ba.ctex"]
 
 [params]
 

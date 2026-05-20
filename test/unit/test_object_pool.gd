@@ -7,29 +7,29 @@ func test_create_pool():
 
 func test_get_returns_item_from_pool():
 	ObjectPool.create_pool("test_mine", preload("res://scenes/weapons/Mine.tscn"), 3)
-	var item = ObjectPool.get("test_mine")
-	assert_is_not_null(item, "Should return an item")
+	var item = ObjectPool.acquire("test_mine")
+	assert_true(item != null, "Should return an item")
 	assert_false(item.get_meta("_in_pool", true), "Item should be marked as in use")
 	assert_true(item.visible, "Item should be visible")
 
 func test_release_returns_item_to_pool():
 	ObjectPool.create_pool("test_emp", preload("res://scenes/weapons/EMPBlast.tscn"), 2)
-	var item = ObjectPool.get("test_emp")
+	var item = ObjectPool.acquire("test_emp")
 	ObjectPool.release(item)
 	assert_true(item.get_meta("_in_pool", true), "Item should be marked as in pool")
 	assert_false(item.visible, "Item should be hidden")
 
 func test_get_reuses_released_item():
 	ObjectPool.create_pool("test_reuse", preload("res://scenes/weapons/Bullet.tscn"), 1)
-	var item1 = ObjectPool.get("test_reuse")
+	var item1 = ObjectPool.acquire("test_reuse")
 	ObjectPool.release(item1)
-	var item2 = ObjectPool.get("test_reuse")
+	var item2 = ObjectPool.acquire("test_reuse")
 	assert_eq(item1, item2, "Should return the same reused item")
 
 func test_get_creates_fallback_when_pool_exhausted():
 	ObjectPool.create_pool("test_fallback", preload("res://scenes/weapons/Bullet.tscn"), 1)
-	var item1 = ObjectPool.get("test_fallback")
-	var item2 = ObjectPool.get("test_fallback")
+	var item1 = ObjectPool.acquire("test_fallback")
+	var item2 = ObjectPool.acquire("test_fallback")
 	assert_ne(item1, item2, "Should create new item when pool exhausted")
 
 func test_release_unknown_node_queues_free():
@@ -49,12 +49,12 @@ func test_pool_items_disabled_when_pooled():
 		assert_eq(item.process_mode, Node.PROCESS_MODE_DISABLED, "Pooled items should be disabled")
 
 func test_get_nonexistent_pool():
-	var result = ObjectPool.get("nonexistent")
+	var result = ObjectPool.acquire("nonexistent")
 	assert_null(result, "Should return null for nonexistent pool")
 
 func test_release_reattaches_to_pool_parent():
 	ObjectPool.create_pool("test_reattach", preload("res://scenes/weapons/Bullet.tscn"), 2)
-	var item = ObjectPool.get("test_reattach")
+	var item = ObjectPool.acquire("test_reattach")
 	var original_parent = item.get_parent()
 	item.get_parent().remove_child(item)
 	assert_null(item.get_parent(), "Item should be removed from parent")
@@ -63,8 +63,8 @@ func test_release_reattaches_to_pool_parent():
 
 func test_fallback_item_added_to_pool_parent():
 	ObjectPool.create_pool("test_fallback_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
-	var item1 = ObjectPool.get("test_fallback_parent")
-	var item2 = ObjectPool.get("test_fallback_parent")
+	var item1 = ObjectPool.acquire("test_fallback_parent")
+	var item2 = ObjectPool.acquire("test_fallback_parent")
 	assert_eq(item2.get_parent(), ObjectPool, "Fallback item should be added to ObjectPool")
 
 func test_pool_scene_path_stored():
@@ -73,8 +73,8 @@ func test_pool_scene_path_stored():
 
 func test_fallback_uses_stored_scene_path():
 	ObjectPool.create_pool("test_fallback_scene", preload("res://scenes/weapons/Bullet.tscn"), 1)
-	var item1 = ObjectPool.get("test_fallback_scene")
-	var item2 = ObjectPool.get("test_fallback_scene")
+	var item1 = ObjectPool.acquire("test_fallback_scene")
+	var item2 = ObjectPool.acquire("test_fallback_scene")
 	assert_true(item2.has_method("init"), "Fallback item should be a Bullet")
 
 func test_release_unknown_node_without_meta():
@@ -92,20 +92,20 @@ func test_release_unknown_node_with_invalid_meta():
 
 func test_get_sets_process_mode():
 	ObjectPool.create_pool("test_process", preload("res://scenes/weapons/Bullet.tscn"), 1)
-	var item = ObjectPool.get("test_process")
+	var item = ObjectPool.acquire("test_process")
 	assert_eq(item.process_mode, Node.PROCESS_MODE_INHERIT, "Item should have inherit process mode")
 
 func test_multiple_pools():
 	ObjectPool.create_pool("pool_a", preload("res://scenes/weapons/Bullet.tscn"), 2)
 	ObjectPool.create_pool("pool_b", preload("res://scenes/weapons/Mine.tscn"), 2)
-	var item_a = ObjectPool.get("pool_a")
-	var item_b = ObjectPool.get("pool_b")
+	var item_a = ObjectPool.acquire("pool_a")
+	var item_b = ObjectPool.acquire("pool_b")
 	assert_true(item_a.has_method("init"), "Pool A should return Bullet")
 	assert_true(item_b.has_method("init"), "Pool B should return Mine")
 
 func test_pool_array_typed():
 	ObjectPool.create_pool("test_typed", preload("res://scenes/weapons/Bullet.tscn"), 2)
 	var pool = ObjectPool._pools["test_typed"]
-	assert_is(pool, Array, "Pool should be an array")
+	assert_true(pool is Array, "Pool should be an array")
 	for item in pool:
 		assert_true(item is Node, "Pool items should be Nodes")

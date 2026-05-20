@@ -133,7 +133,7 @@ func test_register_kill_signal_contains_correct_points():
 	var sm = get_sm()
 	watch_signals(sm)
 	sm.register_kill("drone", Vector2(50, 50))
-	var signal_args = get_signal_args(sm, "score_popped")
+	var signal_args = get_signal_parameters(sm, "score_popped")
 	assert_eq(signal_args[0][1], 200, "Signal should contain 200 points for drone")
 
 func test_register_pickup_boost_no_player():

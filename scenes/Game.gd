@@ -81,12 +81,12 @@ func _process(_delta: float) -> void:
 func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 	match type:
 		"machine_gun":
-			var bullet = ObjectPool.get("bullet")
+			var bullet = ObjectPool.acquire("bullet")
 			world.add_child(bullet)
 			bullet.init(pos, dir, true)
 			AudioManager.play_synth_laser(pos)
 		"missile":
-			var bullet = ObjectPool.get("bullet")
+			var bullet = ObjectPool.acquire("bullet")
 			world.add_child(bullet)
 			bullet.init(pos, dir, true)
 			bullet.homing_strength = 6.0
@@ -96,13 +96,13 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_laser(pos)
 		"mine":
-			var mine = ObjectPool.get("mine")
+			var mine = ObjectPool.acquire("mine")
 			world.add_child(mine)
 			mine.init(pos)
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_explosion(pos)
 		"emp":
-			var emp = ObjectPool.get("emp")
+			var emp = ObjectPool.acquire("emp")
 			world.add_child(emp)
 			emp.init(pos)
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])

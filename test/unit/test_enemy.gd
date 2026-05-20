@@ -134,7 +134,7 @@ func test_update_sprite_loads_texture():
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	e._update_sprite()
-	assert_is_not_null(e.sprite.texture, "Sprite should have texture loaded")
+	assert_true(e.sprite.texture != null, "Sprite should have texture loaded")
 
 func test_hit_flash_timer_timeout_resets_color():
 	var e = _create_enemy()

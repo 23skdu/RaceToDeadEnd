@@ -30,7 +30,7 @@ func test_drone_bomb_has_collision_shape():
 func test_drone_bomb_has_warning_visual():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
-	assert_is_not_null(db.warning_visual, "Should have warning visual")
+	assert_true(db.warning_visual != null, "Should have warning visual")
 
 func test_drone_bomb_age_increases():
 	var db = DroneBomb.new()
@@ -70,7 +70,7 @@ func test_drone_bomb_has_explosion_visual():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
 	db._process(1.6)
-	assert_is_not_null(db.explosion_visual, "Should have explosion visual after detonation")
+	assert_true(db.explosion_visual != null, "Should have explosion visual after detonation")
 
 func test_drone_bomb_ready_sets_collision():
 	var db = DroneBomb.new()

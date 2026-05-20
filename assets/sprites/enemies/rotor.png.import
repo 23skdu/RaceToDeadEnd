@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dtnuev1da0m1m"
-valid=false
+uid="uid://vqutts2v1ky1"
+path="res://.godot/imported/rotor.png-a729c26f2d72a73d2ce78723f5b3c8a5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/enemies/rotor.png"
+dest_files=["res://.godot/imported/rotor.png-a729c26f2d72a73d2ce78723f5b3c8a5.ctex"]
 
 [params]
 

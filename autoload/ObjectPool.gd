@@ -16,7 +16,7 @@ func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> vo
 		pool.append(instance)
 	_pools[pool_name] = pool
 
-func get(pool_name: String) -> Node:
+func acquire(pool_name: String) -> Node:
 	if not _pools.has(pool_name):
 		push_warning("Pool '%s' does not exist" % pool_name)
 		return null

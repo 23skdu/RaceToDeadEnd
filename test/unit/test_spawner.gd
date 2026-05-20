@@ -287,5 +287,5 @@ func test_wave_spawned_signal_contains_wave_number():
 	s._ready()
 	watch_signals(s)
 	s._spawn_wave()
-	var args = get_signal_args(s, "wave_spawned")
+	var args = get_signal_parameters(s, "wave_spawned")
 	assert_eq(args[0][0], 1, "Signal should contain wave number 1")
