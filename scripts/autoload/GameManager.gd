@@ -168,7 +168,7 @@ func _add_key_mapping(action: String, keycode: int) -> void:
 	if not InputMap.has_action(action):
 		InputMap.add_action(action)
 	var ev = InputEventKey.new()
-	ev.physical_keycode = keycode
+	ev.keycode = keycode
 	InputMap.action_add_event(action, ev)
 	
 func _add_joy_button(action: String, button: int) -> void:

@@ -81,8 +81,18 @@ func apply_stun(duration: float) -> void:
 func take_damage(amount: int = 1) -> void:
 	hp -= amount
 	_play_hit_flash()
+	_play_hit_sound()
 	if hp <= 0:
 		_die()
+
+func _play_hit_sound() -> void:
+	match enemy_type:
+		EnemyType.ROTOR:
+			AudioManager.play_rotor_hit(global_position)
+		EnemyType.SCAV:
+			AudioManager.play_scav_hit(global_position)
+		EnemyType.DRONE:
+			AudioManager.play_drone_hit(global_position)
 
 func _play_hit_flash() -> void:
 	if not stunned:
@@ -94,5 +104,15 @@ func _on_hit_flash_timer_timeout() -> void:
 		sprite.modulate = Color.WHITE
 
 func _die() -> void:
+	_play_death_sound()
 	destroyed.emit(global_position, TYPE_NAMES[enemy_type])
 	call_deferred("queue_free")
+
+func _play_death_sound() -> void:
+	match enemy_type:
+		EnemyType.ROTOR:
+			AudioManager.play_rotor_death(global_position)
+		EnemyType.SCAV:
+			AudioManager.play_scav_death(global_position)
+		EnemyType.DRONE:
+			AudioManager.play_drone_death(global_position)

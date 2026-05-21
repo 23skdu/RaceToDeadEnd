@@ -16,6 +16,8 @@ func _ready() -> void:
 	add_to_group("bullet")
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	monitoring = true
+	monitorable = true
 
 func init(pos: Vector2, dir: Vector2, player_owned: bool = true) -> void:
 	global_position = pos
@@ -27,7 +29,7 @@ func init(pos: Vector2, dir: Vector2, player_owned: bool = true) -> void:
 	else:
 		collision_mask = 2
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if homing_strength > 0.0:
 		_cache_timer += delta
 		if _cache_timer >= ENEMY_CACHE_INTERVAL:

@@ -1,30 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" width="64" height="96">
-  <!-- Car body -->
-  <rect x="12" y="16" width="40" height="64" rx="8" fill="#1a3a5c" stroke="#4a9eff" stroke-width="2"/>
-  <!-- Windshield -->
-  <rect x="18" y="24" width="28" height="16" rx="4" fill="#0a1a2e" stroke="#4a9eff" stroke-width="1"/>
-  <!-- Rear window -->
-  <rect x="20" y="56" width="24" height="12" rx="3" fill="#0a1a2e" stroke="#4a9eff" stroke-width="1"/>
-  <!-- Hood detail -->
-  <rect x="24" y="42" width="16" height="12" rx="2" fill="#2a5a8c"/>
-  <!-- Front bumper -->
-  <rect x="14" y="14" width="36" height="6" rx="2" fill="#4a9eff"/>
-  <!-- Rear bumper -->
-  <rect x="14" y="76" width="36" height="6" rx="2" fill="#4a9eff"/>
-  <!-- Headlights -->
-  <circle cx="22" cy="18" r="3" fill="#ffcc00"/>
-  <circle cx="42" cy="18" r="3" fill="#ffcc00"/>
-  <!-- Tail lights -->
-  <circle cx="22" cy="78" r="3" fill="#ff3333"/>
-  <circle cx="42" cy="78" r="3" fill="#ff3333"/>
-  <!-- Side stripes -->
-  <rect x="10" y="32" width="4" height="24" rx="1" fill="#4a9eff"/>
-  <rect x="50" y="32" width="4" height="24" rx="1" fill="#4a9eff"/>
-  <!-- Roof scoop -->
-  <rect x="28" y="36" width="8" height="6" rx="1" fill="#ff6633"/>
-  <!-- Wheels -->
-  <rect x="8" y="22" width="6" height="12" rx="2" fill="#222"/>
-  <rect x="50" y="22" width="6" height="12" rx="2" fill="#222"/>
-  <rect x="8" y="62" width="6" height="12" rx="2" fill="#222"/>
-  <rect x="50" y="62" width="6" height="12" rx="2" fill="#222"/>
+  <!-- Main armored hull -->
+  <path d="M32 4 L44 12 L48 24 L50 40 L50 64 L48 76 L44 84 L32 92 L20 84 L16 76 L14 64 L14 40 L16 24 L20 12 Z" fill="#1a2a3a" stroke="#00ffcc" stroke-width="1.5"/>
+  
+  <!-- Front armor wedge -->
+  <path d="M32 8 L40 14 L42 22 L32 26 L22 22 L24 14 Z" fill="#2a3a4a" stroke="#00ffcc" stroke-width="0.5"/>
+  
+  <!-- Cockpit canopy -->
+  <path d="M26 28 L38 28 L40 36 L32 40 L24 36 Z" fill="#0a1a2a" stroke="#00ffcc" stroke-width="1"/>
+  <path d="M28 30 L36 30 L37 34 L32 36 L27 34 Z" fill="#00ffcc" opacity="0.15"/>
+  
+  <!-- Central weapons spine -->
+  <rect x="30" y="42" width="4" height="20" rx="1" fill="#3a4a5a" stroke="#ff6600" stroke-width="0.5"/>
+  
+  <!-- Side armor panels -->
+  <path d="M16 40 L22 40 L22 64 L16 64 Z" fill="#2a3a4a" stroke="#00ffcc" stroke-width="0.5"/>
+  <path d="M42 40 L48 40 L48 64 L42 64 Z" fill="#2a3a4a" stroke="#00ffcc" stroke-width="0.5"/>
+  
+  <!-- Left weapon mount -->
+  <rect x="14" y="44" width="6" height="8" rx="1" fill="#3a4a5a" stroke="#ff6600" stroke-width="0.5"/>
+  <circle cx="17" cy="48" r="2" fill="#ff6600" opacity="0.6"/>
+  
+  <!-- Right weapon mount -->
+  <rect x="44" y="44" width="6" height="8" rx="1" fill="#3a4a5a" stroke="#ff6600" stroke-width="0.5"/>
+  <circle cx="47" cy="48" r="2" fill="#ff6600" opacity="0.6"/>
+  
+  <!-- Engine exhaust grilles -->
+  <rect x="24" y="72" width="6" height="4" rx="1" fill="#1a2a3a" stroke="#ff3300" stroke-width="0.5"/>
+  <rect x="34" y="72" width="6" height="4" rx="1" fill="#1a2a3a" stroke="#ff3300" stroke-width="0.5"/>
+  
+  <!-- Rear thruster housing -->
+  <path d="M22 80 L32 86 L42 80 L40 76 L32 80 L24 76 Z" fill="#2a3a4a" stroke="#ff3300" stroke-width="1"/>
+  
+  <!-- Neon accent lines -->
+  <line x1="20" y1="50" x2="20" y2="60" stroke="#00ffcc" stroke-width="1" opacity="0.8"/>
+  <line x1="44" y1="50" x2="44" y2="60" stroke="#00ffcc" stroke-width="1" opacity="0.8"/>
+  
+  <!-- Front targeting sensors -->
+  <circle cx="28" cy="18" r="2" fill="#ff0066" opacity="0.8"/>
+  <circle cx="36" cy="18" r="2" fill="#ff0066" opacity="0.8"/>
+  
+  <!-- Side running lights -->
+  <circle cx="16" cy="32" r="1.5" fill="#00ffcc" opacity="0.7"/>
+  <circle cx="48" cy="32" r="1.5" fill="#00ffcc" opacity="0.7"/>
+  
+  <!-- Armor rivets -->
+  <circle cx="24" cy="44" r="0.8" fill="#4a5a6a"/>
+  <circle cx="40" cy="44" r="0.8" fill="#4a5a6a"/>
+  <circle cx="24" cy="60" r="0.8" fill="#4a5a6a"/>
+  <circle cx="40" cy="60" r="0.8" fill="#4a5a6a"/>
+  
+  <!-- Exhaust flames -->
+  <path d="M26 86 L28 92 L30 86 Z" fill="#ff6600" opacity="0.6"/>
+  <path d="M34 86 L36 92 L38 86 Z" fill="#ff6600" opacity="0.6"/>
 </svg>

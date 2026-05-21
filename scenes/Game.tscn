@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://c7w48qvls5v0h"]
+[gd_scene load_steps=8 format=3 uid="uid://c7w48qvls5v0h"]
 
 [ext_resource type="Script" path="res://scripts/scenes/Game.gd" id="1_8wxl3"]
 [ext_resource type="PackedScene" uid="uid://ctm88sl83chk0" path="res://scenes/world/Highway.tscn" id="2_esosw"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dplwyoiqf6v4g" path="res://scenes/player/Interceptor.tscn" id="4_yblev"]
 [ext_resource type="PackedScene" uid="uid://b3x0a0l3mq1pb" path="res://scenes/ui/HUD.tscn" id="5_k3nls"]
 [ext_resource type="PackedScene" uid="uid://cv21dsb0ip6rx" path="res://scenes/ui/GameOver.tscn" id="6_8paj1"]
+[ext_resource type="PackedScene" uid="uid://weather_system_001" path="res://scenes/world/WeatherSystem.tscn" id="7_weather"]
 
 [node name="Game" type="Node"]
 script = ExtResource("1_8wxl3")
@@ -18,6 +19,8 @@ script = ExtResource("1_8wxl3")
 
 [node name="Player" parent="World" instance=ExtResource("4_yblev")]
 position = Vector2(0, 300)
+
+[node name="WeatherSystem" parent="World" instance=ExtResource("7_weather")]
 
 [node name="UI" type="CanvasLayer" parent="."]
 layer = 10

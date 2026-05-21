@@ -133,3 +133,50 @@ func _create_enemy():
 	var e = scene.instantiate()
 	add_child_autofree(e)
 	return e
+
+func test_take_damage_plays_hit_sound():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
+	var before_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			before_count += 1
+	e.take_damage(1)
+	var after_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			after_count += 1
+	assert_gt(after_count, before_count, "Hit sound should play on damage")
+
+func test_die_plays_death_sound():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
+	var before_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			before_count += 1
+	e.take_damage(1)
+	var after_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			after_count += 1
+	assert_gt(after_count, before_count, "Death sound should play on kill")
+
+func test_drone_hit_plays_sound():
+	var scene = load("res://scenes/enemies/Drone.tscn")
+	var e = scene.instantiate()
+	add_child_autofree(e)
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.DRONE, 0, player, 200.0)
+	var before_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			before_count += 1
+	e.take_damage(1)
+	var after_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			after_count += 1
+	assert_gt(after_count, before_count, "Drone hit sound should play")

@@ -14,6 +14,14 @@ var _stream_emp: AudioStreamWAV
 var _stream_menu_music: AudioStreamWAV
 var _stream_game_music: AudioStreamWAV
 
+var _stream_rotor_hit: AudioStreamWAV
+var _stream_scav_hit: AudioStreamWAV
+var _stream_drone_hit: AudioStreamWAV
+var _stream_rotor_death: AudioStreamWAV
+var _stream_scav_death: AudioStreamWAV
+var _stream_drone_death: AudioStreamWAV
+var _stream_lightning: AudioStreamWAV
+
 func _ready() -> void:
 	music_player = AudioStreamPlayer.new()
 	music_player.bus = "Music"
@@ -38,6 +46,13 @@ func _generate_cached_streams() -> void:
 	_stream_emp = _generate_emp_stream()
 	_stream_menu_music = _generate_menu_music()
 	_stream_game_music = _generate_game_music()
+	_stream_rotor_hit = _generate_rotor_hit_stream()
+	_stream_scav_hit = _generate_scav_hit_stream()
+	_stream_drone_hit = _generate_drone_hit_stream()
+	_stream_rotor_death = _generate_rotor_death_stream()
+	_stream_scav_death = _generate_scav_death_stream()
+	_stream_drone_death = _generate_drone_death_stream()
+	_stream_lightning = _generate_lightning_stream()
 
 func play_menu_music() -> void:
 	if music_player.stream != _stream_menu_music:
@@ -93,6 +108,27 @@ func play_synth_boost() -> void:
 
 func play_synth_emp(pos: Vector2 = Vector2.ZERO) -> void:
 	play_sfx(_stream_emp, pos)
+
+func play_rotor_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_rotor_hit, pos)
+
+func play_scav_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_scav_hit, pos)
+
+func play_drone_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_drone_hit, pos)
+
+func play_rotor_death(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_rotor_death, pos)
+
+func play_scav_death(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_scav_death, pos)
+
+func play_drone_death(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_drone_death, pos)
+
+func play_lightning_strike(pos: Vector2 = Vector2.ZERO) -> void:
+	play_sfx(_stream_lightning, pos)
 
 # =================Procedural 8-bit Retro Synthesizer Stream Generators=================
 
@@ -296,4 +332,137 @@ func _generate_game_music() -> AudioStreamWAV:
 	stream.data = data
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = num_samples
+	return stream
+
+func _generate_rotor_hit_stream() -> AudioStreamWAV:
+	var duration = 0.08
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = lerpf(600.0, 200.0, t / duration)
+		var val = 50 if sin(TAU * freq * t) >= 0.0 else -50
+		var env = 1.0 - (t / duration)
+		data[i] = clampi(int(val * env) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	return stream
+
+func _generate_scav_hit_stream() -> AudioStreamWAV:
+	var duration = 0.15
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = lerpf(300.0, 100.0, t / duration)
+		var amp = lerpf(60.0, 0.0, t / duration)
+		var val = sin(TAU * freq * t) * amp + (randf() * 20.0 - 10.0) * (1.0 - t / duration)
+		data[i] = clampi(int(val) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	return stream
+
+func _generate_drone_hit_stream() -> AudioStreamWAV:
+	var duration = 0.1
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = 1200.0 + sin(t * 200.0) * 400.0
+		var val = 35 if sin(TAU * freq * t) >= 0.0 else -35
+		var env = 1.0 - (t / duration)
+		data[i] = clampi(int(val * env) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	return stream
+
+func _generate_rotor_death_stream() -> AudioStreamWAV:
+	var duration = 0.4
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = lerpf(400.0, 50.0, t / duration)
+		var amp = lerpf(70.0, 0.0, t / duration)
+		var val = sin(TAU * freq * t) * amp
+		if fmod(t * 30.0, 1.0) < 0.3:
+			val += randf() * 30.0 - 15.0
+		data[i] = clampi(int(val) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	return stream
+
+func _generate_scav_death_stream() -> AudioStreamWAV:
+	var duration = 0.5
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var amp = lerpf(90.0, 0.0, t / duration)
+		var val = randf_range(-amp, amp)
+		if t < 0.1:
+			val += sin(TAU * 200.0 * t) * 40.0
+		data[i] = clampi(int(val) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	return stream
+
+func _generate_drone_death_stream() -> AudioStreamWAV:
+	var duration = 0.6
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = lerpf(800.0, 30.0, pow(t / duration, 0.5))
+		var amp = lerpf(60.0, 0.0, t / duration)
+		var val = sin(TAU * freq * t) * amp
+		val += sin(TAU * freq * 1.5 * t) * amp * 0.3
+		data[i] = clampi(int(val) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	return stream
+
+func _generate_lightning_stream() -> AudioStreamWAV:
+	var duration = 0.5
+	var sample_rate = 11025.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var amp = lerpf(100.0, 0.0, t / duration)
+		var val = randf_range(-amp, amp)
+		if t < 0.05:
+			val += sin(TAU * 2000.0 * t) * 50.0
+		if fmod(t * 15.0, 1.0) < 0.2:
+			val += randf() * 40.0 - 20.0
+		data[i] = clampi(int(val) + 128, 0, 255)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
 	return stream

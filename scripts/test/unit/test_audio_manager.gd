@@ -302,3 +302,107 @@ func test_sfx_player_position_set():
 func test_all_sfx_players_use_sfx_bus():
 	for p in AudioManager.sfx_players:
 		assert_eq(p.bus, StringName("SFX"), "SFX player should use SFX bus")
+
+func test_audio_manager_caches_lightning_stream():
+	assert_true(AudioManager._stream_lightning != null, "Lightning stream should be cached")
+
+func test_audio_manager_play_lightning_uses_cached():
+	AudioManager.play_lightning_strike(Vector2(0, -400))
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Lightning SFX should play")
+
+func test_generate_lightning_stream():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	var stream = am._generate_lightning_stream()
+	assert_true(stream != null, "Should generate lightning stream")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Lightning should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "Lightning mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "Lightning should have data")
+
+func test_lightning_stream_properties():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	var stream = am._generate_lightning_stream()
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Lightning should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "Lightning mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "Lightning should have data")
+
+func test_play_lightning_strike_sets_position():
+	var pos = Vector2(0, -400)
+	AudioManager.play_lightning_strike(pos)
+	var found = false
+	for p in AudioManager.sfx_players:
+		if p.playing and p.global_position == pos:
+			found = true
+			break
+	assert_true(found, "Lightning SFX position should be set")
+
+func test_cached_streams_enemy_hit_death():
+	assert_true(AudioManager._stream_rotor_hit != null, "Rotor hit stream should be cached")
+	assert_true(AudioManager._stream_scav_hit != null, "Scav hit stream should be cached")
+	assert_true(AudioManager._stream_drone_hit != null, "Drone hit stream should be cached")
+	assert_true(AudioManager._stream_rotor_death != null, "Rotor death stream should be cached")
+	assert_true(AudioManager._stream_scav_death != null, "Scav death stream should be cached")
+	assert_true(AudioManager._stream_drone_death != null, "Drone death stream should be cached")
+
+func test_play_rotor_hit():
+	AudioManager.play_rotor_hit(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Rotor hit SFX should play")
+
+func test_play_scav_hit():
+	AudioManager.play_scav_hit(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Scav hit SFX should play")
+
+func test_play_drone_hit():
+	AudioManager.play_drone_hit(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Drone hit SFX should play")
+
+func test_play_rotor_death():
+	AudioManager.play_rotor_death(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Rotor death SFX should play")
+
+func test_play_scav_death():
+	AudioManager.play_scav_death(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Scav death SFX should play")
+
+func test_play_drone_death():
+	AudioManager.play_drone_death(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Drone death SFX should play")
+
+func test_enemy_hit_streams_are_8bit():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	assert_eq(am._generate_rotor_hit_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Rotor hit should be 8-bit")
+	assert_eq(am._generate_scav_hit_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Scav hit should be 8-bit")
+	assert_eq(am._generate_drone_hit_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Drone hit should be 8-bit")
+
+func test_enemy_death_streams_are_8bit():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	assert_eq(am._generate_rotor_death_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Rotor death should be 8-bit")
+	assert_eq(am._generate_scav_death_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Scav death should be 8-bit")
+	assert_eq(am._generate_drone_death_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Drone death should be 8-bit")

@@ -8,6 +8,7 @@ const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
 @onready var highway: Node2D = $World/Highway
 @onready var spawner: Node = $World/Spawner
 @onready var player: CharacterBody2D = $World/Player
+@onready var weather: Node2D = $World/WeatherSystem
 @onready var hud: CanvasLayer = $UI/HUD
 @onready var game_over: CanvasLayer = $UI/GameOver
 @onready var score_popup_container: Node2D = $ScorePopups
@@ -26,6 +27,11 @@ func _ready() -> void:
 	spawner.player = player
 	spawner.world_node = world
 	highway.player = player
+	
+	if weather:
+		weather.set_player(player)
+		weather.set_highway(highway)
+		weather.set_weather(weather.WeatherType.CLEAR)
 	
 	if player:
 		player.weapon_fired.connect(_on_player_weapon_fired)
@@ -51,6 +57,19 @@ func _ready() -> void:
 		GameManager.game_over.connect(hud._on_game_over)
 	
 	ScoreManager.score_popped.connect(_on_score_popped)
+	
+	highway.segment_completed.connect(_on_segment_completed)
+
+func _on_segment_completed(segment: int) -> void:
+	if not weather:
+		return
+	var tier = GameManager.difficulty_tier
+	if tier >= 5 and tier < 8:
+		weather.set_weather(weather.WeatherType.LIGHT_RAIN)
+	elif tier >= 8 and tier < 12:
+		weather.set_weather(weather.WeatherType.ACID_RAIN)
+	elif tier >= 12:
+		weather.set_weather(weather.WeatherType.STORM)
 
 func _restart_game() -> void:
 	get_tree().reload_current_scene()

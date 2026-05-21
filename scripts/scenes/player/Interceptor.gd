@@ -68,10 +68,10 @@ func _ready() -> void:
 	_update_boost_ui()
 
 func _process(delta: float) -> void:
-	_handle_input()
 	_update_timers(delta)
 
 func _physics_process(delta: float) -> void:
+	_handle_input(delta)
 	var current_speed = speed * (BOOST_SPEED_MULTIPLIER if boost_active else 1.0) * (1.0 + speed_input * SPEED_MODIFIER)
 	velocity.y = -current_speed
 	var x_diff = target_x - position.x
@@ -96,7 +96,7 @@ func _physics_process(delta: float) -> void:
 				if not boost_active:
 					take_damage(1)
 
-func _handle_input() -> void:
+func _handle_input(_delta: float) -> void:
 	speed_input = 0.0
 	if Input.is_action_pressed("accelerate"):
 		speed_input = 1.0

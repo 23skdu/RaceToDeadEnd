@@ -99,7 +99,6 @@ func _spawn_enemy(type: String) -> void:
 func _on_enemy_destroyed(position: Vector2, enemy_type: String) -> void:
 	ScoreManager.register_kill(enemy_type, position)
 	_drop_pickup(position)
-	AudioManager.play_synth_explosion(position)
 
 func _drop_pickup(position: Vector2) -> void:
 	var roll = randf()

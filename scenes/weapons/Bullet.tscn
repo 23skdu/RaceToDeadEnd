@@ -1,10 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://b5y3t68gnk38f"]
+[gd_scene load_steps=3 format=3 uid="uid://b5y3t68gnk38f"]
 
 [ext_resource type="Script" path="res://scripts/scenes/weapons/Bullet.gd" id="1_jv2gt"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_svg"]
 
 [sub_resource type="RectangleShape2D" id="2_mwkdf"]
-size = Vector2(6, 12)
+size = Vector2(8, 16)
 
 [node name="Bullet" type="Area2D"]
 collision_layer = 4
@@ -14,9 +13,9 @@ script = ExtResource("1_jv2gt")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("2_mwkdf")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_svg")
-self_modulate = Color(1, 1, 0.5, 1)
+[node name="Visual" type="Polygon2D" parent="."]
+polygon = PackedVector2Array([Vector2(0, -10), Vector2(4, 4), Vector2(0, 8), Vector2(-4, 4)])
+color = Color(1, 1, 0.5, 1)
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
 rect = Rect2(-32, -32, 64, 64)
