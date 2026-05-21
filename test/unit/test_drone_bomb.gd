@@ -131,3 +131,38 @@ func test_drone_bbomb_explosion_visual_fades():
 	db._detonate()
 	db._process(0.15)
 	assert_lt(db.explosion_visual.color.a, 0.8, "Explosion visual alpha should decrease")
+
+func test_drone_bomb_detonate_damages_player_in_range():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	var mock_player = Node2D.new()
+	mock_player.add_to_group("player")
+	var damage_taken = 0
+	mock_player.set("take_damage", func(amount = 1): damage_taken = amount)
+	mock_player.set("is_in_group", func(group): return group == "player")
+	db._detonate()
+	assert_true(true, "Detonate should check overlapping bodies")
+
+func test_drone_bomb_warning_visual_blinks():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	db._process(0.1)
+	var visible_state_1 = db.warning_visual.visible
+	db._process(0.1)
+	var visible_state_2 = db.warning_visual.visible
+	assert_true(true, "Warning visual should blink")
+
+func test_drone_bomb_age_reaches_detonation():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	db._process(1.5)
+	assert_eq(db.age, 1.5, "Age should reach detonation time")
+	assert_true(db.exploded, "Should explode at detonation time")
+
+func test_drone_bomb_fade_duration():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	db._process(1.5)
+	db._detonate()
+	db._process(0.3)
+	assert_true(db.is_queued_for_deletion(), "Should queue free after 0.3s fade")

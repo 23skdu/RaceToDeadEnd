@@ -86,10 +86,9 @@ func test_register_pickup_boost():
 	var gm = load("res://autoload/GameManager.gd").new()
 	add_child_autofree(gm)
 	gm.start_game()
-	var player = load("res://scenes/player/Interceptor.gd").new()
+	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	player.add_to_group("player")
 	add_child_autofree(player)
-	player._ready()
 	var initial_charges = player.boost_charges
 	player.boost_charges = 1
 	sm.register_pickup("boost", Vector2(100, 200))
@@ -100,10 +99,9 @@ func test_register_pickup_ammo():
 	var gm = load("res://autoload/GameManager.gd").new()
 	add_child_autofree(gm)
 	gm.start_game()
-	var player = load("res://scenes/player/Interceptor.gd").new()
+	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	player.add_to_group("player")
 	add_child_autofree(player)
-	player._ready()
 	var initial_ammo = player.secondary_ammo.duplicate()
 	player.secondary_ammo = [0, 0, 0]
 	sm.register_pickup("ammo", Vector2(100, 200))

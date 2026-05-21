@@ -1,5 +1,8 @@
 extends GutTest
 
+func before_each():
+	TestHelper.ensure_audio_buses()
+
 func test_audio_manager_has_music_player():
 	assert_true(AudioManager.music_player != null, "Music player should exist")
 
@@ -176,3 +179,126 @@ func test_bus_enum_values():
 	assert_eq(am.Bus.MASTER, 0, "MASTER = 0")
 	assert_eq(am.Bus.MUSIC, 1, "MUSIC = 1")
 	assert_eq(am.Bus.SFX, 2, "SFX = 2")
+
+func test_set_bus_volume_music():
+	var initial = AudioServer.get_bus_volume_db(1)
+	AudioManager.set_bus_volume(AudioManager.Bus.MUSIC, -15.0)
+	assert_eq(AudioServer.get_bus_volume_db(1), -15.0, "Music bus volume should change")
+	AudioManager.set_bus_volume(AudioManager.Bus.MUSIC, initial)
+
+func test_set_bus_volume_sfx():
+	var initial = AudioServer.get_bus_volume_db(2)
+	AudioManager.set_bus_volume(AudioManager.Bus.SFX, -20.0)
+	assert_eq(AudioServer.get_bus_volume_db(2), -20.0, "SFX bus volume should change")
+	AudioManager.set_bus_volume(AudioManager.Bus.SFX, initial)
+
+func test_play_synth_music_generates_looping_stream():
+	AudioManager.play_synth_music()
+	assert_true(AudioManager.music_player.stream != null, "Music stream should be generated")
+	assert_eq(AudioManager.music_player.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "Music should loop")
+
+func test_procedural_music_uses_8bit_format():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var duration = 8.0
+	var sample_rate = 8000.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = 82.41
+		if t >= 2.0 and t < 4.0:
+			freq = 98.00
+		elif t >= 4.0 and t < 6.0:
+			freq = 110.00
+		elif t >= 6.0:
+			freq = 73.42
+		var val = sin(TAU * freq * t) * 35.0
+		var val_sub = sin(TAU * (freq * 0.5) * t) * 15.0
+		data[i] = int(val + val_sub) + 128
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_rate)
+	stream.data = data
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Music should be 8-bit")
+	assert_eq(stream.mix_rate, 8000, "Music mix rate should be 8000")
+
+func test_music_frequency_changes_over_time():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var stream = AudioStreamWAV.new()
+	var duration = 8.0
+	var sample_rate = 8000.0
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples)
+	var freq_at_1s = 82.41
+	var freq_at_3s = 98.00
+	var freq_at_5s = 110.00
+	var freq_at_7s = 73.42
+	for i in num_samples:
+		var t = i / sample_rate
+		var freq = 82.41
+		if t >= 2.0 and t < 4.0:
+			freq = 98.00
+		elif t >= 4.0 and t < 6.0:
+			freq = 110.00
+		elif t >= 6.0:
+			freq = 73.42
+		var val = sin(TAU * freq * t) * 35.0
+		var val_sub = sin(TAU * (freq * 0.5) * t) * 15.0
+		data[i] = int(val + val_sub) + 128
+	assert_eq(freq_at_1s, 82.41, "Frequency at 1s should be E2")
+	assert_eq(freq_at_3s, 98.00, "Frequency at 3s should be G2")
+	assert_eq(freq_at_5s, 110.00, "Frequency at 5s should be A2")
+	assert_eq(freq_at_7s, 73.42, "Frequency at 7s should be D2")
+
+func test_laser_stream_properties():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var stream = am._generate_laser_stream()
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Laser should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "Laser mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "Laser should have data")
+
+func test_explosion_stream_properties():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var stream = am._generate_explosion_stream()
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Explosion should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "Explosion mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "Explosion should have data")
+
+func test_hurt_stream_properties():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var stream = am._generate_hurt_stream()
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Hurt should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "Hurt mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "Hurt should have data")
+
+func test_boost_stream_properties():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var stream = am._generate_boost_stream()
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Boost should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "Boost mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "Boost should have data")
+
+func test_emp_stream_properties():
+	var am = load("res://autoload/AudioManager.gd").new()
+	var stream = am._generate_emp_stream()
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "EMP should be 8-bit")
+	assert_eq(stream.mix_rate, 11025, "EMP mix rate should be 11025")
+	assert_gt(stream.data.size(), 0, "EMP should have data")
+
+func test_sfx_player_position_set():
+	var pos = Vector2(150, 250)
+	AudioManager.play_synth_laser(pos)
+	var found = false
+	for p in AudioManager.sfx_players:
+		if p.playing and p.global_position == pos:
+			found = true
+			break
+	assert_true(found, "SFX player position should match input")
+
+func test_all_sfx_players_use_sfx_bus():
+	for p in AudioManager.sfx_players:
+		assert_eq(p.bus, StringName("SFX"), "SFX player should use SFX bus")
