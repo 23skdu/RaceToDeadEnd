@@ -49,231 +49,138 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_width"
 
-[filesystem]
-
-import/blender/enabled=false
-
-[input]
-
-ui_accept={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194309,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-move_left={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":65,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-move_right={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":68,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-accelerate={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":87,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-brake={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":83,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-primary_fire={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-secondary_fire={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":16777237,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-boost={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":16777238,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-cycle_weapon={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":81,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-
-[plugins]
-
-gut={
-"enable": true
-}
-
-[rendering]
-
-renderer/rendering_method="gl_compatibility"
-
-[application/config]
-
-icon="res://icon.svg"
-
 [export]
 
-presets=[
-{
-"name": "macOS",
-"platform": "macOS",
-"runnable": true,
-"dedicated_server": false,
+presets=[{
 "custom_features": "",
+"dedicated_server": false,
+"exclude_filter": "",
 "export_info": {
 "min_export_template_version": 0
 },
-"exclude_filter": "",
 "export_path": "builds/macOS/RaceToDeadEnd.dmg",
-"patches": [],
+"name": "macOS",
 "options": {
-"architecture": "universal",
-"texture_format/s3tc_bptc": true,
-"texture_format/etc2_astc": false,
+"application/app_category": "Games",
+"application/copyright": "",
+"application/copyright_localized": {},
 "application/export_name": "Race to Dead End",
 "application/icon": "res://icon.svg",
 "application/identifier": "com.racetodeadend.game",
-"application/signature": "",
-"application/app_category": "Games",
-"application/short_version": "0.0.1",
-"application/version": "0.0.1",
-"application/copyright": "",
-"application/copyright_localized": {},
 "application/min_macos_version": "10.12",
-"display/high_res": true,
+"application/short_version": "0.0.1",
+"application/signature": "",
+"application/version": "0.0.1",
+"architecture": "universal",
 "codesign/codesign": false,
-"codesign/identity": "",
 "codesign/custom_options": PackedStringArray(),
-"notarization/notarization": false,
-"notarization/apple_id_name": "",
-"notarization/apple_id_password": "",
-"notarization/api_uuid": "",
+"codesign/identity": "",
+"display/high_res": true,
 "notarization/api_key": "",
 "notarization/api_key_id": "",
-"privacy/microphone_usage_description": "",
-"privacy/microphone_usage_description_localized": {},
-"privacy/camera_usage_description": "",
-"privacy/camera_usage_description_localized": {},
-"privacy/location_usage_description": "",
-"privacy/location_usage_description_localized": {},
+"notarization/api_uuid": "",
+"notarization/apple_id_name": "",
+"notarization/apple_id_password": "",
+"notarization/notarization": false,
 "privacy/address_book_usage_description": "",
 "privacy/address_book_usage_description_localized": {},
 "privacy/calendar_usage_description": "",
 "privacy/calendar_usage_description_localized": {},
-"privacy/photos_library_usage_description": "",
-"privacy/photos_library_usage_description_localized": {},
+"privacy/camera_usage_description": "",
+"privacy/camera_usage_description_localized": {},
 "privacy/desktop_folder_usage_description": "",
 "privacy/desktop_folder_usage_description_localized": {},
 "privacy/documents_folder_usage_description": "",
 "privacy/documents_folder_usage_description_localized": {},
 "privacy/downloads_folder_usage_description": "",
 "privacy/downloads_folder_usage_description_localized": {},
+"privacy/location_usage_description": "",
+"privacy/location_usage_description_localized": {},
+"privacy/microphone_usage_description": "",
+"privacy/microphone_usage_description_localized": {},
 "privacy/network_volumes_usage_description": "",
 "privacy/network_volumes_usage_description_localized": {},
+"privacy/photos_library_usage_description": "",
+"privacy/photos_library_usage_description_localized": {},
 "privacy/removable_volumes_usage_description": "",
-"privacy/removable_volumes_usage_description_localized": {}
-}
+"privacy/removable_volumes_usage_description_localized": {},
+"texture_format/etc2_astc": false,
+"texture_format/s3tc_bptc": true
 },
-{
-"name": "Windows Desktop",
-"platform": "Windows Desktop",
-"runnable": true,
-"dedicated_server": false,
+"patches": [],
+"platform": "macOS",
+"runnable": true
+}, {
 "custom_features": "",
+"dedicated_server": false,
+"exclude_filter": "",
 "export_info": {
 "min_export_template_version": 0
 },
-"exclude_filter": "",
 "export_path": "builds/Windows/RaceToDeadEnd.exe",
-"patches": [],
+"name": "Windows Desktop",
 "options": {
-"texture_format/s3tc_bptc": true,
-"texture_format/etc2_astc": false,
+"application/company_name": "",
+"application/console_wrapper_icon": "res://icon.svg",
+"application/copyright": "",
+"application/file_description": "An isometric vehicular combat racing game",
+"application/file_version": "0.0.1",
+"application/icon": "res://icon.svg",
+"application/icon_interpolation": 4,
+"application/modify_resources": true,
+"application/product_name": "Race to Dead End",
+"application/product_version": "0.0.1",
+"application/trademarks": "",
 "binary_format/64_bits": true,
 "binary_format/embed_pck": false,
-"texture_format/bptc": true,
-"texture_format/s3tc": true,
-"texture_format/etc": false,
-"texture_format/etc2": false,
-"texture_format/no_bptc_fallbacks": true,
+"codesign/custom_options": PackedStringArray(),
+"codesign/description": "",
+"codesign/digest_algorithm": 1,
 "codesign/enable": false,
-"codesign/identity_type": 0,
 "codesign/identity": "",
+"codesign/identity_type": 0,
 "codesign/password": "",
 "codesign/timestamp_server_url": "",
-"codesign/digest_algorithm": 1,
-"codesign/description": "",
-"codesign/custom_options": PackedStringArray(),
-"application/modify_resources": true,
-"application/icon": "res://icon.svg",
-"application/console_wrapper_icon": "res://icon.svg",
-"application/icon_interpolation": 4,
-"application/file_version": "0.0.1",
-"application/product_version": "0.0.1",
-"application/company_name": "",
-"application/product_name": "Race to Dead End",
-"application/file_description": "An isometric vehicular combat racing game",
-"application/copyright": "",
-"application/trademarks": ""
-}
+"texture_format/bptc": true,
+"texture_format/etc": false,
+"texture_format/etc2": false,
+"texture_format/etc2_astc": false,
+"texture_format/no_bptc_fallbacks": true,
+"texture_format/s3tc": true,
+"texture_format/s3tc_bptc": true
 },
-{
-"name": "Android",
-"platform": "Android",
-"runnable": true,
-"dedicated_server": false,
+"patches": [],
+"platform": "Windows Desktop",
+"runnable": true
+}, {
 "custom_features": "",
+"dedicated_server": false,
+"exclude_filter": "",
 "export_info": {
 "min_export_template_version": 0
 },
-"exclude_filter": "",
 "export_path": "builds/Android/RaceToDeadEnd.apk",
-"patches": [],
+"name": "Android",
 "options": {
+"apk_expansion/SALT": "",
+"apk_expansion/enable": false,
+"apk_expansion/public_key": "",
 "architecture/arm64": true,
 "architecture/x86_64": false,
-"custom_template/use_custom_build": false,
-"custom_template/export_config_file": "",
-"screen/immersive_mode": true,
-"screen/support_small": true,
-"screen/support_normal": true,
-"screen/support_large": true,
-"screen/support_xlarge": true,
 "command_line/extra_args": "",
-"package/unique_name": "com.racetodeadend.game",
-"package/name": "Race to Dead End",
-"package/signed": true,
-"package/app_category": 2,
-"package/version_code": 1,
-"package/min_sdk": 21,
-"package/target_sdk": 34,
-"icons/adaptive_icon_foreground": "",
+"custom_template/export_config_file": "",
+"custom_template/use_custom_build": false,
 "icons/adaptive_icon_background": "",
+"icons/adaptive_icon_foreground": "",
 "icons/icon": "res://icon.svg",
 "one_click_deploy/clear_previous_install": false,
-"screen/orientation": 1,
-"screen/orientation_landscape": true,
-"screen/orientation_sensor_landscape": false,
-"screen/orientation_portrait": false,
-"screen/orientation_sensor_portrait": false,
-"screen/opengl_debug": false,
-"xr_features/xr_mode": 0,
-"xr_features/hand_tracking": 0,
-"xr_features/hand_tracking_frequency": 0,
-"xr_features/passthrough": 0,
-"xr_features/render_resolution": 1.0,
-"texture_format/bptc": true,
-"texture_format/s3tc": true,
-"texture_format/etc": false,
-"texture_format/etc2": false,
-"apk_expansion/enable": false,
-"apk_expansion/SALT": "",
-"apk_expansion/public_key": "",
-"permissions/custom_permissions": PackedStringArray(),
+"package/app_category": 2,
+"package/min_sdk": 21,
+"package/name": "Race to Dead End",
+"package/signed": true,
+"package/target_sdk": 34,
+"package/unique_name": "com.racetodeadend.game",
+"package/version_code": 1,
 "permissions/access_checkin_properties": false,
 "permissions/access_coarse_location": false,
 "permissions/access_fine_location": false,
@@ -303,6 +210,7 @@ presets=[
 "permissions/clear_app_cache": false,
 "permissions/clear_app_user_data": false,
 "permissions/control_location_updates": false,
+"permissions/custom_permissions": PackedStringArray(),
 "permissions/delete_cache_files": false,
 "permissions/delete_packages": false,
 "permissions/device_power": false,
@@ -401,65 +309,67 @@ presets=[
 "permissions/write_settings": false,
 "permissions/write_sms": false,
 "permissions/write_social_stream": false,
-"permissions/write_sync_settings": false
-}
+"permissions/write_sync_settings": false,
+"screen/immersive_mode": true,
+"screen/opengl_debug": false,
+"screen/orientation": 1,
+"screen/orientation_landscape": true,
+"screen/orientation_portrait": false,
+"screen/orientation_sensor_landscape": false,
+"screen/orientation_sensor_portrait": false,
+"screen/support_large": true,
+"screen/support_normal": true,
+"screen/support_small": true,
+"screen/support_xlarge": true,
+"texture_format/bptc": true,
+"texture_format/etc": false,
+"texture_format/etc2": false,
+"texture_format/s3tc": true,
+"xr_features/hand_tracking": 0,
+"xr_features/hand_tracking_frequency": 0,
+"xr_features/passthrough": 0,
+"xr_features/render_resolution": 1.0,
+"xr_features/xr_mode": 0
 },
-{
-"name": "iOS",
-"platform": "iOS",
-"runnable": true,
-"dedicated_server": false,
+"patches": [],
+"platform": "Android",
+"runnable": true
+}, {
 "custom_features": "",
+"dedicated_server": false,
+"exclude_filter": "",
 "export_info": {
 "min_export_template_version": 0
 },
-"exclude_filter": "",
 "export_path": "builds/iOS/RaceToDeadEnd.ipa",
-"patches": [],
+"name": "iOS",
 "options": {
-"architecture/arm64": true,
+"application/additional_plist_content": "",
 "application/app_store_team_id": "",
+"application/bundle_identifier": "com.racetodeadend.game",
+"application/disable_studio": false,
+"application/export_for_simulator": true,
 "application/export_method_debug": 1,
 "application/export_method_release": 0,
-"application/targeted_device_family": 2,
-"application/bundle_identifier": "com.racetodeadend.game",
-"application/name": "Race to Dead End",
-"application/info": "An isometric vehicular combat racing game",
-"application/identifier": "",
-"application/signing_team": "",
-"application/short_version": "0.0.1",
-"application/version": "0.0.1",
-"application/min_ios_version": 12,
-"application/additional_plist_content": "",
 "application/icon_interpolation": 4,
-"application/export_for_simulator": true,
-"application/disable_studio": false,
+"application/identifier": "",
+"application/info": "An isometric vehicular combat racing game",
+"application/min_ios_version": 12,
+"application/name": "Race to Dead End",
+"application/short_version": "0.0.1",
+"application/signing_team": "",
+"application/targeted_device_family": 2,
+"application/version": "0.0.1",
+"architecture/arm64": true,
 "capabilities/access_wifi": false,
 "capabilities/push_notifications": false,
 "capabilities/sign_in_with_apple": false,
 "custom_package/debug": "",
 "custom_package/release": "",
 "data/compress_assets": false,
-"icons/iphone": "res://icon.svg",
-"icons/ipad": "res://icon.svg",
-"icons/settings": "",
-"icons/spotlight": "",
-"icons/notification": "",
-"icons/app_store": "",
-"landscape_launch_screens/iphone_2436x1125": "",
-"landscape_launch_screens/iphone_2208x1242": "",
-"landscape_launch_screens/ipad_1024x768": "",
-"landscape_launch_screens/ipad_2048x1536": "",
-"portrait_launch_screens/iphone_640x960": "",
-"portrait_launch_screens/iphone_640x1136": "",
-"portrait_launch_screens/iphone_750x1334": "",
-"portrait_launch_screens/iphone_1125x2436": "",
-"portrait_launch_screens/ipad_768x1024": "",
-"portrait_launch_screens/ipad_1536x2048": "",
-"portrait_launch_screens/iphone_1242x2208": "",
 "entitlements/apple_pay": false,
-"entitlements/data_protection": 0,
 "entitlements/classkit": false,
+"entitlements/data_protection": 0,
 "entitlements/family_controls": false,
 "entitlements/game_center": false,
 "entitlements/healthkit": false,
@@ -473,59 +383,138 @@ presets=[
 "entitlements/siri": false,
 "entitlements/system_extension": false,
 "entitlements/wallet": false,
-"entitlements/wireless_accessory": false
-}
+"entitlements/wireless_accessory": false,
+"icons/app_store": "",
+"icons/ipad": "res://icon.svg",
+"icons/iphone": "res://icon.svg",
+"icons/notification": "",
+"icons/settings": "",
+"icons/spotlight": "",
+"landscape_launch_screens/ipad_1024x768": "",
+"landscape_launch_screens/ipad_2048x1536": "",
+"landscape_launch_screens/iphone_2208x1242": "",
+"landscape_launch_screens/iphone_2436x1125": "",
+"portrait_launch_screens/ipad_1536x2048": "",
+"portrait_launch_screens/ipad_768x1024": "",
+"portrait_launch_screens/iphone_1125x2436": "",
+"portrait_launch_screens/iphone_1242x2208": "",
+"portrait_launch_screens/iphone_640x1136": "",
+"portrait_launch_screens/iphone_640x960": "",
+"portrait_launch_screens/iphone_750x1334": ""
 },
-{
-"name": "Linux/X11",
-"platform": "Linux/X11",
-"runnable": true,
-"dedicated_server": false,
+"patches": [],
+"platform": "iOS",
+"runnable": true
+}, {
 "custom_features": "",
+"dedicated_server": false,
+"exclude_filter": "",
 "export_info": {
 "min_export_template_version": 0
 },
-"exclude_filter": "",
 "export_path": "builds/Linux/RaceToDeadEnd.x86_64",
-"patches": [],
+"name": "Linux/X11",
 "options": {
-"texture_format/s3tc_bptc": true,
-"texture_format/etc2_astc": false,
 "binary_format/64_bits": true,
 "binary_format/embed_pck": false,
+"resources/pack_mode": 1,
 "texture_format/bptc": true,
-"texture_format/s3tc": true,
 "texture_format/etc": false,
 "texture_format/etc2": false,
+"texture_format/etc2_astc": false,
 "texture_format/no_bptc_fallbacks": true,
-"resources/pack_mode": 1
-}
+"texture_format/s3tc": true,
+"texture_format/s3tc_bptc": true
 },
-{
-"name": "Web",
-"platform": "Web",
-"runnable": true,
-"dedicated_server": false,
+"patches": [],
+"platform": "Linux/X11",
+"runnable": true
+}, {
 "custom_features": "",
+"dedicated_server": false,
+"exclude_filter": "",
 "export_info": {
 "min_export_template_version": 0
 },
-"exclude_filter": "",
 "export_path": "builds/Web/index.html",
-"patches": [],
+"name": "Web",
 "options": {
-"texture_format/s3tc_bptc": true,
-"texture_format/etc2_astc": false,
-"vram_texture_compression/forbid_compressed": false,
-"html/export_icon": true,
-"html/custom_html_shell": "",
-"html/head_include": "",
 "html/canvas_resize_policy": 2,
-"html/focus_canvas_on_start": true,
+"html/custom_html_shell": "",
 "html/experimental_virtual_keyboard": false,
+"html/export_icon": true,
+"html/focus_canvas_on_start": true,
+"html/head_include": "",
 "progressive_web_app/enabled": false,
 "progressive_web_app/ensure_cross_origin_isolation_headers": true,
-"progressive_web_app/show_ready": true
-}
-}
+"progressive_web_app/show_ready": true,
+"texture_format/etc2_astc": false,
+"texture_format/s3tc_bptc": true,
+"vram_texture_compression/forbid_compressed": false
+},
+"patches": [],
+"platform": "Web",
+"runnable": true
+}]
+
+[filesystem]
+
+import/blender/enabled=false
+
+[input]
+
+ui_accept={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194309,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
+}
+move_left={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":65,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+move_right={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":68,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+accelerate={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":87,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+brake={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":83,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+primary_fire={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+secondary_fire={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":16777237,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+boost={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":16777238,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+cycle_weapon={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":81,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+
+[plugins]
+
+gut={
+"enable": true
+}
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

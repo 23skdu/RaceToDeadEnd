@@ -51,7 +51,7 @@ func _spawn_wave() -> void:
 func _get_wave_composition(tier: int) -> Dictionary:
 	var comp = {}
 	if tier == 1:
-		comp["rotor"] = 2
+		comp["rotor"] = 1
 	elif tier == 2:
 		comp["rotor"] = 2
 		comp["scav"] = 1

@@ -13,12 +13,16 @@ const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
 @onready var score_popup_container: Node2D = $ScorePopups
 
 func _ready() -> void:
+	world.scale = Vector2(1.0, 0.5)
+	
 	ObjectPool.create_pool("bullet", BULLET_SCENE, 50)
 	ObjectPool.create_pool("mine", MINE_SCENE, 10)
 	ObjectPool.create_pool("emp", EMP_SCENE, 5)
 	ObjectPool.create_pickup_pool(20)
 	
 	GameManager.start_game()
+	AudioManager.play_game_music()
+	
 	spawner.player = player
 	spawner.world_node = world
 	highway.player = player

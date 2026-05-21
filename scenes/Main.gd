@@ -11,6 +11,7 @@ func _ready() -> void:
 	options_button.pressed.connect(_on_options_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	GameManager.state = GameManager.GameState.MENU
+	AudioManager.play_menu_music()
 
 func _on_start_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")

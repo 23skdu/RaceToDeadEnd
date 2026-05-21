@@ -64,7 +64,7 @@ func _scale_sprite() -> void:
 	if sprite.texture:
 		var tex_height = sprite.texture.get_height()
 		var current_scale = target_size / tex_height
-		sprite.scale = Vector2(current_scale, current_scale * 0.5)
+		sprite.scale = Vector2(current_scale, current_scale)
 
 func _physics_process(delta: float) -> void:
 	if stunned:
