@@ -30,8 +30,13 @@ var chunk_weights: Dictionary = {
 var active_chunks: Array[Node2D] = []
 var current_segment: int = 0
 var player: Node = null
+var white_texture: Texture2D
 
 func _ready() -> void:
+	var img = Image.create(1, 1, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	white_texture = ImageTexture.create_from_image(img)
+	
 	for i in PREWARM_CHUNKS:
 		_spawn_chunk(i)
 
@@ -149,6 +154,7 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 	
 	if lane_polygons.size() > 0:
 		var lane_merged = MultiMeshInstance2D.new()
+		lane_merged.texture = white_texture
 		var multimesh = MultiMesh.new()
 		multimesh.mesh = _create_diamond_mesh()
 		multimesh.instance_count = lane_polygons.size()
@@ -160,6 +166,7 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 	
 	if shoulder_polygons.size() > 0:
 		var shoulder_merged = MultiMeshInstance2D.new()
+		shoulder_merged.texture = white_texture
 		var multimesh = MultiMesh.new()
 		multimesh.mesh = _create_diamond_mesh()
 		multimesh.instance_count = shoulder_polygons.size()
@@ -307,10 +314,17 @@ func _create_diamond_mesh() -> ArrayMesh:
 		Vector2(0, half_h),
 		Vector2(-half_w, 0)
 	])
+	var uvs = PackedVector2Array([
+		Vector2(0.5, 0.0),
+		Vector2(1.0, 0.5),
+		Vector2(0.5, 1.0),
+		Vector2(0.0, 0.5)
+	])
 	var indices = PackedInt32Array([0, 1, 2, 0, 2, 3])
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
