@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://c7w48qvls5v0h"]
 
-[ext_resource type="Script" path="res://scenes/Game.gd" id="1_8wxl3"]
+[ext_resource type="Script" path="res://scripts/scenes/Game.gd" id="1_8wxl3"]
 [ext_resource type="PackedScene" uid="uid://ctm88sl83chk0" path="res://scenes/world/Highway.tscn" id="2_esosw"]
 [ext_resource type="PackedScene" uid="uid://bo4gaa684gnyf" path="res://scenes/world/Spawner.tscn" id="3_6vcr8"]
 [ext_resource type="PackedScene" uid="uid://dplwyoiqf6v4g" path="res://scenes/player/Interceptor.tscn" id="4_yblev"]

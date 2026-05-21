@@ -192,14 +192,37 @@ func _generate_menu_music() -> AudioStreamWAV:
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
 	data.resize(num_samples)
+	
+	var bpm = 120.0
+	var step_duration = (60.0 / bpm) / 4.0
+	
+	var arpeggio = [0, 4, 7, 12, 7, 4, 0, -5]
+	var base_freq = 110.0 # A2
+	
 	for i in num_samples:
 		var t = i / sample_rate
-		var rpm_mod = sin(TAU * 1.5 * t) * 5.0
-		var freq = 45.0 + rpm_mod
-		var phase = fmod(t * freq, 1.0)
-		var val = (phase * 2.0 - 1.0) * 40.0
-		var buzz_phase = fmod(t * freq * 3.0, 1.0)
-		val += (buzz_phase * 2.0 - 1.0) * 15.0
+		var step_idx = int(t / step_duration)
+		var step_t = fmod(t, step_duration)
+		
+		var semitone = arpeggio[step_idx % arpeggio.size()]
+		
+		# Slowly shift the base frequency up over the 4 seconds to build tension
+		var current_base = base_freq
+		if t > 2.0:
+			current_base = base_freq * pow(1.059463, 5) # up to D
+			
+		var freq = current_base * pow(1.059463, semitone)
+		
+		# Pulse wave 50% duty
+		var wave = 1.0 if fmod(t * freq, 1.0) < 0.5 else -1.0
+		var env = max(0.0, 1.0 - (step_t / step_duration))
+		var val = wave * 30.0 * env
+		
+		# Add a subtle bass drone
+		var bass_freq = current_base / 2.0
+		var bass_wave = 1.0 if fmod(t * bass_freq, 1.0) < 0.5 else -1.0
+		val += bass_wave * 15.0
+		
 		data[i] = clampi(int(val) + 128, 0, 255)
 		
 	var stream = AudioStreamWAV.new()

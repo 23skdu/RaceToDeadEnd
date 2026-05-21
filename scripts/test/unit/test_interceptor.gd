@@ -26,7 +26,7 @@ func _create_player():
 	return player
 
 func test_constants():
-	var script = load("res://scenes/player/Interceptor.gd")
+	var script = load("res://scripts/scenes/player/Interceptor.gd")
 	assert_eq(script.BOOST_SPEED_MULTIPLIER, 2.0, "Boost multiplier")
 	assert_eq(script.WEAVE_DISTANCE, 128.0, "Weave distance")
 	assert_eq(script.WEAVE_COOLDOWN, 0.5, "Weave cooldown")
@@ -36,7 +36,7 @@ func test_constants():
 	assert_eq(script.SPEED_MODIFIER, 0.5, "Speed modifier")
 
 func test_weapon_types_constant():
-	var script = load("res://scenes/player/Interceptor.gd")
+	var script = load("res://scripts/scenes/player/Interceptor.gd")
 	assert_eq(script.WEAPON_TYPES.size(), 3, "Should have 3 weapon types")
 	assert_eq(script.WEAPON_TYPES[0], "missile", "First weapon should be missile")
 	assert_eq(script.WEAPON_TYPES[1], "mine", "Second weapon should be mine")

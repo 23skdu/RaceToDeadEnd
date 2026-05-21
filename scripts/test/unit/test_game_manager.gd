@@ -3,7 +3,7 @@ extends GutTest
 var GameManagerScript
 
 func before_all():
-	GameManagerScript = load("res://autoload/GameManager.gd")
+	GameManagerScript = load("res://scripts/autoload/GameManager.gd")
 
 func before_each():
 	var save_path = "user://save.dat"

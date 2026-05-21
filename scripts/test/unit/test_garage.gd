@@ -17,7 +17,7 @@ func before_each():
 		GameManager.upgrade_levels[key] = 1
 
 func test_upgrade_costs_defined():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	assert_true(script.UPGRADE_COSTS.has("max_health"), "max_health costs")
 	assert_true(script.UPGRADE_COSTS.has("boost_capacity"), "boost_capacity costs")
 	assert_true(script.UPGRADE_COSTS.has("fire_rate"), "fire_rate costs")
@@ -26,7 +26,7 @@ func test_upgrade_costs_defined():
 	assert_true(script.UPGRADE_COSTS.has("emp_ammo"), "emp_ammo costs")
 
 func test_upgrade_names_defined():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	assert_eq(script.UPGRADE_NAMES.max_health, "MAX HEALTH", "max_health name")
 	assert_eq(script.UPGRADE_NAMES.boost_capacity, "BOOST CAPACITY", "boost_capacity name")
 	assert_eq(script.UPGRADE_NAMES.fire_rate, "FIRE RATE", "fire_rate name")
@@ -35,7 +35,7 @@ func test_upgrade_names_defined():
 	assert_eq(script.UPGRADE_NAMES.emp_ammo, "EMP AMMO", "emp_ammo name")
 
 func test_upgrade_cost_progression():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	var health_costs = script.UPGRADE_COSTS.max_health
 	assert_eq(health_costs[1], 500, "Health level 1 cost")
 	assert_eq(health_costs[2], 1500, "Health level 2 cost")
@@ -43,7 +43,7 @@ func test_upgrade_cost_progression():
 	assert_eq(health_costs[4], 5000, "Health level 4 cost")
 
 func test_missile_ammo_costs():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	var costs = script.UPGRADE_COSTS.missile_ammo
 	assert_eq(costs[1], 150, "Missile level 1 cost")
 	assert_eq(costs[2], 400, "Missile level 2 cost")
@@ -51,7 +51,7 @@ func test_missile_ammo_costs():
 	assert_eq(costs[4], 2000, "Missile level 4 cost")
 
 func test_mine_ammo_costs():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	var costs = script.UPGRADE_COSTS.mine_ammo
 	assert_eq(costs[1], 200, "Mine level 1 cost")
 	assert_eq(costs[2], 500, "Mine level 2 cost")
@@ -59,7 +59,7 @@ func test_mine_ammo_costs():
 	assert_eq(costs[4], 2500, "Mine level 4 cost")
 
 func test_emp_ammo_costs():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	var costs = script.UPGRADE_COSTS.emp_ammo
 	assert_eq(costs[1], 250, "EMP level 1 cost")
 	assert_eq(costs[2], 700, "EMP level 2 cost")
@@ -67,12 +67,12 @@ func test_emp_ammo_costs():
 	assert_eq(costs[4], 3000, "EMP level 4 cost")
 
 func test_max_level_is_5():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	var costs = script.UPGRADE_COSTS.max_health
 	assert_eq(costs.size(), 5, "Should have 5 levels (index 0-4)")
 
 func test_all_upgrades_have_5_levels():
-	var script = load("res://scenes/ui/Garage.gd")
+	var script = load("res://scripts/scenes/ui/Garage.gd")
 	for key in script.UPGRADE_COSTS:
 		assert_eq(script.UPGRADE_COSTS[key].size(), 5, key + " should have 5 levels")
 

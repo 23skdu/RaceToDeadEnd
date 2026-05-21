@@ -96,7 +96,7 @@ func test_audio_manager_procedural_music_generates_stream():
 	assert_true(AudioManager.music_player.playing or AudioManager.music_player.stream != null, "Music should be playing")
 
 func test_sfx_player_count_constant():
-	var am = load("res://autoload/AudioManager.gd")
+	var am = load("res://scripts/autoload/AudioManager.gd")
 	assert_eq(am.SFX_PLAYER_COUNT, 12, "SFX player count should be 12")
 
 func test_cached_streams_are_reusable():
@@ -135,28 +135,28 @@ func test_music_player_named():
 	assert_eq(AudioManager.music_player.name, StringName("MusicPlayer"), "Music player should have correct name")
 
 func test_generate_laser_stream():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_laser_stream()
 	assert_true(stream != null, "Should generate laser stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Should be 8-bit")
 
 func test_generate_explosion_stream():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_explosion_stream()
 	assert_true(stream != null, "Should generate explosion stream")
 
 func test_generate_hurt_stream():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_hurt_stream()
 	assert_true(stream != null, "Should generate hurt stream")
 
 func test_generate_boost_stream():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_boost_stream()
 	assert_true(stream != null, "Should generate boost stream")
 
 func test_generate_emp_stream():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_emp_stream()
 	assert_true(stream != null, "Should generate emp stream")
 
@@ -175,7 +175,7 @@ func test_play_sfx_sets_position():
 	assert_true(found, "SFX position should be set")
 
 func test_bus_enum_values():
-	var am = load("res://autoload/AudioManager.gd")
+	var am = load("res://scripts/autoload/AudioManager.gd")
 	assert_eq(am.Bus.MASTER, 0, "MASTER = 0")
 	assert_eq(am.Bus.MUSIC, 1, "MUSIC = 1")
 	assert_eq(am.Bus.SFX, 2, "SFX = 2")
@@ -198,7 +198,7 @@ func test_play_synth_music_generates_looping_stream():
 	assert_eq(AudioManager.music_player.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "Music should loop")
 
 func test_procedural_music_uses_8bit_format():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var duration = 8.0
 	var sample_rate = 8000.0
 	var num_samples = int(sample_rate * duration)
@@ -226,7 +226,7 @@ func test_procedural_music_uses_8bit_format():
 	assert_eq(stream.mix_rate, 8000, "Music mix rate should be 8000")
 
 func test_music_frequency_changes_over_time():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = AudioStreamWAV.new()
 	var duration = 8.0
 	var sample_rate = 8000.0
@@ -255,35 +255,35 @@ func test_music_frequency_changes_over_time():
 	assert_eq(freq_at_7s, 73.42, "Frequency at 7s should be D2")
 
 func test_laser_stream_properties():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_laser_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Laser should be 8-bit")
 	assert_eq(stream.mix_rate, 11025, "Laser mix rate should be 11025")
 	assert_gt(stream.data.size(), 0, "Laser should have data")
 
 func test_explosion_stream_properties():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_explosion_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Explosion should be 8-bit")
 	assert_eq(stream.mix_rate, 11025, "Explosion mix rate should be 11025")
 	assert_gt(stream.data.size(), 0, "Explosion should have data")
 
 func test_hurt_stream_properties():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_hurt_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Hurt should be 8-bit")
 	assert_eq(stream.mix_rate, 11025, "Hurt mix rate should be 11025")
 	assert_gt(stream.data.size(), 0, "Hurt should have data")
 
 func test_boost_stream_properties():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_boost_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Boost should be 8-bit")
 	assert_eq(stream.mix_rate, 11025, "Boost mix rate should be 11025")
 	assert_gt(stream.data.size(), 0, "Boost should have data")
 
 func test_emp_stream_properties():
-	var am = load("res://autoload/AudioManager.gd").new()
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_emp_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "EMP should be 8-bit")
 	assert_eq(stream.mix_rate, 11025, "EMP mix rate should be 11025")

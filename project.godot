@@ -35,12 +35,12 @@ bus/2/mute=false
 
 [autoload]
 
-GameManager="*res://autoload/GameManager.gd"
-ScoreManager="*res://autoload/ScoreManager.gd"
-AudioManager="*res://autoload/AudioManager.gd"
-Constants="*res://autoload/Constants.gd"
-ObjectPool="*res://autoload/ObjectPool.gd"
-PackManager="*res://autoload/PackManager.gd"
+GameManager="*res://scripts/autoload/GameManager.gd"
+ScoreManager="*res://scripts/autoload/ScoreManager.gd"
+AudioManager="*res://scripts/autoload/AudioManager.gd"
+Constants="*res://scripts/autoload/Constants.gd"
+ObjectPool="*res://scripts/autoload/ObjectPool.gd"
+PackManager="*res://scripts/autoload/PackManager.gd"
 
 [display]
 

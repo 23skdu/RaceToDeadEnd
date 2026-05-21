@@ -6,7 +6,7 @@ func before_all():
 	pass
 
 func before_each():
-	_pm = load("res://autoload/PackManager.gd").new()
+	_pm = load("res://scripts/autoload/PackManager.gd").new()
 	add_child_autofree(_pm)
 
 func test_initial_state():

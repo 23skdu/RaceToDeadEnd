@@ -8,7 +8,7 @@ class SignalCapture:
 		points = p
 
 func before_all():
-	ScoreManagerScript = load("res://autoload/ScoreManager.gd")
+	ScoreManagerScript = load("res://scripts/autoload/ScoreManager.gd")
 
 func before_each():
 	var save_path = "user://save.dat"

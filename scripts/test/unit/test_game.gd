@@ -11,7 +11,7 @@ func test_game_scene_exists():
 	assert_true(ResourceLoader.exists("res://scenes/Game.tscn"), "Game scene should exist")
 
 func test_game_script_exists():
-	assert_true(ResourceLoader.exists("res://scenes/Game.gd"), "Game script should exist")
+	assert_true(ResourceLoader.exists("res://scripts/scenes/Game.gd"), "Game script should exist")
 
 func _create_game():
 	var game = load("res://scenes/Game.tscn").instantiate()
@@ -103,7 +103,7 @@ func test_game_weapon_fired_emp():
 	assert_true(true, "EMP weapon fired should not crash")
 
 func test_game_scene_constants():
-	var script = load("res://scenes/Game.gd")
+	var script = load("res://scripts/scenes/Game.gd")
 	assert_true(script.BULLET_SCENE != null, "Bullet scene should be preloaded")
 	assert_true(script.MINE_SCENE != null, "Mine scene should be preloaded")
 	assert_true(script.EMP_SCENE != null, "EMP scene should be preloaded")

@@ -3,7 +3,7 @@ extends GutTest
 var Highway
 
 func before_all():
-	Highway = load("res://scenes/world/Highway.gd")
+	Highway = load("res://scripts/scenes/world/Highway.gd")
 
 func test_chunk_constants():
 	var h = Highway.new()
@@ -31,7 +31,7 @@ func test_chunk_weights_sum():
 
 func test_chunk_weights_scale_with_difficulty():
 	var h = Highway.new()
-	var gm = load("res://autoload/GameManager.gd").new()
+	var gm = load("res://scripts/autoload/GameManager.gd").new()
 	add_child_autofree(gm)
 	gm.start_game()
 	gm.difficulty_tier = 1
@@ -287,7 +287,7 @@ func test_generate_chunk_tiles_standard_no_ice_area():
 
 func test_chunk_weights_adjusted_at_high_tier():
 	var h = Highway.new()
-	var gm = load("res://autoload/GameManager.gd").new()
+	var gm = load("res://scripts/autoload/GameManager.gd").new()
 	add_child_autofree(gm)
 	gm.start_game()
 	gm.difficulty_tier = 20

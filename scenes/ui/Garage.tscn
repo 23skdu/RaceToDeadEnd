@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bgrjp0ifn5bdx"]
 
-[ext_resource type="Script" path="res://scenes/ui/Garage.gd" id="1_v8yp2"]
+[ext_resource type="Script" path="res://scripts/scenes/ui/Garage.gd" id="1_v8yp2"]
 
 [node name="Garage" type="CanvasLayer"]
 layer = 30

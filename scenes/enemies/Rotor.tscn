@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://bxr7c0uvlyiw"]
 
-[ext_resource type="Script" path="res://scenes/enemies/Rotor.gd" id="1_0ok3b"]
+[ext_resource type="Script" path="res://scripts/scenes/enemies/Rotor.gd" id="1_0ok3b"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/rotor.png" id="2_rotor"]
 
 [sub_resource type="RectangleShape2D" id="2_qb02c"]

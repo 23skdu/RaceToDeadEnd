@@ -3,7 +3,7 @@ extends GutTest
 var Spawner
 
 func before_all():
-	Spawner = load("res://scenes/world/Spawner.gd")
+	Spawner = load("res://scripts/scenes/world/Spawner.gd")
 
 func before_each():
 	var save_path = "user://save.dat"

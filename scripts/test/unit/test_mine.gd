@@ -9,7 +9,7 @@ class MockEnemy:
 var Mine
 
 func before_all():
-	Mine = load("res://scenes/weapons/Mine.gd")
+	Mine = load("res://scripts/scenes/weapons/Mine.gd")
 
 func test_mine_defaults():
 	var m = Mine.new()

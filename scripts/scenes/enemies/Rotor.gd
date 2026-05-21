@@ -1,4 +1,4 @@
-extends "res://scenes/enemies/Enemy.gd"
+extends "res://scripts/scenes/enemies/Enemy.gd"
 
 var target_player_x: float = 0.0
 var swarm_phase: float = 0.0

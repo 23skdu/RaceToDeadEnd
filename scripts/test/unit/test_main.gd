@@ -10,7 +10,7 @@ func test_garage_scene_path():
 	assert_true(ResourceLoader.exists("res://scenes/ui/Garage.tscn"), "Garage scene should exist")
 
 func test_main_script_exists():
-	assert_true(ResourceLoader.exists("res://scenes/Main.gd"), "Main script should exist")
+	assert_true(ResourceLoader.exists("res://scripts/scenes/Main.gd"), "Main script should exist")
 
 func _create_main():
 	var main = load("res://scenes/Main.tscn").instantiate()

@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://co6hyc6tb4h00"]
 
-[ext_resource type="Script" path="res://scenes/enemies/Drone.gd" id="1_2hqsw"]
+[ext_resource type="Script" path="res://scripts/scenes/enemies/Drone.gd" id="1_2hqsw"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/drone.png" id="2_drone"]
 
 [sub_resource type="RectangleShape2D" id="2_4rqj8"]

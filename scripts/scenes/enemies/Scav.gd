@@ -1,4 +1,4 @@
-extends "res://scenes/enemies/Enemy.gd"
+extends "res://scripts/scenes/enemies/Enemy.gd"
 
 const BULLET_SCENE = preload("res://scenes/weapons/Bullet.tscn")
 

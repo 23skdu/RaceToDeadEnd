@@ -12,7 +12,7 @@ class SignalCapture:
 		count += 1
 
 func before_all():
-	Enemy = load("res://scenes/enemies/Enemy.gd")
+	Enemy = load("res://scripts/scenes/enemies/Enemy.gd")
 
 func test_enemy_type_enum():
 	assert_eq(Enemy.EnemyType.ROTOR, 0, "ROTOR = 0")

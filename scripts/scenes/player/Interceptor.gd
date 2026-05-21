@@ -137,6 +137,11 @@ func _handle_input() -> void:
 		_activate_boost()
 	if Input.is_action_just_pressed("cycle_weapon"):
 		_cycle_weapon()
+		
+	if Input.is_action_just_pressed("fire_emp"):
+		_fire_specific_weapon("emp")
+	if Input.is_action_just_pressed("drop_mine"):
+		_fire_specific_weapon("mine")
 
 func _lane_to_x(lane: int) -> float:
 	var total_width = Constants.LANE_WIDTH * (Constants.LANE_COUNT - 1)
@@ -181,6 +186,13 @@ func _fire_secondary() -> void:
 		return
 	secondary_ammo[current_weapon] -= 1
 	weapon_fired.emit(WEAPON_TYPES[current_weapon], weapon_mount.global_position, Vector2.UP)
+
+func _fire_specific_weapon(type: String) -> void:
+	var idx = WEAPON_TYPES.find(type)
+	if idx != -1:
+		if secondary_ammo[idx] > 0:
+			secondary_ammo[idx] -= 1
+			weapon_fired.emit(type, weapon_mount.global_position, Vector2.UP)
 
 func _cycle_weapon() -> void:
 	current_weapon = (current_weapon + 1) % secondary_ammo.size()

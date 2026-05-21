@@ -3,7 +3,7 @@ extends GutTest
 var DroneBomb
 
 func before_all():
-	DroneBomb = load("res://scenes/weapons/DroneBomb.gd")
+	DroneBomb = load("res://scripts/scenes/weapons/DroneBomb.gd")
 
 func test_drone_bomb_defaults():
 	var db = DroneBomb.new()

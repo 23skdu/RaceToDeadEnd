@@ -54,6 +54,7 @@ func _process(delta: float) -> void:
 				_reset_multiplier()
 
 func _ready() -> void:
+	_add_input_mappings()
 	load_progress()
 
 func start_game() -> void:
@@ -131,8 +132,58 @@ func spend_credits(amount: int) -> bool:
 	if credits >= amount:
 		credits -= amount
 		save_progress()
+		get_tree().paused = false
 		return true
 	return false
+
+func _add_input_mappings() -> void:
+	# Gamepad mappings
+	_add_joy_motion("move_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_joy_motion("move_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_joy_button("move_left", JOY_BUTTON_DPAD_LEFT)
+	_add_joy_button("move_right", JOY_BUTTON_DPAD_RIGHT)
+	
+	_add_joy_motion("accelerate", JOY_AXIS_LEFT_Y, -1.0)
+	_add_joy_button("accelerate", JOY_BUTTON_DPAD_UP)
+	_add_joy_motion("brake", JOY_AXIS_LEFT_Y, 1.0)
+	_add_joy_button("brake", JOY_BUTTON_DPAD_DOWN)
+	
+	_add_joy_button("primary_fire", JOY_BUTTON_A)
+	_add_joy_button("secondary_fire", JOY_BUTTON_B)
+	_add_joy_button("boost", JOY_BUTTON_X)
+	_add_joy_button("cycle_weapon", JOY_BUTTON_Y)
+	
+	# Keyboard arrow keys (added programmatically just in case)
+	_add_key_mapping("move_left", KEY_LEFT)
+	_add_key_mapping("move_right", KEY_RIGHT)
+	_add_key_mapping("accelerate", KEY_UP)
+	_add_key_mapping("brake", KEY_DOWN)
+	
+	# Explicit weapon binds
+	_add_key_mapping("fire_emp", KEY_E)
+	_add_key_mapping("drop_mine", KEY_M)
+
+func _add_key_mapping(action: String, keycode: int) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	var ev = InputEventKey.new()
+	ev.physical_keycode = keycode
+	InputMap.action_add_event(action, ev)
+	
+func _add_joy_button(action: String, button: int) -> void:
+	if not InputMap.has_action(action):
+		return
+	var ev = InputEventJoypadButton.new()
+	ev.button_index = button
+	InputMap.action_add_event(action, ev)
+
+func _add_joy_motion(action: String, axis: int, dir: float) -> void:
+	if not InputMap.has_action(action):
+		return
+	var ev = InputEventJoypadMotion.new()
+	ev.axis = axis
+	ev.axis_value = dir
+	InputMap.action_add_event(action, ev)
 
 func save_progress() -> void:
 	var save_data = {

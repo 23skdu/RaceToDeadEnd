@@ -29,5 +29,5 @@ static func create_mock_player() -> Node2D:
 
 ## Sets up a minimal GameManager for tests (don't use when autoload is available)
 static func create_game_manager() -> Node:
-	var gm = load("res://autoload/GameManager.gd").new()
+	var gm = load("res://scripts/autoload/GameManager.gd").new()
 	return gm

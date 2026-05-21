@@ -7,7 +7,7 @@ func test_options_scene_exists():
 	assert_true(ResourceLoader.exists("res://scenes/ui/Options.tscn"), "Options scene should exist")
 
 func test_options_script_exists():
-	assert_true(ResourceLoader.exists("res://scenes/ui/Options.gd"), "Options script should exist")
+	assert_true(ResourceLoader.exists("res://scripts/scenes/ui/Options.gd"), "Options script should exist")
 
 func _create_options():
 	var options = load("res://scenes/ui/Options.tscn").instantiate()

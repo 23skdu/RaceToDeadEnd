@@ -12,6 +12,17 @@ func _ready() -> void:
 	quit_button.pressed.connect(_on_quit_pressed)
 	GameManager.state = GameManager.GameState.MENU
 	AudioManager.play_menu_music()
+	
+	_add_controls_label()
+
+func _add_controls_label() -> void:
+	var label = Label.new()
+	label.text = "CONTROLS\nKeyboard: WASD/Arrows to Move, Space/Shift to Fire\nWeapons: E for EMP, M for Mines, Q to Cycle\nController: D-Pad/Left Stick to Move, A/B to Fire, Y to Cycle"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	label.offset_bottom = -20
+	label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 0.8))
+	$CanvasLayer.add_child(label)
 
 func _on_start_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")

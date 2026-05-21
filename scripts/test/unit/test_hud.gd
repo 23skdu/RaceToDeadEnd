@@ -85,7 +85,7 @@ func test_hud_weapon_display_negative_index():
 	assert_eq(hud.ammo_label.text, "0", "Ammo should still update with negative index")
 
 func test_hud_weapon_colors_constant():
-	var hud_script = load("res://scenes/ui/HUD.gd")
+	var hud_script = load("res://scripts/scenes/ui/HUD.gd")
 	assert_eq(hud_script.WEAPON_COLORS.size(), 3, "Should have 3 weapon colors")
 	assert_eq(hud_script.WEAPON_COLORS[0], Color.RED, "Missile color should be red")
 	assert_eq(hud_script.WEAPON_COLORS[1], Color.YELLOW, "Mine color should be yellow")
