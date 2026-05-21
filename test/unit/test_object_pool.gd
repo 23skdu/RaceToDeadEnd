@@ -55,11 +55,10 @@ func test_get_nonexistent_pool():
 func test_release_reattaches_to_pool_parent():
 	ObjectPool.create_pool("test_reattach", preload("res://scenes/weapons/Bullet.tscn"), 2)
 	var item = ObjectPool.acquire("test_reattach")
-	var original_parent = item.get_parent()
-	item.get_parent().remove_child(item)
-	assert_null(item.get_parent(), "Item should be removed from parent")
+	assert_null(item.get_parent(), "Acquired item should have no parent")
 	ObjectPool.release(item)
-	assert_eq(item.get_parent(), original_parent, "Item should be reattached to pool parent")
+	assert_true(item.get_meta("_in_pool", false), "Item should be marked as in pool")
+	assert_true(ObjectPool._pools["test_reattach"].has(item), "Item should be back in pool array")
 
 func test_fallback_item_added_to_pool_parent():
 	ObjectPool.create_pool("test_fallback_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)

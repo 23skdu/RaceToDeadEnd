@@ -5,6 +5,17 @@ var Garage
 func before_all():
 	Garage = load("res://scenes/ui/Garage.tscn")
 
+func before_each():
+	var save_path = "user://save.dat"
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
+	GameManager.credits = 0
+	GameManager.high_score = 0
+	GameManager.score = 0
+	GameManager.state = GameManager.GameState.MENU
+	for key in GameManager.upgrade_levels:
+		GameManager.upgrade_levels[key] = 1
+
 func test_upgrade_costs_defined():
 	var script = load("res://scenes/ui/Garage.gd")
 	assert_true(script.UPGRADE_COSTS.has("max_health"), "max_health costs")
@@ -71,17 +82,13 @@ func _create_garage():
 	return garage
 
 func test_garage_displays_credits():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 999
+	GameManager.credits = 999
 	var garage = _create_garage()
 	garage.refresh()
 	assert_true("999" in garage.credits_label.text, "Should display credits")
 
 func test_garage_upgrade_at_max_level():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.upgrade_levels["max_health"] = 4
+	GameManager.upgrade_levels["max_health"] = 4
 	var garage = _create_garage()
 	garage.refresh()
 	var max_found = false
@@ -92,10 +99,8 @@ func test_garage_upgrade_at_max_level():
 	assert_true(max_found, "Should show MAX level indicator")
 
 func test_garage_upgrade_insufficient_credits():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 10
-	gm.upgrade_levels["max_health"] = 1
+	GameManager.credits = 10
+	GameManager.upgrade_levels["max_health"] = 1
 	var garage = _create_garage()
 	garage.refresh()
 	var disabled_found = false
@@ -118,26 +123,20 @@ func test_garage_start_emits_signal():
 	assert_signal_emitted(garage, "start_run_requested", "Should emit start signal")
 
 func test_garage_spend_credits():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 1000
-	gm.upgrade_levels["max_health"] = 1
+	GameManager.credits = 1000
+	GameManager.upgrade_levels["max_health"] = 1
 	var garage = _create_garage()
 	garage._on_upgrade_pressed("max_health", 500)
-	assert_eq(gm.upgrade_levels["max_health"], 2, "Upgrade level should increase")
-	assert_eq(gm.credits, 500, "Credits should decrease")
+	assert_eq(GameManager.upgrade_levels["max_health"], 2, "Upgrade level should increase")
+	assert_eq(GameManager.credits, 500, "Credits should decrease")
 
 func test_garage_ready_connects_buttons():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
 	var garage = _create_garage()
 	assert_true(garage.back_button.pressed.is_connected(garage._on_back_pressed), "Back button should be connected")
 	assert_true(garage.start_button.pressed.is_connected(garage._on_start_pressed), "Start button should be connected")
 
 func test_garage_shows_all_weapon_upgrades():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 99999
+	GameManager.credits = 99999
 	var garage = _create_garage()
 	garage.refresh()
 	var found_missile = false
@@ -156,39 +155,31 @@ func test_garage_shows_all_weapon_upgrades():
 	assert_true(found_emp, "Should show emp ammo upgrade")
 
 func test_garage_upgrade_missile_ammo():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 1000
-	gm.upgrade_levels["missile_ammo"] = 1
+	GameManager.credits = 1000
+	GameManager.upgrade_levels["missile_ammo"] = 1
 	var garage = _create_garage()
 	garage._on_upgrade_pressed("missile_ammo", 150)
-	assert_eq(gm.upgrade_levels["missile_ammo"], 2, "Missile ammo level should increase")
-	assert_eq(gm.credits, 850, "Credits should decrease by missile cost")
+	assert_eq(GameManager.upgrade_levels["missile_ammo"], 2, "Missile ammo level should increase")
+	assert_eq(GameManager.credits, 850, "Credits should decrease by missile cost")
 
 func test_garage_upgrade_mine_ammo():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 1000
-	gm.upgrade_levels["mine_ammo"] = 1
+	GameManager.credits = 1000
+	GameManager.upgrade_levels["mine_ammo"] = 1
 	var garage = _create_garage()
 	garage._on_upgrade_pressed("mine_ammo", 200)
-	assert_eq(gm.upgrade_levels["mine_ammo"], 2, "Mine ammo level should increase")
-	assert_eq(gm.credits, 800, "Credits should decrease by mine cost")
+	assert_eq(GameManager.upgrade_levels["mine_ammo"], 2, "Mine ammo level should increase")
+	assert_eq(GameManager.credits, 800, "Credits should decrease by mine cost")
 
 func test_garage_upgrade_emp_ammo():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 1000
-	gm.upgrade_levels["emp_ammo"] = 1
+	GameManager.credits = 1000
+	GameManager.upgrade_levels["emp_ammo"] = 1
 	var garage = _create_garage()
 	garage._on_upgrade_pressed("emp_ammo", 250)
-	assert_eq(gm.upgrade_levels["emp_ammo"], 2, "EMP ammo level should increase")
-	assert_eq(gm.credits, 750, "Credits should decrease by emp cost")
+	assert_eq(GameManager.upgrade_levels["emp_ammo"], 2, "EMP ammo level should increase")
+	assert_eq(GameManager.credits, 750, "Credits should decrease by emp cost")
 
 func test_garage_six_upgrades_displayed():
-	var gm = TestHelper.create_game_manager()
-	add_child_autofree(gm)
-	gm.credits = 99999
+	GameManager.credits = 99999
 	var garage = _create_garage()
 	garage.refresh()
 	var button_count = 0

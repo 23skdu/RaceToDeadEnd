@@ -485,3 +485,668 @@ A comprehensive audit of all 19 GDScript files, 14 TSCN scenes, and project conf
 **P0 (do now):** Parts 21, 22, 24, 25, 28 — Fix broken mechanics and critical performance issues
 **P1 (do next):** Parts 23, 26, 27, 30 — Optimize and clean up architecture
 **P2 (do later):** Part 29 — Add missing design features
+
+---
+
+## Part 31: Loadable Content Pack System (Music, Skins, Themes)
+
+### Overview
+
+A modular content pack system that lets players drop folders into `user://packs/` to customize the game's music, vehicle sprites, and visual theme without modifying the core project. Packs are discovered at startup, validated, and activated through a new **Customize** tab in the Garage UI. Each pack is self-contained with a `pack.json` manifest.
+
+### Architecture
+
+```
+user://packs/
+├── synthwave_vibes/
+│   ├── pack.json
+│   ├── music/
+│   │   ├── track_01.ogg
+│   │   └── track_02.ogg
+│   ├── skins/
+│   │   ├── player/interceptor.png
+│   │   ├── enemies/rotor.png
+│   │   ├── enemies/scav.png
+│   │   └── enemies/drone.png
+│   └── theme/
+│       ├── highway_lane.png
+│       ├── highway_shoulder.png
+│       ├── highway_stripe.png
+│       ├── desert_sand.png
+│       └── palette.json
+└── metal_mayhem/
+    ├── pack.json
+    └── ...
+```
+
+### 31.1: Pack Manifest Schema (`pack.json`)
+
+```json
+{
+  "pack_id": "synthwave_vibes",
+  "name": "Synthwave Vibes",
+  "author": "PlayerName",
+  "version": "1.0.0",
+  "description": "Dark synthwave soundtrack with neon car skins",
+  "content_types": ["music", "skin", "theme"],
+  "music": {
+    "tracks": ["music/track_01.ogg", "music/track_02.ogg"],
+    "shuffle": true
+  },
+  "skins": {
+    "player": "skins/player/interceptor.png",
+    "enemies": {
+      "rotor": "skins/enemies/rotor.png",
+      "scav": "skins/enemies/scav.png",
+      "drone": "skins/enemies/drone.png"
+    }
+  },
+  "theme": {
+    "highway_lane": "theme/highway_lane.png",
+    "highway_shoulder": "theme/highway_shoulder.png",
+    "highway_stripe": "theme/highway_stripe.png",
+    "desert_sand": "theme/desert_sand.png",
+    "palette": {
+      "lane_color": "#2e2e38",
+      "shoulder_color": "#c2a36a",
+      "stripe_color": "#ffffcc",
+      "guardrail_color": "#ff0080",
+      "sky_color": "#0a0a14"
+    }
+  }
+}
+```
+
+**Validation rules:**
+- `pack_id` must be unique, alphanumeric + underscores, max 32 chars
+- `content_types` is an array of strings from `["music", "skin", "theme"]`
+- All referenced file paths must exist relative to the pack folder
+- Image files must be PNG, SVG, or WebP; audio must be OGG or WAV
+- Max pack size: 50 MB (enforced at load time)
+
+### 31.2: PackManager Singleton (`autoload/PackManager.gd`)
+
+Responsibilities:
+- Scan `user://packs/` on `_ready()` for valid `pack.json` manifests
+- Parse and validate each manifest against the schema
+- Store discovered packs in a `Dictionary` keyed by `pack_id`
+- Provide methods to activate/deactivate packs by content type
+- Expose signals for UI updates when packs change
+
+```gdscript
+extends Node
+
+signal pack_discovered(pack_id: String, name: String)
+signal pack_activated(pack_id: String, content_type: String)
+signal pack_deactivated(content_type: String)
+signal pack_validation_failed(pack_id: String, error: String)
+
+const PACKS_DIR: String = "user://packs/"
+const MAX_PACK_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
+
+var discovered_packs: Dictionary = {}
+var active_packs: Dictionary = {
+    music = "",
+    skin = "",
+    theme = ""
+}
+
+func _ready() -> void:
+    _scan_packs()
+
+func _scan_packs() -> void:
+    if not DirAccess.dir_exists_absolute(PACKS_DIR):
+        return
+    var dir = DirAccess.open(PACKS_DIR)
+    dir.list_dir_begin()
+    var folder = dir.get_next()
+    while folder != "":
+        if dir.current_is_dir():
+            var manifest_path = PACKS_DIR.path_join(folder).path_join("pack.json")
+            if FileAccess.file_exists(manifest_path):
+                _load_manifest(manifest_path, folder)
+        folder = dir.get_next()
+    dir.list_dir_end()
+
+func _load_manifest(path: String, folder: String) -> void:
+    var file = FileAccess.open(path, FileAccess.READ)
+    if not file:
+        return
+    var json_text = file.get_as_text()
+    var json = JSON.new()
+    var parse_result = json.parse(json_text)
+    if parse_result != OK:
+        pack_validation_failed.emit(folder, "Invalid JSON")
+        return
+    var data = json.data
+    if not _validate_manifest(data, folder):
+        return
+    discovered_packs[data.pack_id] = {
+        "data": data,
+        "folder": PACKS_DIR.path_join(folder),
+        "size": _get_folder_size(PACKS_DIR.path_join(folder))
+    }
+    pack_discovered.emit(data.pack_id, data.name)
+
+func _validate_manifest(data: Dictionary, folder: String) -> bool:
+    # Required fields
+    if not data.has("pack_id") or not data.has("name"):
+        pack_validation_failed.emit(folder, "Missing pack_id or name")
+        return false
+    if not data.pack_id.match("[a-z0-9_]+"):
+        pack_validation_failed.emit(folder, "Invalid pack_id format")
+        return false
+    # Check content_types
+    if not data.has("content_types") or not data.content_types is Array:
+        pack_validation_failed.emit(folder, "Missing content_types")
+        return false
+    # Validate referenced files exist
+    var base = PACKS_DIR.path_join(folder)
+    for content_type in data.content_types:
+        if not _validate_content_section(data, content_type, base):
+            return false
+    return true
+
+func _validate_content_section(data: Dictionary, type: String, base: String) -> bool:
+    match type:
+        "music":
+            if data.has("music") and data.music.has("tracks"):
+                for track in data.music.tracks:
+                    if not FileAccess.file_exists(base.path_join(track)):
+                        pack_validation_failed.emit(data.pack_id, "Missing track: " + track)
+                        return false
+        "skin":
+            if data.has("skins"):
+                if data.skins.has("player"):
+                    if not FileAccess.file_exists(base.path_join(data.skins.player)):
+                        pack_validation_failed.emit(data.pack_id, "Missing player skin")
+                        return false
+                if data.skins.has("enemies"):
+                    for enemy in data.skins.enemies:
+                        if not FileAccess.file_exists(base.path_join(data.skins.enemies[enemy])):
+                            pack_validation_failed.emit(data.pack_id, "Missing enemy skin: " + enemy)
+                            return false
+        "theme":
+            if data.has("theme"):
+                if data.theme.has("palette"):
+                    for color_key in data.theme.palette:
+                        if not _is_valid_hex_color(data.theme.palette[color_key]):
+                            pack_validation_failed.emit(data.pack_id, "Invalid color: " + color_key)
+                            return false
+    return true
+
+func _is_valid_hex_color(s: String) -> bool:
+    if not s.begins_with("#"):
+        return false
+    if s.length() != 7:
+        return false
+    return true
+
+func _get_folder_size(path: String) -> int:
+    var total = 0
+    var dir = DirAccess.open(path)
+    if not dir:
+        return 0
+    dir.list_dir_begin()
+    var file = dir.get_next()
+    while file != "":
+        if dir.current_is_dir():
+            total += _get_folder_size(path.path_join(file))
+        else:
+            total += dir.get_length()
+        file = dir.get_next()
+    dir.list_dir_end()
+    return total
+
+func activate_pack(pack_id: String, content_type: String) -> bool:
+    if not discovered_packs.has(pack_id):
+        return false
+    var pack = discovered_packs[pack_id]
+    if pack.size > MAX_PACK_SIZE_BYTES:
+        return false
+    active_packs[content_type] = pack_id
+    pack_activated.emit(pack_id, content_type)
+    _apply_pack_content(pack, content_type)
+    return true
+
+func deactivate_pack(content_type: String) -> void:
+    active_packs[content_type] = ""
+    pack_deactivated.emit(content_type)
+    _revert_pack_content(content_type)
+
+func _apply_pack_content(pack: Dictionary, content_type: String) -> void:
+    match content_type:
+        "music":
+            _apply_music_pack(pack.data)
+        "skin":
+            _apply_skin_pack(pack.data, pack.folder)
+        "theme":
+            _apply_theme_pack(pack.data, pack.folder)
+
+func _apply_music_pack(data: Dictionary) -> void:
+    if data.has("music") and data.music.has("tracks"):
+        var base = discovered_packs[data.pack_id].folder
+        var tracks: Array[AudioStreamOggVorbis] = []
+        for track_path in data.music.tracks:
+            var full_path = base.path_join(track_path)
+            var stream = load(full_path) as AudioStreamOggVorbis
+            if stream:
+                tracks.append(stream)
+        if tracks.size() > 0:
+            AudioManager.set_playlist(tracks, data.music.get("shuffle", true))
+
+func _apply_skin_pack(data: Dictionary, base: String) -> void:
+    if data.has("skins"):
+        if data.skins.has("player"):
+            var path = base.path_join(data.skins.player)
+            var tex = load(path) as Texture2D
+            if tex:
+                _emit_skin_loaded("player", tex)
+        if data.skins.has("enemies"):
+            for enemy in data.skins.enemies:
+                var path = base.path_join(data.skins.enemies[enemy])
+                var tex = load(path) as Texture2D
+                if tex:
+                    _emit_skin_loaded(enemy, tex)
+
+func _apply_theme_pack(data: Dictionary, base: String) -> void:
+    if data.has("theme"):
+        var theme = data.theme
+        if theme.has("palette"):
+            for color_key in theme.palette:
+                var color = Color(theme.palette[color_key])
+                _emit_theme_color_loaded(color_key, color)
+        if theme.has("highway_lane"):
+            var tex = load(base.path_join(theme.highway_lane)) as Texture2D
+            if tex:
+                _emit_theme_texture_loaded("highway_lane", tex)
+
+signal skin_loaded(entity: String, texture: Texture2D)
+signal theme_color_loaded(key: String, color: Color)
+signal theme_texture_loaded(key: String, texture: Texture2D)
+
+func _emit_skin_loaded(entity: String, texture: Texture2D) -> void:
+    skin_loaded.emit(entity, texture)
+
+func _emit_theme_color_loaded(key: String, color: Color) -> void:
+    theme_color_loaded.emit(key, color)
+
+func _emit_theme_texture_loaded(key: String, texture: Texture2D) -> void:
+    theme_texture_loaded.emit(key, texture)
+
+func _revert_pack_content(content_type: String) -> void:
+    match content_type:
+        "music":
+            AudioManager.revert_to_default_music()
+        "skin":
+            skin_loaded.emit("player", null)
+            skin_loaded.emit("rotor", null)
+            skin_loaded.emit("scav", null)
+            skin_loaded.emit("drone", null)
+        "theme":
+            theme_color_loaded.emit("lane_color", Color(0.18, 0.18, 0.22))
+            theme_color_loaded.emit("shoulder_color", Color(0.76, 0.64, 0.42))
+            theme_color_loaded.emit("stripe_color", Color(1.0, 1.0, 0.8))
+            theme_color_loaded.emit("guardrail_color", Color(1.0, 1.0, 0.8))
+
+func get_active_pack_id(content_type: String) -> String:
+    return active_packs.get(content_type, "")
+
+func get_discovered_pack_ids() -> Array[String]:
+    return discovered_packs.keys()
+
+func get_pack_info(pack_id: String) -> Dictionary:
+    if discovered_packs.has(pack_id):
+        return discovered_packs[pack_id].data
+    return {}
+```
+
+### 31.3: AudioManager Playlist Support
+
+Add to `AudioManager.gd`:
+
+```gdscript
+var _playlist: Array[AudioStream] = []
+var _playlist_index: int = 0
+var _playlist_shuffle: bool = true
+var _playlist_active: bool = false
+
+func set_playlist(tracks: Array[AudioStream], shuffle: bool = true) -> void:
+    _playlist = tracks.duplicate()
+    _playlist_shuffle = shuffle
+    _playlist_active = true
+    _playlist_index = 0
+    if _playlist_shuffle:
+        _playlist.shuffle()
+    if _playlist.size() > 0:
+        play_music(_playlist[0])
+    music_player.finished.connect(_on_music_finished)
+
+func revert_to_default_music() -> void:
+    _playlist_active = false
+    music_player.finished.disconnect(_on_music_finished)
+    play_synth_music()
+
+func _on_music_finished() -> void:
+    if not _playlist_active or _playlist.size() == 0:
+        return
+    _playlist_index = (_playlist_index + 1) % _playlist.size()
+    if _playlist_index == 0 and _playlist_shuffle:
+        _playlist.shuffle()
+    play_music(_playlist[_playlist_index])
+```
+
+### 31.4: Skin Integration in Player and Enemies
+
+**Interceptor.gd** — listen for skin changes:
+
+```gdscript
+func _ready() -> void:
+    # ... existing code ...
+    PackManager.skin_loaded.connect(_on_skin_loaded)
+    _apply_current_skin()
+
+func _on_skin_loaded(entity: String, texture: Texture2D) -> void:
+    if entity == "player" and texture:
+        sprite.texture = texture
+    elif entity == "player" and texture == null:
+        sprite.texture = load("res://assets/sprites/player/interceptor.svg")
+
+func _apply_current_skin() -> void:
+    var active = PackManager.get_active_pack_id("skin")
+    if active != "":
+        var info = PackManager.get_pack_info(active)
+        if info.has("skins") and info.skins.has("player"):
+            var base = PackManager.discovered_packs[active].folder
+            var path = base.path_join(info.skins.player)
+            var tex = load(path) as Texture2D
+            if tex:
+                sprite.texture = tex
+```
+
+**Enemy.gd** — same pattern in `_update_sprite()`:
+
+```gdscript
+func _update_sprite() -> void:
+    var type_name = TYPE_NAMES[enemy_type]
+    var active = PackManager.get_active_pack_id("skin")
+    if active != "":
+        var info = PackManager.get_pack_info(active)
+        if info.has("skins") and info.skins.has("enemies") and info.skins.enemies.has(type_name):
+            var base = PackManager.discovered_packs[active].folder
+            var path = base.path_join(info.skins.enemies[type_name])
+            var tex = load(path) as Texture2D
+            if tex:
+                sprite.texture = tex
+                _scale_sprite()
+                return
+    # fallback to default
+    match enemy_type:
+        EnemyType.ROTOR:
+            sprite.texture = load("res://assets/sprites/enemies/rotor.png") if ResourceLoader.exists("res://assets/sprites/enemies/rotor.png") else null
+        EnemyType.SCAV:
+            sprite.texture = load("res://assets/sprites/enemies/scav.png") if ResourceLoader.exists("res://assets/sprites/enemies/scav.png") else null
+        EnemyType.DRONE:
+            sprite.texture = load("res://assets/sprites/enemies/drone.png") if ResourceLoader.exists("res://assets/sprites/enemies/drone.png") else null
+    _scale_sprite()
+```
+
+### 31.5: Theme Integration in Highway
+
+**Highway.gd** — listen for theme color/texture changes:
+
+```gdscript
+var _theme_colors: Dictionary = {
+    lane_color = Color(0.18, 0.18, 0.22),
+    shoulder_color = Color(0.76, 0.64, 0.42),
+    stripe_color = Color(1.0, 1.0, 0.8),
+    guardrail_color = Color(1.0, 1.0, 0.8),
+}
+
+func _ready() -> void:
+    PackManager.theme_color_loaded.connect(_on_theme_color_loaded)
+    PackManager.theme_texture_loaded.connect(_on_theme_texture_loaded)
+    for i in PREWARM_CHUNKS:
+        _spawn_chunk(i)
+
+func _on_theme_color_loaded(key: String, color: Color) -> void:
+    if _theme_colors.has(key):
+        _theme_colors[key] = color
+
+func _on_theme_texture_loaded(key: String, texture: Texture2D) -> void:
+    # Store for use in chunk generation (e.g., textured shoulders)
+    pass
+
+# In _generate_chunk_tiles(), replace hardcoded colors:
+# Color(0.18, 0.18, 0.22) -> _theme_colors.lane_color
+# Color(0.76, 0.64, 0.42) -> _theme_colors.shoulder_color
+# Color(1.0, 1.0, 0.8)   -> _theme_colors.stripe_color
+# Color(1.0, 1.0, 0.8)   -> _theme_colors.guardrail_color
+```
+
+### 31.6: Customize UI (`scenes/ui/Customize.tscn` + `Customize.gd`)
+
+A new overlay accessible from the Garage via a "CUSTOMIZE" tab button.
+
+**Layout:**
+```
+┌─────────────────────────────────────────┐
+│  CUSTOMIZE                              │
+│  ┌─────────┬──────────┬───────────┐     │
+│  │ MUSIC   │  SKINS   │  THEMES   │     │
+│  ├─────────┼──────────┼───────────┤     │
+│  │ [None]  │ [None]   │ [None]    │     │
+│  │ Synth   │ Neon     │ Desert    │     │
+│  │ Metal   │ Classic  │ Night     │     │
+│  │         │ Retro    │           │     │
+│  ├─────────┴──────────┴───────────┤     │
+│  │ [Preview]     [Activate]       │     │
+│  │                                │     │
+│  │ Drop packs in:                 │     │
+│  │ user://packs/                  │     │
+│  └────────────────────────────────┘     │
+│  [BACK]                                 │
+└─────────────────────────────────────────┘
+```
+
+**Customize.gd:**
+
+```gdscript
+extends CanvasLayer
+
+signal back_to_garage_requested
+
+@onready var tab_bar: TabBar = $Panel/TabBar
+@onready var pack_list: ItemList = $Panel/PackList
+@onready var activate_btn: Button = $Panel/ActivateButton
+@onready var deactivate_btn: Button = $Panel/DeactivateButton
+@onready var preview_btn: Button = $Panel/PreviewButton
+@onready var pack_path_label: Label = $Panel/PackPathLabel
+@onready var back_btn: Button = $Panel/BackButton
+
+const CONTENT_TYPES = ["music", "skin", "theme"]
+
+func _ready() -> void:
+    back_btn.pressed.connect(_on_back_pressed)
+    tab_bar.tab_changed.connect(_on_tab_changed)
+    activate_btn.pressed.connect(_on_activate_pressed)
+    deactivate_btn.pressed.connect(_on_deactivate_pressed)
+    PackManager.pack_discovered.connect(_on_pack_discovered)
+    PackManager.pack_validation_failed.connect(_on_pack_validation_failed)
+    refresh()
+    pack_path_label.text = "Drop packs in: " + PackManager.PACKS_DIR
+
+func refresh() -> void:
+    _on_tab_changed(tab_bar.current_tab)
+
+func _on_tab_changed(tab_index: int) -> void:
+    pack_list.clear()
+    var content_type = CONTENT_TYPES[tab_index]
+    var active = PackManager.get_active_pack_id(content_type)
+    pack_list.add_item("[None] (Default)")
+    if active == "":
+        pack_list.select(0)
+    for pack_id in PackManager.get_discovered_pack_ids():
+        var info = PackManager.get_pack_info(pack_id)
+        if info.has("content_types") and content_type in info.content_types:
+            var display = info.name
+            if info.has("author"):
+                display += " by " + info.author
+            var idx = pack_list.add_item(display)
+            if pack_id == active:
+                pack_list.select(idx)
+
+func _on_activate_pressed() -> void:
+    var tab = tab_bar.current_tab
+    var content_type = CONTENT_TYPES[tab]
+    var selected = pack_list.get_selected_items()
+    if selected.size() == 0:
+        PackManager.deactivate_pack(content_type)
+        return
+    var idx = selected[0]
+    if idx == 0:
+        PackManager.deactivate_pack(content_type)
+        return
+    var pack_id = PackManager.get_discovered_pack_ids()[idx - 1]
+    PackManager.activate_pack(pack_id, content_type)
+    refresh()
+
+func _on_deactivate_pressed() -> void:
+    var tab = tab_bar.current_tab
+    var content_type = CONTENT_TYPES[tab]
+    PackManager.deactivate_pack(content_type)
+    pack_list.select(0)
+
+func _on_pack_discovered(pack_id: String, name: String) -> void:
+    refresh()
+
+func _on_pack_validation_failed(pack_id: String, error: String) -> void:
+    push_warning("Pack validation failed for '%s': %s" % [pack_id, error])
+
+func _on_back_pressed() -> void:
+    back_to_garage_requested.emit()
+```
+
+### 31.7: Save/Load Active Packs
+
+Extend `GameManager.gd` save data:
+
+```gdscript
+func save_progress() -> void:
+    var save_data = {
+        credits = credits,
+        high_score = high_score,
+        upgrade_levels = upgrade_levels.duplicate(),
+        active_packs = PackManager.active_packs.duplicate(),
+    }
+    var file = FileAccess.open("user://save.dat", FileAccess.WRITE)
+    if file:
+        file.store_var(save_data)
+
+func load_progress() -> void:
+    var file = FileAccess.open("user://save.dat", FileAccess.READ)
+    if file:
+        var data = file.get_var()
+        if data is Dictionary:
+            # ... existing load logic ...
+            if data.has("active_packs") and typeof(data.active_packs) == TYPE_DICTIONARY:
+                for content_type in data.active_packs:
+                    var pack_id = data.active_packs[content_type]
+                    if pack_id != "" and PackManager.discovered_packs.has(pack_id):
+                        PackManager.activate_pack(pack_id, content_type)
+```
+
+### 31.8: Sample Content Packs
+
+Create two sample packs to demonstrate the system:
+
+**Pack 1: `neon_nights`** — Synthwave aesthetic
+```
+user://packs/neon_nights/
+├── pack.json
+├── music/
+│   └── neon_drive.ogg          # 80s synthwave loop (generated procedurally in code)
+├── skins/
+│   ├── player/interceptor.png  # Neon cyan car with glowing edges
+│   ├── enemies/rotor.png       # Purple zombie biker
+│   ├── enemies/scav.png        # Red rusted truck
+│   └── enemies/drone.png       # Green alien saucer
+└── theme/
+    └── palette.json            # Dark purple/blue palette
+```
+
+**Pack 2: `dust_bowl`** — Mad Max aesthetic
+```
+user://packs/dust_bowl/
+├── pack.json
+├── music/
+│   └── wasteland.ogg           # Industrial percussion loop
+├── skins/
+│   ├── player/interceptor.png  # Rusted muscle car
+│   ├── enemies/rotor.png       # Skeleton biker
+│   ├── enemies/scav.png        # Armored war rig
+│   └── enemies/drone.png       # Scrap helicopter
+└── theme/
+    └── palette.json            # Orange/brown desert palette
+```
+
+### 31.9: Unit Tests
+
+**Test file: `test/unit/test_pack_manager.gd`**
+
+Tests to cover:
+1. `_scan_packs()` finds no packs when directory is empty
+2. `_load_manifest()` correctly parses a valid manifest
+3. `_validate_manifest()` rejects missing `pack_id`
+4. `_validate_manifest()` rejects invalid `pack_id` format (uppercase, spaces)
+5. `_validate_manifest()` rejects missing `content_types`
+6. `_validate_manifest()` rejects non-existent file references
+7. `_validate_manifest()` rejects invalid hex colors
+8. `activate_pack()` succeeds with valid pack
+9. `activate_pack()` fails with non-existent pack_id
+10. `activate_pack()` fails when pack exceeds size limit
+11. `deactivate_pack()` reverts to defaults
+12. `get_discovered_pack_ids()` returns correct list
+13. `get_pack_info()` returns correct data for known pack
+14. `get_active_pack_id()` returns active pack per content type
+15. Music playlist shuffles when enabled
+16. Music playlist advances to next track on finish
+17. Skin loading emits `skin_loaded` signal with correct texture
+18. Theme color loading emits `theme_color_loaded` with correct Color
+19. Save/load roundtrip preserves active pack selections
+20. Multiple packs can be active simultaneously (one per content type)
+
+### 31.10: Implementation Order
+
+| Step | Task | Effort |
+|------|------|--------|
+| 1 | Create `PackManager.gd` autoload with scan/validate/activate | Medium |
+| 2 | Add playlist support to `AudioManager.gd` | Low |
+| 3 | Integrate skin loading in `Interceptor.gd` and `Enemy.gd` | Low |
+| 4 | Integrate theme colors in `Highway.gd` | Low |
+| 5 | Create `Customize.tscn` + `Customize.gd` UI | Medium |
+| 6 | Wire Customize tab into Garage navigation | Low |
+| 7 | Extend save/load in `GameManager.gd` | Low |
+| 8 | Create `neon_nights` sample pack assets | Medium |
+| 9 | Create `dust_bowl` sample pack assets | Medium |
+| 10 | Write 20 unit tests in `test_pack_manager.gd` | Medium |
+| 11 | Integration testing: drop packs, verify activation | Low |
+
+### 31.11: Security Considerations
+
+- Pack files are loaded from `user://` sandbox — no access to system files
+- JSON parsing uses Godot's built-in `JSON` class — no code execution
+- Image/audio files loaded via `load()` — Godot's import pipeline handles validation
+- No script files (`.gd`, `.gdc`, `.gde`) are loaded from packs
+- Max pack size enforced at 50 MB
+- `pack_id` restricted to alphanumeric + underscore — no path traversal
+
+### 31.12: Future Extensions
+
+- **Pack sharing**: Export packs as `.zip` with metadata for itch.io / community sharing
+- **Pack ratings**: Community voting system for discovered packs
+- **Animated skins**: Support for `AnimatedTexture2D` or `SpriteFrames` in skin packs
+- **Dynamic themes**: Time-of-day themes (dawn, day, dusk, night) that shift palette automatically
+- **SFX packs**: Replace procedural SFX with custom sound effects
+- **Font packs**: Custom fonts for HUD text
+- **Pack dependencies**: Packs that require another pack to be active

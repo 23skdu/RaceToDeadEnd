@@ -13,6 +13,7 @@ func _ready() -> void:
 	shoot_timer = shoot_interval * randf_range(0.5, 1.5)
 
 func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
 	if stunned:
 		velocity = Vector2.ZERO
 		move_and_slide()
@@ -21,7 +22,7 @@ func _physics_process(delta: float) -> void:
 	if player and is_instance_valid(player):
 		target_player_x = player.global_position.x
 		
-		var flank_offset = 64.0 if lane > player.current_lane else -64.0
+		var flank_offset = 64.0 if lane > 1 else -64.0
 		var target_x = player.global_position.x + flank_offset
 		var diff_x = target_x - position.x
 		

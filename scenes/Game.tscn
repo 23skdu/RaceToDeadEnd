@@ -25,3 +25,5 @@ layer = 10
 [node name="HUD" parent="UI" instance=ExtResource("5_k3nls")]
 
 [node name="GameOver" parent="UI" instance=ExtResource("6_8paj1")]
+
+[node name="ScorePopups" type="Node2D" parent="."]

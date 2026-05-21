@@ -5,6 +5,14 @@ var Spawner
 func before_all():
 	Spawner = load("res://scenes/world/Spawner.gd")
 
+func before_each():
+	var save_path = "user://save.dat"
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
+	GameManager.state = GameManager.GameState.MENU
+	GameManager.difficulty_tier = 1
+	GameManager.score = 0
+
 func test_wave_interval_default():
 	var s = Spawner.new()
 	assert_eq(s.wave_interval, 5.0, "Default wave interval should be 5 seconds")
@@ -14,7 +22,9 @@ func test_base_speed_constant():
 
 func test_wave_timer_decrements():
 	var s = Spawner.new()
+	s.player = _create_mock_player()
 	s.wave_timer = 3.0
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(1.0)
 	assert_eq(s.wave_timer, 2.0, "Wave timer should decrement by delta")
 
@@ -22,28 +32,25 @@ func test_wave_timer_resets_after_spawn():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	s.wave_timer = 0.0
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_eq(s.wave_timer, s.wave_interval, "Wave timer should reset to wave_interval")
 
 func test_wave_interval_scales_with_difficulty():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
-	var gm = load("res://autoload/GameManager.gd").new()
-	add_child_autofree(gm)
-	gm.start_game()
-	gm.difficulty_tier = 1
+	GameManager.difficulty_tier = 1
 	s.wave_timer = 0.0
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_eq(s.wave_interval, 5.0, "Tier 1 wave interval should be 5.0")
 
 func test_wave_interval_decreases_at_higher_tiers():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
-	var gm = load("res://autoload/GameManager.gd").new()
-	add_child_autofree(gm)
-	gm.start_game()
-	gm.difficulty_tier = 5
+	GameManager.difficulty_tier = 5
 	s.wave_timer = 0.0
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_lt(s.wave_interval, 5.0, "Wave interval should decrease at higher tiers")
 	assert_gte(s.wave_interval, 2.0, "Wave interval should not go below 2.0")
@@ -151,9 +158,7 @@ func test_process_does_not_spawn_when_not_playing():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	s.wave_timer = 0.0
-	var gm = load("res://autoload/GameManager.gd").new()
-	add_child_autofree(gm)
-	gm.state = gm.GameState.MENU
+	GameManager.state = GameManager.GameState.MENU
 	s._process(0.1)
 	assert_eq(s.wave_timer, 0.0, "Wave timer should not reset when not PLAYING")
 
@@ -224,11 +229,9 @@ func test_on_enemy_destroyed_registers_score():
 	s.player = _create_mock_player()
 	add_child_autofree(s)
 	s._ready()
-	var gm = load("res://autoload/GameManager.gd").new()
-	add_child_autofree(gm)
-	gm.start_game()
+	GameManager.start_game()
 	s._on_enemy_destroyed(Vector2.ZERO, "rotor")
-	assert_gt(gm.score, 0, "Should register score on enemy destroy")
+	assert_gt(GameManager.score, 0, "Should register score on enemy destroy")
 
 func test_on_pickup_collected_ignores_non_player():
 	var s = Spawner.new()
@@ -266,17 +269,13 @@ func test_process_finds_player_from_group():
 	mock_player.global_position = Vector2(0, 0)
 	mock_player.add_to_group("player")
 	add_child_autofree(mock_player)
-	var gm = load("res://autoload/GameManager.gd").new()
-	add_child_autofree(gm)
-	gm.start_game()
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_eq(s.player, mock_player, "Should find player from group")
 
 func test_pickup_type_multiplier():
 	var s = Spawner.new()
-	var gm = load("res://autoload/GameManager.gd").new()
-	add_child_autofree(gm)
-	gm.start_game()
+	GameManager.start_game()
 	s._drop_pickup(Vector2.ZERO)
 	assert_true(true, "Should handle multiplier pickup type")
 
@@ -285,7 +284,7 @@ func test_wave_spawned_signal_contains_wave_number():
 	s.player = _create_mock_player()
 	add_child_autofree(s)
 	s._ready()
-	watch_signals(s)
+	var captured_wave = 0
+	s.wave_spawned.connect(func(w): captured_wave = w)
 	s._spawn_wave()
-	var args = get_signal_parameters(s, "wave_spawned")
-	assert_eq(args[0][0], 1, "Signal should contain wave number 1")
+	assert_eq(captured_wave, 1, "Signal should contain wave number 1")

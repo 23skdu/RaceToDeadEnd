@@ -41,10 +41,9 @@ func test_drone_bomb_timer_decrements():
 	assert_lt(drone.bomb_timer, initial_timer, "Bomb timer should decrement")
 
 func test_drone_drop_bomb_creates_area():
-	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
-	add_child_autofree(drone)
 	var world = Node2D.new()
 	add_child_autofree(world)
+	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	world.add_child(drone)
 	drone.world_node = world
 	var player = Node2D.new()
@@ -58,10 +57,9 @@ func test_drone_drop_bomb_creates_area():
 	assert_gt(bombs.size(), 0, "Drone should create a bomb")
 
 func test_drone_drop_bomb_position():
-	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
-	add_child_autofree(drone)
 	var world = Node2D.new()
 	add_child_autofree(world)
+	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	world.add_child(drone)
 	drone.world_node = world
 	drone.global_position = Vector2(50, -100)

@@ -20,11 +20,7 @@ func _process(delta: float) -> void:
 		return
 		
 	if not player or not is_instance_valid(player):
-		var players = get_tree().get_nodes_in_group("player")
-		if players.size() > 0:
-			player = players[0]
-		else:
-			return
+		return
 			
 	wave_timer -= delta
 	if wave_timer <= 0.0:
@@ -123,39 +119,9 @@ func _pick_pickup_type() -> String:
 		return "multiplier"
 
 func _spawn_pickup(position: Vector2, pickup_type: String) -> void:
-	var pickup = Area2D.new()
-	pickup.collision_layer = 0
-	pickup.collision_mask = 1
-	var col = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = 20.0
-	col.shape = circle
-	pickup.add_child(col)
-	
-	var visual = Polygon2D.new()
-	var pts = []
-	var segments = 8
-	for i in segments:
-		var angle = i * TAU / segments
-		pts.append(Vector2(cos(angle) * 16.0, sin(angle) * 16.0))
-	visual.polygon = PackedVector2Array(pts)
-	match pickup_type:
-		"repair":
-			visual.color = Color(0.2, 1.0, 0.3)
-		"ammo":
-			visual.color = Color(1.0, 0.8, 0.2)
-		"boost":
-			visual.color = Color(0.2, 0.8, 1.0)
-		"multiplier":
-			visual.color = Color(1.0, 0.3, 1.0)
-	pickup.add_child(visual)
-	
-	pickup.global_position = position
-	pickup.body_entered.connect(_on_pickup_collected.bind(pickup_type, pickup))
-	add_child(pickup)
+	var pickup = ObjectPool.acquire_pickup(pickup_type, position, _on_pickup_collected)
+	if get_parent():
+		get_parent().add_child(pickup)
 
-func _on_pickup_collected(body: Node, pickup_type: String, pickup: Area2D) -> void:
-	if not body.is_in_group("player"):
-		return
-	ScoreManager.register_pickup(pickup_type, pickup.global_position)
-	pickup.queue_free()
+func _on_pickup_collected(pickup_type: String, _pickup: Area2D) -> void:
+	ScoreManager.register_pickup(pickup_type, _pickup.global_position)

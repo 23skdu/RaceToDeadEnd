@@ -6,9 +6,28 @@ func before_all():
 	GameManagerScript = load("res://autoload/GameManager.gd")
 
 func before_each():
+	var save_path = "user://save.dat"
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
 	var gm = GameManagerScript.new()
+	gm.credits = 0
+	gm.high_score = 0
+	gm.score = 0
+	gm.health = 5
+	gm.max_health = 5
+	gm.multiplier = 1
+	gm.difficulty_tier = 1
+	gm.current_segment = 0
+	gm.state = gm.GameState.MENU
+	gm.upgrade_levels = {
+		max_health = 1,
+		boost_capacity = 1,
+		fire_rate = 1,
+		missile_ammo = 1,
+		mine_ammo = 1,
+		emp_ammo = 1,
+	}
 	add_child_autofree(gm)
-	gm._ready()
 	set_meta("gm", gm)
 
 func get_gm():
@@ -264,11 +283,11 @@ func test_load_validation_ignores_invalid_types():
 	gm.save_progress()
 	var file = FileAccess.open("user://save.dat", FileAccess.WRITE)
 	if file:
-		file.store_string("corrupted data")
+		file.store_var("not a dictionary")
 		file.close()
 	gm.credits = 0
 	gm.load_progress()
-	assert_eq(gm.credits, 0, "Credits should remain at default with corrupted save")
+	assert_eq(gm.credits, 0, "Credits should remain at default with non-dictionary save")
 
 func test_load_validation_accepts_valid_data():
 	var gm = get_gm()

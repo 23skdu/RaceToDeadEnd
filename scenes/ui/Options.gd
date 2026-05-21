@@ -28,13 +28,13 @@ func _load_fullscreen_setting() -> void:
 	fullscreen_check.button_pressed = (mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
 func _on_master_changed(value: float) -> void:
-	AudioServer.set_bus_volume_db(0, linear_to_db(value))
+	AudioServer.set_bus_volume_db(0, linear_to_db(value) if value > 0 else -80.0)
 
 func _on_music_changed(value: float) -> void:
-	AudioServer.set_bus_volume_db(1, linear_to_db(value))
+	AudioServer.set_bus_volume_db(1, linear_to_db(value) if value > 0 else -80.0)
 
 func _on_sfx_changed(value: float) -> void:
-	AudioServer.set_bus_volume_db(2, linear_to_db(value))
+	AudioServer.set_bus_volume_db(2, linear_to_db(value) if value > 0 else -80.0)
 
 func _on_fullscreen_toggled(pressed: bool) -> void:
 	if pressed:

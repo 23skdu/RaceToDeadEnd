@@ -6,6 +6,7 @@ var weave_frequency: float = 2.0
 var weave_amplitude: float = 32.0
 
 func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
 	if stunned:
 		velocity = Vector2.ZERO
 		move_and_slide()

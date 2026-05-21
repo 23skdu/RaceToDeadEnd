@@ -10,11 +10,13 @@ const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
 @onready var player: CharacterBody2D = $World/Player
 @onready var hud: CanvasLayer = $UI/HUD
 @onready var game_over: CanvasLayer = $UI/GameOver
+@onready var score_popup_container: Node2D = $ScorePopups
 
 func _ready() -> void:
 	ObjectPool.create_pool("bullet", BULLET_SCENE, 50)
 	ObjectPool.create_pool("mine", MINE_SCENE, 10)
 	ObjectPool.create_pool("emp", EMP_SCENE, 5)
+	ObjectPool.create_pickup_pool(20)
 	
 	GameManager.start_game()
 	spawner.player = player
@@ -28,7 +30,7 @@ func _ready() -> void:
 		
 		highway.ice_entered.connect(player.set_slippery.bind(true))
 		highway.ice_exited.connect(player.set_slippery.bind(false))
-		highway.bridge_fall.connect(_on_bridge_fall)
+		highway.bridge_fall.connect(player.on_bridge_fall)
 		
 		# Initial UI sync
 		hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
@@ -43,17 +45,8 @@ func _ready() -> void:
 	
 	if hud:
 		GameManager.game_over.connect(hud._on_game_over)
-
-func _on_bridge_fall(body: Node) -> void:
-	if body.has_method("take_damage"):
-		body.take_damage(2)
-	if "current_lane" in body:
-		if body.position.x < 0:
-			body.position.x = -32
-			body.current_lane = 1
-		else:
-			body.position.x = 32
-			body.current_lane = 2
+	
+	ScoreManager.score_popped.connect(_on_score_popped)
 
 func _restart_game() -> void:
 	get_tree().reload_current_scene()
@@ -107,3 +100,15 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			emp.init(pos)
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_emp(pos)
+
+func _on_score_popped(position: Vector2, points: int, label: String) -> void:
+	var popup = Label.new()
+	popup.text = label
+	popup.add_theme_color_override("font_color", Color(1.0, 1.0, 0.5))
+	popup.add_theme_font_size_override("font_size", 18)
+	popup.position = position
+	score_popup_container.add_child(popup)
+	var tween = create_tween()
+	tween.tween_property(popup, "position:y", position.y - 60.0, 0.8)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(popup.queue_free)

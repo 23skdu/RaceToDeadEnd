@@ -2,6 +2,17 @@ extends GutTest
 
 var EMPScene
 
+class MockEnemy:
+	extends Node2D
+	var was_stunned = false
+	var stun_dur = 0.0
+	var damage_taken = 0
+	func take_damage(amount = 1):
+		damage_taken = amount
+	func apply_stun(duration):
+		was_stunned = true
+		stun_dur = duration
+
 func before_all():
 	EMPScene = load("res://scenes/weapons/EMPBlast.tscn")
 
@@ -50,11 +61,10 @@ func test_emp_frees_at_max_radius():
 
 func test_emp_damages_on_body_entered():
 	var e = _create_emp()
-	var damage_taken = 0
-	var mock_body = Node2D.new()
-	mock_body.set("take_damage", func(amount = 1): damage_taken = amount)
-	e._on_body_entered(mock_body)
-	assert_eq(damage_taken, 1, "Should deal damage")
+	var mock_enemy = MockEnemy.new()
+	add_child_autofree(mock_enemy)
+	e._on_body_entered(mock_enemy)
+	assert_eq(mock_enemy.damage_taken, 1, "Should deal damage")
 
 func test_emp_updates_collision_shape_radius():
 	var e = _create_emp()
@@ -69,17 +79,11 @@ func test_emp_starts_with_zero_radius():
 
 func test_emp_applies_stun_on_hit():
 	var e = _create_emp()
-	var mock_enemy = Node2D.new()
-	var stunned = false
-	var stun_duration = 0.0
-	mock_enemy.set("take_damage", func(amount = 1): pass)
-	mock_enemy.set("apply_stun", func(duration): 
-		stunned = true
-		stun_duration = duration
-	)
+	var mock_enemy = MockEnemy.new()
+	add_child_autofree(mock_enemy)
 	e._on_body_entered(mock_enemy)
-	assert_true(stunned, "Enemy should be stunned")
-	assert_eq(stun_duration, 2.0, "Stun duration should be 2 seconds")
+	assert_true(mock_enemy.was_stunned, "Enemy should be stunned")
+	assert_eq(mock_enemy.stun_dur, 2.0, "Stun duration should be 2 seconds")
 
 func test_emp_ready_sets_collision():
 	var e = _create_emp()

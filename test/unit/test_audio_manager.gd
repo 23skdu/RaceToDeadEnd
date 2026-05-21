@@ -125,7 +125,7 @@ func test_play_sfx_reuses_free_player():
 	assert_true(first_player != null, "Should have a playing player")
 
 func test_music_player_bus():
-	assert_eq(AudioManager.music_player.bus, StringName("Master"), "Music player should use Master bus")
+	assert_eq(AudioManager.music_player.bus, StringName("Music"), "Music player should use Music bus")
 
 func test_sfx_players_named():
 	for i in AudioManager.SFX_PLAYER_COUNT:

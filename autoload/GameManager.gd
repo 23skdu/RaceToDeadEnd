@@ -23,8 +23,6 @@ var high_score: int = 0
 
 const BASE_SCORE_RATE: int = 10
 const SEGMENT_DISTANCE: float = 10.0
-const DIFFICULTY_TIER_INTERVAL: int = 5
-const BOSS_INTERVAL: int = 3000
 const MULTIPLIER_DURATION: float = 10.0
 
 var upgrade_levels: Dictionary = {
@@ -40,6 +38,7 @@ var _score_timer: float = 0.0
 var _difficulty_progress: float = 0.0
 var _multiplier_timer: float = 0.0
 var _base_multiplier: int = 1
+var _last_tier_threshold: int = 0
 
 func _process(delta: float) -> void:
 	if state == GameState.PLAYING:
@@ -80,8 +79,13 @@ func add_score(points: int) -> void:
 	score += multiplied_points
 	_difficulty_progress += multiplied_points
 	score_updated.emit(score)
-	if score > 0 and floori(score / 1000.0) > floori((score - multiplied_points) / 1000.0):
-		_advance_difficulty()
+	_check_difficulty_advance()
+
+func _check_difficulty_advance() -> void:
+	var new_tier = mini(1 + floori(_difficulty_progress / 1000.0), 20)
+	if new_tier > difficulty_tier:
+		difficulty_tier = new_tier
+		difficulty_tier_changed.emit(difficulty_tier)
 
 func add_health(amount: int) -> void:
 	health = clampi(health + amount, 0, max_health)
@@ -110,12 +114,7 @@ func advance_segment() -> void:
 	current_segment += 1
 	_difficulty_progress += 200.0
 	segment_advanced.emit(current_segment)
-	if current_segment % DIFFICULTY_TIER_INTERVAL == 0:
-		_advance_difficulty()
-
-func _advance_difficulty() -> void:
-	difficulty_tier = mini(difficulty_tier + 1, 20)
-	difficulty_tier_changed.emit(difficulty_tier)
+	_check_difficulty_advance()
 
 func end_game() -> void:
 	state = GameState.GAME_OVER
@@ -151,10 +150,17 @@ func load_progress() -> void:
 		var data = file.get_var()
 		if data is Dictionary:
 			if data.has("credits") and typeof(data.credits) == TYPE_INT:
-				credits = data.credits
+				credits = maxi(0, data.credits)
 			if data.has("high_score") and typeof(data.high_score) == TYPE_INT:
-				high_score = data.high_score
+				high_score = maxi(0, data.high_score)
 			if data.has("upgrade_levels") and typeof(data.upgrade_levels) == TYPE_DICTIONARY:
 				for key in upgrade_levels:
 					if data.upgrade_levels.has(key) and typeof(data.upgrade_levels[key]) == TYPE_INT:
-						upgrade_levels[key] = data.upgrade_levels[key]
+						var val = clampi(data.upgrade_levels[key], 1, 5)
+						upgrade_levels[key] = val
+			if data.has("active_packs") and typeof(data.active_packs) == TYPE_DICTIONARY:
+				pass
+		else:
+			push_warning("Save data corrupted, using defaults")
+			credits = 0
+			high_score = 0

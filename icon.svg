@@ -1,14 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <rect width="256" height="256" fill="#1a1a2e"/>
-  <polygon points="128,30 200,90 200,166 128,226 56,166 56,90" fill="#16213e" stroke="#e94560" stroke-width="4"/>
-  <polygon points="128,50 180,95 180,150 128,200 76,150 76,95" fill="#0f3460" stroke="#e94560" stroke-width="2"/>
-  <polygon points="128,70 160,100 160,140 128,170 96,140 96,100" fill="#e94560"/>
-  <rect x="118" y="105" width="20" height="40" fill="#1a1a2e"/>
-  <circle cx="128" cy="125" r="6" fill="#e94560"/>
-  <line x1="128" y1="70" x2="128" y2="50" stroke="#e94560" stroke-width="3"/>
-  <polygon points="128,45 133,55 123,55" fill="#e94560"/>
-  <line x1="160" y1="100" x2="175" y2="90" stroke="#e94560" stroke-width="2"/>
-  <line x1="96" y1="100" x2="81" y2="90" stroke="#e94560" stroke-width="2"/>
-  <line x1="160" y1="140" x2="175" y2="150" stroke="#e94560" stroke-width="2"/>
-  <line x1="96" y1="140" x2="81" y2="150" stroke="#e94560" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background: dark asphalt -->
+  <rect width="1024" height="1024" fill="#0d0d1a" rx="80"/>
+  <!-- Highway perspective -->
+  <polygon points="512,100 900,924 124,924" fill="#1a1a2e" stroke="#2a2a4a" stroke-width="4"/>
+  <!-- Road edges -->
+  <line x1="512" y1="100" x2="124" y2="924" stroke="#ff0080" stroke-width="8"/>
+  <line x1="512" y1="100" x2="900" y2="924" stroke="#ff0080" stroke-width="8"/>
+  <!-- Lane markings -->
+  <line x1="380" y1="300" x2="280" y2="924" stroke="#ffffcc" stroke-width="4" stroke-dasharray="30,20"/>
+  <line x1="512" y1="200" x2="512" y2="924" stroke="#ffffcc" stroke-width="4" stroke-dasharray="30,20"/>
+  <line x1="644" y1="300" x2="744" y2="924" stroke="#ffffcc" stroke-width="4" stroke-dasharray="30,20"/>
+  <!-- Player interceptor (center, bottom) -->
+  <polygon points="512,600 560,680 560,820 512,860 464,820 464,680" fill="#0f3460" stroke="#4a9eff" stroke-width="6"/>
+  <polygon points="512,630 540,690 540,790 512,820 484,790 484,690" fill="#1a5a9c"/>
+  <!-- Windshield -->
+  <polygon points="512,650 530,690 530,720 512,740 494,720 494,690" fill="#00ccff" opacity="0.6"/>
+  <!-- Headlights -->
+  <circle cx="490" cy="640" r="8" fill="#ffcc00"/>
+  <circle cx="534" cy="640" r="8" fill="#ffcc00"/>
+  <!-- Engine glow -->
+  <circle cx="512" cy="850" r="12" fill="#ff6633" opacity="0.8"/>
+  <!-- Enemy Rotor (left lane) -->
+  <circle cx="340" cy="500" r="24" fill="#8b0000" stroke="#ff3333" stroke-width="3"/>
+  <circle cx="340" cy="500" r="8" fill="#ff0000"/>
+  <!-- Enemy Scav (right lane) -->
+  <rect x="620" y="420" width="60" height="80" rx="8" fill="#5c3a1e" stroke="#ff6633" stroke-width="3"/>
+  <rect x="630" y="430" width="40" height="20" rx="4" fill="#3a2a1e"/>
+  <!-- Enemy Drone (top center) -->
+  <ellipse cx="512" cy="300" rx="40" ry="20" fill="#2a1a5c" stroke="#aa44ff" stroke-width="3"/>
+  <circle cx="512" cy="300" r="8" fill="#aa44ff" opacity="0.8"/>
+  <!-- Explosions -->
+  <circle cx="700" cy="600" r="20" fill="#ff6633" opacity="0.5"/>
+  <circle cx="700" cy="600" r="10" fill="#ffcc00" opacity="0.7"/>
+  <!-- Title text area - subtle -->
+  <text x="512" y="960" text-anchor="middle" font-family="monospace" font-size="28" fill="#4a9eff" font-weight="bold">RACE TO DEAD END</text>
 </svg>

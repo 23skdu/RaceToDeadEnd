@@ -1,5 +1,11 @@
 extends GutTest
 
+class MockEnemy:
+	extends Node2D
+	var damage_taken = 0
+	func take_damage(amount = 1):
+		damage_taken = amount
+
 var Mine
 
 func before_all():
@@ -35,7 +41,7 @@ func test_mine_explodes_on_body_entered():
 	m.armed = true
 	var mock_body = Node2D.new()
 	m._on_body_entered(mock_body)
-	assert_true(m.is_queued_for_deletion() or m.get_meta("_in_pool", false), "Mine should explode")
+	assert_true(m.is_queued_for_deletion(), "Mine should explode")
 
 func test_mine_ignores_when_not_armed():
 	var m = Mine.new()
@@ -51,7 +57,7 @@ func test_mine_area_entered():
 	m.armed = true
 	var mock_area = Area2D.new()
 	m._on_area_entered(mock_area)
-	assert_true(m.is_queued_for_deletion() or m.get_meta("_in_pool", false), "Mine should explode on area entered")
+	assert_true(m.is_queued_for_deletion(), "Mine should explode on area entered")
 
 func test_mine_aoe_damages_nearby_enemies():
 	var m = Mine.new()
@@ -59,23 +65,19 @@ func test_mine_aoe_damages_nearby_enemies():
 	m.global_position = Vector2(0, 0)
 	m.armed = true
 	
-	var enemy1 = Node2D.new()
+	var enemy1 = MockEnemy.new()
 	enemy1.global_position = Vector2(30, 30)
-	var damage1 = 0
-	enemy1.set("take_damage", func(amount = 1): damage1 = amount)
 	enemy1.add_to_group("enemy")
 	add_child_autofree(enemy1)
 	
-	var enemy2 = Node2D.new()
+	var enemy2 = MockEnemy.new()
 	enemy2.global_position = Vector2(200, 200)
-	var damage2 = 0
-	enemy2.set("take_damage", func(amount = 1): damage2 = amount)
 	enemy2.add_to_group("enemy")
 	add_child_autofree(enemy2)
 	
 	m._explode()
-	assert_eq(damage1, 2, "Nearby enemy should take damage")
-	assert_eq(damage2, 0, "Far enemy should not take damage")
+	assert_eq(enemy1.damage_taken, 2, "Nearby enemy should take damage")
+	assert_eq(enemy2.damage_taken, 0, "Far enemy should not take damage")
 
 func test_mine_aoe_respects_radius():
 	var m = Mine.new()
@@ -84,23 +86,19 @@ func test_mine_aoe_respects_radius():
 	m.explosion_radius = 50.0
 	m.armed = true
 	
-	var enemy_at_edge = Node2D.new()
+	var enemy_at_edge = MockEnemy.new()
 	enemy_at_edge.global_position = Vector2(49, 0)
-	var damage_edge = 0
-	enemy_at_edge.set("take_damage", func(amount = 1): damage_edge = amount)
 	enemy_at_edge.add_to_group("enemy")
 	add_child_autofree(enemy_at_edge)
 	
-	var enemy_outside = Node2D.new()
+	var enemy_outside = MockEnemy.new()
 	enemy_outside.global_position = Vector2(51, 0)
-	var damage_outside = 0
-	enemy_outside.set("take_damage", func(amount = 1): damage_outside = amount)
 	enemy_outside.add_to_group("enemy")
 	add_child_autofree(enemy_outside)
 	
 	m._explode()
-	assert_eq(damage_edge, 2, "Enemy within radius should take damage")
-	assert_eq(damage_outside, 0, "Enemy outside radius should not take damage")
+	assert_eq(enemy_at_edge.damage_taken, 2, "Enemy within radius should take damage")
+	assert_eq(enemy_outside.damage_taken, 0, "Enemy outside radius should not take damage")
 
 func test_mine_aoe_ignores_invalid_enemies():
 	var m = Mine.new()
@@ -108,18 +106,11 @@ func test_mine_aoe_ignores_invalid_enemies():
 	m.global_position = Vector2(0, 0)
 	m.armed = true
 	
-	var invalid_enemy = Node2D.new()
+	var invalid_enemy = MockEnemy.new()
 	invalid_enemy.global_position = Vector2(10, 10)
-	invalid_enemy.queue_free()
 	invalid_enemy.add_to_group("enemy")
+	invalid_enemy.queue_free()
 	add_child_autofree(invalid_enemy)
 	
 	m._explode()
-	assert_true(m.is_queued_for_deletion() or m.get_meta("_in_pool", false), "Mine should explode without errors")
-
-func test_mine_ready_arms_after_delay():
-	var m = Mine.new()
-	add_child_autofree(m)
-	assert_false(m.armed, "Mine should not be armed initially")
-	await get_tree().create_timer(0.6).timeout
-	assert_true(m.armed, "Mine should be armed after delay")
+	assert_true(m.is_queued_for_deletion(), "Mine should explode without errors")

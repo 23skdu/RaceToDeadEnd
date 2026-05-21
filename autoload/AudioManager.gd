@@ -14,7 +14,7 @@ var _stream_emp: AudioStreamWAV
 
 func _ready() -> void:
 	music_player = AudioStreamPlayer.new()
-	music_player.bus = "Master"
+	music_player.bus = "Music"
 	music_player.name = "MusicPlayer"
 	add_child(music_player)
 	
@@ -44,7 +44,7 @@ func play_music(stream: AudioStream) -> void:
 func stop_music() -> void:
 	music_player.stop()
 
-func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 0) -> void:
+func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, _priority: int = 0) -> void:
 	if not stream:
 		return
 	for p in sfx_players:
@@ -59,7 +59,6 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 	player.play()
 
 func _find_lowest_priority_player() -> AudioStreamPlayer2D:
-	var lowest_idx = 0
 	for i in range(1, sfx_players.size()):
 		if not sfx_players[i].playing:
 			return sfx_players[i]

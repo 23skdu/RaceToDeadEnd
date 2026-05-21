@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" width="64" height="96">
+  <!-- Car body -->
+  <rect x="12" y="16" width="40" height="64" rx="8" fill="#1a3a5c" stroke="#4a9eff" stroke-width="2"/>
+  <!-- Windshield -->
+  <rect x="18" y="24" width="28" height="16" rx="4" fill="#0a1a2e" stroke="#4a9eff" stroke-width="1"/>
+  <!-- Rear window -->
+  <rect x="20" y="56" width="24" height="12" rx="3" fill="#0a1a2e" stroke="#4a9eff" stroke-width="1"/>
+  <!-- Hood detail -->
+  <rect x="24" y="42" width="16" height="12" rx="2" fill="#2a5a8c"/>
+  <!-- Front bumper -->
+  <rect x="14" y="14" width="36" height="6" rx="2" fill="#4a9eff"/>
+  <!-- Rear bumper -->
+  <rect x="14" y="76" width="36" height="6" rx="2" fill="#4a9eff"/>
+  <!-- Headlights -->
+  <circle cx="22" cy="18" r="3" fill="#ffcc00"/>
+  <circle cx="42" cy="18" r="3" fill="#ffcc00"/>
+  <!-- Tail lights -->
+  <circle cx="22" cy="78" r="3" fill="#ff3333"/>
+  <circle cx="42" cy="78" r="3" fill="#ff3333"/>
+  <!-- Side stripes -->
+  <rect x="10" y="32" width="4" height="24" rx="1" fill="#4a9eff"/>
+  <rect x="50" y="32" width="4" height="24" rx="1" fill="#4a9eff"/>
+  <!-- Roof scoop -->
+  <rect x="28" y="36" width="8" height="6" rx="1" fill="#ff6633"/>
+  <!-- Wheels -->
+  <rect x="8" y="22" width="6" height="12" rx="2" fill="#222"/>
+  <rect x="50" y="22" width="6" height="12" rx="2" fill="#222"/>
+  <rect x="8" y="62" width="6" height="12" rx="2" fill="#222"/>
+  <rect x="50" y="62" width="6" height="12" rx="2" fill="#222"/>
+</svg>

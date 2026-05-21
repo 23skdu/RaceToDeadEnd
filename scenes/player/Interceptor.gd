@@ -41,10 +41,14 @@ var last_right_tap_time: float = 0.0
 @onready var weapon_mount: Marker2D = $WeaponMount
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
+const BASE_SPRITE_SIZE: float = 64.0
+const BASE_VIEWPORT_WIDTH: float = 1280.0
+
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1
 	add_to_group("player")
+	_scale_sprite()
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
 	var missile_level = GameManager.upgrade_levels.get("missile_ammo", 1)
 	var mine_level = GameManager.upgrade_levels.get("mine_ammo", 1)
@@ -85,7 +89,10 @@ func _physics_process(delta: float) -> void:
 		var col = get_slide_collision(i)
 		var collider = col.get_collider()
 		if collider and is_instance_valid(collider):
-			if collider.is_in_group("obstacles") or collider is StaticBody2D:
+			if collider.is_in_group("deadly_obstacles"):
+				if not boost_active:
+					GameManager.take_damage(GameManager.max_health)
+			elif collider.is_in_group("obstacles") or collider is StaticBody2D:
 				if not boost_active:
 					take_damage(1)
 
@@ -206,6 +213,15 @@ func take_damage(amount: int = 1) -> void:
 func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
 
+func _scale_sprite() -> void:
+	var viewport_width = get_viewport_rect().size.x
+	var scale_factor = viewport_width / BASE_VIEWPORT_WIDTH
+	var target_size = BASE_SPRITE_SIZE * scale_factor
+	if sprite.texture:
+		var tex_height = sprite.texture.get_height()
+		var current_scale = target_size / tex_height
+		sprite.scale = Vector2(current_scale, current_scale * 0.5)
+
 func add_boost() -> void:
 	if boost_charges < max_boost_charges:
 		boost_charges += 1
@@ -215,3 +231,16 @@ func add_ammo() -> void:
 	for i in secondary_ammo.size():
 		secondary_ammo[i] += 1
 	weapon_switched.emit(current_weapon)
+
+func on_bridge_fall(_body: Node) -> void:
+	if _body != self:
+		return
+	take_damage(2)
+	if position.x < 0:
+		position.x = -32
+		current_lane = 1
+		target_x = _lane_to_x(current_lane)
+	else:
+		position.x = 32
+		current_lane = 2
+		target_x = _lane_to_x(current_lane)

@@ -12,6 +12,7 @@ func _ready() -> void:
 	bomb_timer = bomb_interval * randf_range(0.5, 1.5)
 
 func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
 	if stunned:
 		velocity = Vector2.ZERO
 		move_and_slide()

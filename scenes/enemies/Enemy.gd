@@ -20,9 +20,13 @@ var stun_timer: float = 0.0
 @onready var collision: CollisionShape2D = $CollisionShape2D
 @onready var hit_flash_timer: Timer = $HitFlashTimer
 
+const BASE_SPRITE_SIZE: float = 64.0
+const BASE_VIEWPORT_WIDTH: float = 1280.0
+
 func _ready() -> void:
 	collision_layer = 2
 	add_to_group("enemy")
+	_scale_sprite()
 
 func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float) -> void:
 	enemy_type = type
@@ -51,6 +55,16 @@ func _update_sprite() -> void:
 			sprite.texture = load("res://assets/sprites/enemies/scav.png") if ResourceLoader.exists("res://assets/sprites/enemies/scav.png") else null
 		EnemyType.DRONE:
 			sprite.texture = load("res://assets/sprites/enemies/drone.png") if ResourceLoader.exists("res://assets/sprites/enemies/drone.png") else null
+	_scale_sprite()
+
+func _scale_sprite() -> void:
+	var viewport_width = get_viewport_rect().size.x
+	var scale_factor = viewport_width / BASE_VIEWPORT_WIDTH
+	var target_size = BASE_SPRITE_SIZE * scale_factor
+	if sprite.texture:
+		var tex_height = sprite.texture.get_height()
+		var current_scale = target_size / tex_height
+		sprite.scale = Vector2(current_scale, current_scale * 0.5)
 
 func _physics_process(delta: float) -> void:
 	if stunned:
@@ -81,4 +95,4 @@ func _on_hit_flash_timer_timeout() -> void:
 
 func _die() -> void:
 	destroyed.emit(global_position, TYPE_NAMES[enemy_type])
-	queue_free()
+	call_deferred("queue_free")

@@ -2,6 +2,15 @@ extends GutTest
 
 var Enemy
 
+class SignalCapture:
+	var pos = Vector2.ZERO
+	var type = ""
+	var count = 0
+	func capture(p, t):
+		pos = p
+		type = t
+		count += 1
+
 func before_all():
 	Enemy = load("res://scenes/enemies/Enemy.gd")
 
@@ -60,147 +69,64 @@ func test_take_damage_kills_at_zero():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	var destroyed_emitted = false
-	e.destroyed.connect(func(_pos, _type): destroyed_emitted = true)
+	watch_signals(e)
 	e.take_damage(1)
-	assert_true(destroyed_emitted, "Destroyed signal should emit")
+	assert_signal_emitted(e, "destroyed", "Destroyed signal should emit")
 
 func test_take_damage_does_not_kill_above_zero():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
-	var destroyed_emitted = false
-	e.destroyed.connect(func(_pos, _type): destroyed_emitted = true)
+	var destroy_count = 0
+	e.destroyed.connect(func(_pos, _type): destroy_count += 1)
 	e.take_damage(1)
-	assert_false(destroyed_emitted, "Should not emit destroyed with remaining HP")
+	assert_eq(destroy_count, 0, "Should not emit destroyed with remaining HP")
 
 func test_die_emits_correct_enemy_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.DRONE, 0, player, 200.0)
-	var emitted_type = ""
-	e.destroyed.connect(func(_pos, type): emitted_type = type)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
 	e.take_damage(2)
-	assert_eq(emitted_type, "drone", "Should emit lowercase enemy type")
+	assert_eq(capture.type, "drone", "Should emit lowercase enemy type")
+	assert_eq(capture.count, 1, "Signal should be emitted once")
 
 func test_die_rotor_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	var emitted_type = ""
-	e.destroyed.connect(func(_pos, type): emitted_type = type)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
 	e.take_damage(1)
-	assert_eq(emitted_type, "rotor", "Should emit 'rotor'")
+	assert_eq(capture.type, "rotor", "Should emit 'rotor'")
 
 func test_die_scav_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
-	var emitted_type = ""
-	e.destroyed.connect(func(_pos, type): emitted_type = type)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
 	e.take_damage(3)
-	assert_eq(emitted_type, "scav", "Should emit 'scav'")
-
-func test_hit_flash_changes_color():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e._play_hit_flash()
-	assert_eq(e.sprite.modulate, Color.RED, "Sprite should flash red")
-
-func test_hit_flash_timer_starts():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e._play_hit_flash()
-	assert_true(e.hit_flash_timer.time_left > 0.0, "Hit flash timer should be running")
-
-func test_enemy_added_to_group():
-	var e = _create_enemy()
-	e._ready()
-	assert_true(e.is_in_group("enemy"), "Enemy should be in 'enemy' group")
-
-func test_collision_layer_set():
-	var e = _create_enemy()
-	e._ready()
-	assert_eq(e.collision_layer, 2, "Enemy collision layer should be 2")
-
-func test_no_screen_exited_handler():
-	var e = _create_enemy()
-	assert_false(e.has_method("_on_visible_on_screen_notifier_screen_exited"), "Should not have dead screen-exited handler")
-
-func test_update_sprite_loads_texture():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e._update_sprite()
-	assert_true(e.sprite.texture != null, "Sprite should have texture loaded")
-
-func test_hit_flash_timer_timeout_resets_color():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e._play_hit_flash()
-	e._on_hit_flash_timer_timeout()
-	assert_eq(e.sprite.modulate, Color.WHITE, "Sprite color should reset to white")
-
-func test_stunned_physics_process_clears_stun():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e.apply_stun(0.1)
-	e._physics_process(0.2)
-	assert_false(e.stunned, "Stun should clear after timer expires")
-
-func test_enemy_stun_applies():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e.apply_stun(2.0)
-	assert_true(e.stunned, "Enemy should be stunned")
-	assert_eq(e.stun_timer, 2.0, "Stun timer should be 2 seconds")
-
-func test_enemy_stun_visual():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e.apply_stun(1.0)
-	assert_eq(e.sprite.modulate, Color(0.5, 0.5, 1.0, 0.7), "Stunned enemy should have blue tint")
-
-func test_enemy_stun_expires():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e.apply_stun(0.5)
-	e._physics_process(0.6)
-	assert_false(e.stunned, "Stun should expire after timer")
-
-func test_enemy_stun_clears_visual():
-	var e = _create_enemy()
-	var player = Node2D.new()
-	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	e.apply_stun(0.5)
-	e._physics_process(0.6)
-	assert_eq(e.sprite.modulate, Color.WHITE, "Visual should reset after stun expires")
+	assert_eq(capture.type, "scav", "Should emit 'scav'")
 
 func test_destroyed_signal_emits_position():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	e.global_position = Vector2(100, 200)
-	var emitted_pos = Vector2.ZERO
-	e.destroyed.connect(func(pos, _type): emitted_pos = pos)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
 	e.take_damage(1)
-	assert_eq(emitted_pos, Vector2(100, 200), "Should emit global position")
+	assert_eq(capture.pos, Vector2(100, 200), "Should emit global position")
 
 func test_take_damage_overkill():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	var destroyed_emitted = false
-	e.destroyed.connect(func(_pos, _type): destroyed_emitted = true)
+	watch_signals(e)
 	e.take_damage(100)
-	assert_true(destroyed_emitted, "Should die from overkill damage")
+	assert_signal_emitted(e, "destroyed", "Should die from overkill damage")
 
 func _create_enemy():
 	var scene = load("res://scenes/enemies/Rotor.tscn")

@@ -206,7 +206,7 @@ func test_bullet_direction_changes_with_homing():
 	var target = Node2D.new()
 	target.global_position = Vector2(200, -100)
 	add_child_autofree(target)
-	b._cache_timer = ENEMY_CACHE_INTERVAL
+	b._cache_timer = b.ENEMY_CACHE_INTERVAL
 	b._process(0.3)
 	assert_ne(b.direction.x, 0.0, "Direction X should change toward target")
 

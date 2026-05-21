@@ -1,24 +1,27 @@
 [gd_scene load_steps=4 format=3 uid="uid://dplwyoiqf6v4g"]
 
 [ext_resource type="Script" path="res://scenes/player/Interceptor.gd" id="1_x2ela"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_svg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/interceptor.svg" id="2_interceptor"]
 
 [sub_resource type="RectangleShape2D" id="2_vm4f2"]
-size = Vector2(32, 48)
+size = Vector2(28, 40)
 
 [node name="Interceptor" type="CharacterBody2D"]
 script = ExtResource("1_x2ela")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, -8)
-texture = ExtResource("2_svg")
+texture = ExtResource("2_interceptor")
 self_modulate = Color(0.2, 0.6, 1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("2_vm4f2")
 
 [node name="WeaponMount" type="Marker2D" parent="."]
-position = Vector2(0, -32)
+position = Vector2(0, -28)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 5.0
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
 rect = Rect2(-64, -64, 128, 128)

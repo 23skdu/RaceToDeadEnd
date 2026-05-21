@@ -23,7 +23,10 @@ func _process(delta: float) -> void:
 	current_radius = move_toward(current_radius, max_radius, expand_speed * delta)
 	_update_collision_radius()
 	if current_radius >= max_radius:
-		ObjectPool.release(self)
+		if has_meta("_pool_name"):
+			ObjectPool.release(self)
+		else:
+			queue_free()
 
 func _update_collision_radius() -> void:
 	if _col_shape and _col_shape.shape is CircleShape2D:

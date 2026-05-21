@@ -51,7 +51,6 @@ func _explode() -> void:
 	flash.position = global_position
 	if get_parent():
 		get_parent().add_child(flash)
-		await get_tree().create_timer(0.15).timeout
 		flash.queue_free()
 	
 	AudioManager.play_synth_explosion(global_position)
