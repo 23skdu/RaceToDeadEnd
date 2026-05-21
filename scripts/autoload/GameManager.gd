@@ -162,6 +162,7 @@ func _add_input_mappings() -> void:
 	# Explicit weapon binds
 	_add_key_mapping("fire_emp", KEY_E)
 	_add_key_mapping("drop_mine", KEY_M)
+	_add_key_mapping("primary_fire", KEY_SPACE)
 
 func _add_key_mapping(action: String, keycode: int) -> void:
 	if not InputMap.has_action(action):
