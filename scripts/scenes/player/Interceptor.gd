@@ -6,15 +6,6 @@ signal boost_depleted
 signal boost_charge_updated(charges: int)
 signal weapon_switched(weapon_index: int)
 
-const BOOST_SPEED_MULTIPLIER: float = 2.0
-const WEAVE_DISTANCE: float = 128.0
-const WEAVE_COOLDOWN: float = 0.5
-const BOOST_DURATION: float = 1.5
-const BOOST_RECHARGE_TIME: float = 8.0
-const PRIMARY_FIRE_COOLDOWN: float = 0.1
-const DOUBLE_TAP_DELAY: float = 0.25
-const ACCEL_SPEED: float = 300.0
-const REVERSE_SPEED: float = -350.0
 const WEAPON_TYPES: Array[String] = ["missile", "mine", "emp"]
 
 var current_lane: int = 1
@@ -77,11 +68,11 @@ func _physics_process(delta: float) -> void:
 	_handle_input(delta)
 	var effective_speed: float
 	if boost_active:
-		effective_speed = speed * BOOST_SPEED_MULTIPLIER
+		effective_speed = speed * Constants.BOOST_SPEED_MULTIPLIER
 	elif speed_input > 0:
-		effective_speed = ACCEL_SPEED
+		effective_speed = Constants.ACCEL_SPEED
 	elif speed_input < 0:
-		effective_speed = REVERSE_SPEED
+		effective_speed = Constants.REVERSE_SPEED
 	else:
 		effective_speed = speed
 	velocity.y = -effective_speed
@@ -116,12 +107,12 @@ func _handle_input(_delta: float) -> void:
 		
 	if Input.is_action_just_pressed("move_left"):
 		var now = Time.get_ticks_msec() / 1000.0
-		if now - last_left_tap_time < DOUBLE_TAP_DELAY and can_weave:
+		if now - last_left_tap_time < Constants.DOUBLE_TAP_DELAY and can_weave:
 			current_lane = maxi(current_lane - 2, 0)
 			target_x = _lane_to_x(current_lane)
-			position.x = move_toward(position.x, target_x, WEAVE_DISTANCE)
+			position.x = move_toward(position.x, target_x, Constants.WEAVE_DISTANCE)
 			can_weave = false
-			weave_timer = WEAVE_COOLDOWN
+			weave_timer = Constants.WEAVE_COOLDOWN
 		else:
 			current_lane = maxi(current_lane - 1, 0)
 			target_x = _lane_to_x(current_lane)
@@ -129,12 +120,12 @@ func _handle_input(_delta: float) -> void:
 
 	if Input.is_action_just_pressed("move_right"):
 		var now = Time.get_ticks_msec() / 1000.0
-		if now - last_right_tap_time < DOUBLE_TAP_DELAY and can_weave:
+		if now - last_right_tap_time < Constants.DOUBLE_TAP_DELAY and can_weave:
 			current_lane = mini(current_lane + 2, Constants.LANE_COUNT - 1)
 			target_x = _lane_to_x(current_lane)
-			position.x = move_toward(position.x, target_x, WEAVE_DISTANCE)
+			position.x = move_toward(position.x, target_x, Constants.WEAVE_DISTANCE)
 			can_weave = false
-			weave_timer = WEAVE_COOLDOWN
+			weave_timer = Constants.WEAVE_COOLDOWN
 		else:
 			current_lane = mini(current_lane + 1, Constants.LANE_COUNT - 1)
 			target_x = _lane_to_x(current_lane)
@@ -155,8 +146,7 @@ func _handle_input(_delta: float) -> void:
 		_fire_specific_weapon("mine")
 
 func _lane_to_x(lane: int) -> float:
-	var total_width = Constants.LANE_WIDTH * (Constants.LANE_COUNT - 1)
-	return -total_width / 2.0 + lane * Constants.LANE_WIDTH
+	return Constants.LANE_POSITIONS[lane] if lane < Constants.LANE_POSITIONS.size() else 0.0
 
 func set_slippery(val: bool) -> void:
 	slippery = val
@@ -176,7 +166,7 @@ func _update_timers(delta: float) -> void:
 			boost_recharge_timer -= delta
 			if boost_recharge_timer <= 0.0:
 				boost_charges += 1
-				boost_recharge_timer = BOOST_RECHARGE_TIME
+				boost_recharge_timer = Constants.BOOST_RECHARGE_TIME
 				boost_charge_updated.emit(boost_charges)
 	if invincible:
 		invincible_timer -= delta
@@ -188,7 +178,7 @@ func _fire_primary() -> void:
 	if primary_fire_timer > 0.0:
 		return
 	var fr_level = GameManager.upgrade_levels.get("fire_rate", 1)
-	var cooldown = clampf(0.1 - (fr_level - 1) * 0.01, 0.05, 0.1)
+	var cooldown = clampf(Constants.PRIMARY_FIRE_COOLDOWN - (fr_level - 1) * 0.01, 0.05, 0.1)
 	primary_fire_timer = cooldown
 	weapon_fired.emit("machine_gun", weapon_mount.global_position, Vector2.UP)
 
@@ -214,14 +204,15 @@ func _activate_boost() -> void:
 		return
 	boost_charges -= 1
 	boost_active = true
-	boost_timer = BOOST_DURATION
+	boost_timer = Constants.BOOST_DURATION
 	boost_charge_updated.emit(boost_charges)
 	boost_activated.emit()
 	AudioManager.play_synth_boost()
+	CameraShake.shake(0.2, 0.15, 3.0)
 
 func _deactivate_boost() -> void:
 	boost_active = false
-	boost_recharge_timer = BOOST_RECHARGE_TIME
+	boost_recharge_timer = Constants.BOOST_RECHARGE_TIME
 	boost_depleted.emit()
 
 func take_damage(amount: int = 1) -> void:
@@ -232,12 +223,16 @@ func take_damage(amount: int = 1) -> void:
 	invincible_timer = 1.0
 	modulate = Color(1, 0.3, 0.3, 0.7)
 	AudioManager.play_synth_hurt()
+	CameraShake.shake(0.4, 0.2, 5.0)
 
 func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
 
 func _scale_sprite() -> void:
-	var viewport_width = get_viewport_rect().size.x
+	var viewport = get_viewport()
+	if not viewport:
+		return
+	var viewport_width = viewport.get_visible_rect().size.x
 	var scale_factor = viewport_width / BASE_VIEWPORT_WIDTH
 	var target_size = BASE_SPRITE_SIZE * scale_factor
 	if sprite.texture:

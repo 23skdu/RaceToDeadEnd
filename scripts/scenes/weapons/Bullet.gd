@@ -1,8 +1,6 @@
 extends Area2D
 
-const ENEMY_CACHE_INTERVAL: float = 0.25
-
-var speed: float = 500.0
+var speed: float = Constants.BULLET_SPEED
 var direction: Vector2 = Vector2.UP
 var damage: int = 1
 var homing_strength: float = 0.0
@@ -34,9 +32,9 @@ func init(pos: Vector2, dir: Vector2, player_owned: bool = true) -> void:
 func _physics_process(delta: float) -> void:
 	if homing_strength > 0.0:
 		_cache_timer += delta
-		if _cache_timer >= ENEMY_CACHE_INTERVAL:
+		if _cache_timer >= Constants.ENEMY_CACHE_INTERVAL:
 			_cache_timer = 0.0
-			_cached_enemies = get_tree().get_nodes_in_group("enemy")
+			_cached_enemies = GameManager.enemy_list
 		var nearest = _find_nearest(_cached_enemies)
 		if nearest:
 			var target_dir = (nearest.global_position - global_position).normalized()

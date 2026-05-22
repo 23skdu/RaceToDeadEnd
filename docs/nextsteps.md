@@ -1150,3 +1150,604 @@ Tests to cover:
 - **SFX packs**: Replace procedural SFX with custom sound effects
 - **Font packs**: Custom fonts for HUD text
 - **Pack dependencies**: Packs that require another pack to be active
+
+---
+
+## Phase 2: Deep Codebase Optimization (Completed May 2026)
+
+A thorough codebase-wide audit of all 28 game scripts, 17 scenes, and 6 autoloads identified **15 issues** spanning performance, potential bugs, architecture, and maintainability. Below is the prioritized improvement plan.
+
+---
+
+### Issue 1 (High): ObjectPool Doesn't Call Lifecycle Methods — State Bleed Bug
+
+**Files:** `scripts/autoload/ObjectPool.gd:116-147`, `scripts/scenes/weapons/Bullet.gd:73-82`
+
+**Problem:** `ObjectPool.acquire()` never calls `on_pool_get()`, and `release()` never calls `on_pool_release()`. The `Bullet` class defines both methods (including resetting homing_strength, damage, scale, modulate) but they're never invoked. Reused bullets retain stale state from prior use (e.g., a missile bullet scaled to 1.5× retains that scale when reused as a normal bullet).
+
+**Fix:** Add lifecycle method calls in both `acquire()` and `release()`:
+```gdscript
+# In acquire(), after setting visible/process_mode:
+if item.has_method("on_pool_acquire"):
+    item.on_pool_acquire()
+
+# In release(), before appending to pool:
+if node.has_method("on_pool_release"):
+    node.on_pool_release()
+```
+
+---
+
+### Issue 2 (High): Enemies Not Object-Pooled — GC Churn
+
+**Files:** `scripts/scenes/world/Spawner.gd:39,75`, `scripts/scenes/enemies/Scav.gd:54`, `scripts/scenes/enemies/Drone.gd:44`
+
+**Problem:** Enemy entities and their projectiles are created via `scene.instantiate()` and destroyed via `queue_free()` every time. Only player weapons use the `ObjectPool`. During high-intensity waves, this causes constant GC pressure.
+
+**Fix:** Create pools for enemy types and enemy projectiles in `Game.gd:_ready()`. Modify `Spawner._spawn_enemy()` to use `ObjectPool.acquire()`/`release()`. Add `on_pool_get()`/`on_pool_release()` lifecycle methods to `Enemy.gd`.
+
+---
+
+### Issue 3 (Medium): ObjectPool.acquire() Uses O(n) Linear Scan
+
+**Files:** `scripts/autoload/ObjectPool.gd:56-81,121-128`
+
+**Problem:** `acquire()` iterates the entire pool from index 0 looking for an available item. With pool sizes of 50 (bullets) + 10 (mines) + 5 (EMP) + 20 (pickups), during heavy gameplay where many items are in use, this scans many unavailable items before finding an available one.
+
+**Fix:** Change the pool to stack-based O(1) access — `pop_back()` on acquire, `push_back()` on release. Since pooled objects are identical, order doesn't matter:
+```gdscript
+func acquire(pool_name: String) -> Node:
+    var pool: Array[Node] = _pools[pool_name]
+    while pool.size() > 0:
+        var item = pool.pop_back()
+        if is_instance_valid(item):
+            item.set_meta("_in_pool", false)
+            item.visible = true
+            item.process_mode = Node.PROCESS_MODE_INHERIT
+            if item.has_method("on_pool_acquire"):
+                item.on_pool_acquire()
+            return item
+    # fallback instantiate
+```
+
+---
+
+### Issue 4 (Medium): Highway Creates Hundreds of Tiny Nodes Per Chunk
+
+**Files:** `scripts/scenes/world/Highway.gd:120-319`
+
+**Problem:** Each chunk creates individual `Polygon2D` per stripe, per decoration, per obstacle visual, plus `CollisionShape2D`/`CollisionPolygon2D` per obstacle, `Line2D` per guardrail, `Area2D` per zone. With CHUNK_HEIGHT=10 and CHUNK_WIDTH=14, each chunk can have 200+ nodes. With 8 active chunks, that's 1600+ nodes.
+
+**Fix:** Use `MultiMeshInstance2D` for ALL stripe positions (same diamond mesh). Use single `MultiMeshInstance2D` for decorations. Create shared pool of obstacle `StaticBody2D` nodes. Merge collision shapes. Cache and reuse `Line2D` nodes for guardrails.
+
+---
+
+### Issue 5 (Medium): Enemy.load() Textures From Disk on Every Spawn
+
+**Files:** `scripts/scenes/enemies/Enemy.gd:51-59`
+
+**Problem:** `_update_sprite()` calls `load(resource_path)` every time `init()` is called. Although guarded by `ResourceLoader.exists()`, this performs disk-backed resource lookup on every enemy spawn.
+
+**Fix:** Preload textures as class constants:
+```gdscript
+const ROTOR_TEXTURE = preload("res://assets/sprites/enemies/rotor.png")
+const SCAV_TEXTURE = preload("res://assets/sprites/enemies/scav.png")
+const DRONE_TEXTURE = preload("res://assets/sprites/enemies/drone.png")
+```
+
+---
+
+### Issue 6 (Medium): Bullet Homing Refetches Enemy Group Every 0.25s Per Missile
+
+**Files:** `scripts/scenes/weapons/Bullet.gd:35-56`
+
+**Problem:** Each homing bullet calls `get_tree().get_nodes_in_group("enemy")` every `ENEMY_CACHE_INTERVAL` (0.25s). With 5 homing missiles in flight, 5 redundant group queries occur within the same window, each allocating a full enemy array.
+
+**Fix:** Create a centralized enemy list updated once per frame (leverage `Spawner.active_enemies`). Or use `Area2D` overlap detection with configured radius instead of distance-checking all enemies.
+
+---
+
+### Issue 7 (Medium): Mine Explosion Uses Group Query Instead of Area2D Overlap
+
+**Files:** `scripts/scenes/weapons/Mine.gd:35-41`
+
+**Problem:** Mine queries ALL enemies via `get_tree().get_nodes_in_group("enemy")` then iterates all checking distance. Typically only 0-2 enemies are within the blast radius. The mine is already an `Area2D` with collision — it should use `get_overlapping_bodies()`.
+
+**Fix:** Expand the `CollisionShape2D` radius on detonation and use `get_overlapping_bodies()` / `get_overlapping_areas()` instead of group query.
+
+---
+
+### Issue 8 (Medium): Signal Connections Accumulate on Scene Reload
+
+**Files:** `scripts/scenes/Game.gd:58`, `scripts/scenes/ui/GameOver.gd:15-16`
+
+**Problem:** `Game.gd` connects `GameManager.game_over` to `hud._on_game_over` every `_ready()` without an `is_connected` guard. `GameOver.gd` has the guard but `Game.gd` doesn't. On restart, duplicate connections fire `_on_game_over` multiple times.
+
+**Fix:** Add guard:
+```gdscript
+if not GameManager.game_over.is_connected(hud._on_game_over):
+    GameManager.game_over.connect(hud._on_game_over)
+```
+
+---
+
+### Issue 9 (Medium/Latent): Enemy Destroyed Signal Never Disconnected
+
+**Files:** `scripts/scenes/world/Spawner.gd:87`, `scripts/scenes/enemies/Enemy.gd:107-110`
+
+**Problem:** Spawner connects to enemy `destroyed` signal but never disconnects. Currently safe because enemies `queue_free()` which auto-disconnects. But if enemy pooling is added (Issue 2), the signal persists across pool reuse, causing double-firing.
+
+**Fix:** Disconnect in `_die()` before emitting, or use `CONNECT_ONE_SHOT` in Godot 4.
+
+---
+
+### Issue 10 (Medium): Score Popup Labels Constantly Created/Freed
+
+**Files:** `scripts/scenes/Game.gd:128-138`
+
+**Problem:** Every score popup creates a new `Label` node, adds to container, tweens, and frees. During rapid kills (clearing a wave of 9 enemies = 9 popups), many short-lived control nodes churn constantly.
+
+**Fix:** Pre-create a pool of score popup labels (similar to ObjectPool). Track which labels are currently animating and which are available.
+
+---
+
+### Issue 11 (Low): Highway._pick_chunk_type() Duplicates Weights Dictionary Every Call
+
+**Files:** `scripts/scenes/world/Highway.gd:87-106`
+
+**Problem:** Every chunk type selection allocates a new `chunk_weights.duplicate()` dictionary, then modifies it. Happens every ~2 seconds during gameplay.
+
+**Fix:** Compute weights inline without duplication — use local variables for each weight and do cumulative threshold checks.
+
+---
+
+### Issue 12 (Low): EMPBlast Calls has_meta() Every Frame
+
+**Files:** `scripts/scenes/weapons/EMPBlast.gd:22-29`
+
+**Problem:** EMP blast checks `has_meta("_pool_name")` every frame in `_process()`. String-keyed metadata lookup every frame for every active EMP.
+
+**Fix:** Cache pool membership in a boolean variable during `init()`.
+
+---
+
+### Issue 13 (Low): GameManager _process() Runs When Not Playing
+
+**Files:** `scripts/autoload/GameManager.gd:43-54`
+
+**Problem:** Autoload `_process()` is invoked every frame even on the menu screen. Minor CPU waste.
+
+**Fix:** Early return or toggle `process_mode` based on game state.
+
+---
+
+### Issue 14 (Low): Non-Deterministic Procedural Audio
+
+**Files:** `scripts/autoload/AudioManager.gd:162,319,325`
+
+**Problem:** Audio generators use `randf()` for noise generation at startup. Generated audio varies between runs, making testing difficult and creating inconsistent player experiences.
+
+**Fix:** Seed `randi()` with a fixed value before procedural generation, or use hash-based deterministic noise.
+
+---
+
+### Issue 15 (Medium): Magic Numbers Scattered Across 10+ Files
+
+**Files:** Multiple — `GameManager.gd:86`, `Spawner.gd:28,51-65`, `Highway.gd:91-95`, `Scav.gd:6`, `Drone.gd:6`, `WeatherSystem.gd:8-14`, etc.
+
+**Problem:** Gameplay-critical numbers (tier thresholds, wave intervals, shoot intervals, weather parameters) are hardcoded as magic values across scripts. No single configuration point for game balance tuning. Zero `@export` variables — nothing is tunable from the inspector.
+
+**Fix:** Create a `GameBalance` resource or extend `Constants.gd` to include ALL tunable parameters. Use `@export` where inspector tuning is useful.
+
+---
+
+### Priority Matrix
+
+| # | Severity | Category | Effort | Impact |
+|---|----------|----------|--------|--------|
+| 1 | **High** | Bug (pool state bleed) | Low | High |
+| 2 | **High** | Performance (enemy GC) | Medium | High |
+| 3 | Medium | Performance (O(n) pool scan) | Low | Medium |
+| 4 | Medium | Performance (1600+ nodes) | High | High |
+| 5 | Medium | Performance (disk load) | Low | Medium |
+| 6 | Medium | Performance (homing queries) | Medium | Medium |
+| 7 | Medium | Performance (mine AoE) | Low | Medium |
+| 8 | Medium | Bug (signal accumulation) | Low | Medium |
+| 9 | Medium | Bug (latent — pooled enemies) | Low | Medium |
+| 10 | Medium | Performance (popup labels) | Low | Medium |
+| 11 | Low | Performance (dict duplicate) | Low | Low |
+| 12 | Low | Performance (has_meta/frame) | Low | Low |
+| 13 | Low | CPU waste (idle _process) | Low | Low |
+| 14 | Low | Maintainability (audio RNG) | Low | Low |
+| 15 | Medium | Maintainability (magic nums) | Medium | Medium |
+
+**P0 (do now):** Issues 1, 2, 8 — Fix state bleed, enable enemy pooling, fix signal accumulation
+**P1 (do next):** Issues 3, 5, 6, 7, 10, 15 — Optimize common paths, consolidate constants
+**P2 (do later):** Issues 4, 9, 11, 12, 13, 14 — Major refactors and polish
+
+---
+
+## Phase 3: Post-Optimization Growth Plan (10 Improvements)
+
+Following the completion of 15 P0/P1/P2 optimization issues, a comprehensive re-audit of the entire codebase identified these 10 high-value improvements spanning performance, rendering, audio, UX, and testing.
+
+---
+
+### Part 32: Replace Manual Rain Particles with GPUParticles2D
+
+**Problem:** `WeatherSystem.gd:199-220` manages 200 rain drops as individual Polygon2D nodes, each updated every frame with position/visibility logic. This is an anti-pattern in Godot 4 — 200+ nodes for a simple particle effect.
+
+**Findings:**
+- `WeatherSystem.gd:199-220` — 200 `Polygon2D` nodes created, positioned, and toggled per-frame
+- Each drop is 4 vertices + draw call overhead = 800+ extra draw calls for rain alone
+- Manual `_process` loop over all 200 drops every frame to move and cull them
+- No GPU acceleration — all particle work is on the CPU
+
+**Plan:**
+1. Create a `GPUParticles2D` scene with a simple line/sliver texture for rain
+2. Configure emission shape (rectangle covering camera view), velocity (downward angle), lifetime, and amount (200)
+3. Replace all rain drop generation in `WeatherSystem.gd` with the single GPUParticles2D node
+4. Maintain existing weather type → particle amount/color mapping (light rain = 50, storm = 400)
+5. Add a `CPUParticles2D` fallback for web/mobile export targets via config check
+6. Preserve existing lightning/screen flash logic as-is
+
+**Subtasks:**
+```
+32.1 — Create RainParticles.tscn with GPUParticles2D (line texture, 200 count, downward velocity)
+32.2 — Add rain_color/rain_amount modulation based on weather type
+32.3 — Integrate into WeatherSystem.gd replacing Polygon2D array
+32.4 — Add CPUParticles2D fallback for low-end devices
+32.5 — Remove old manual raindrop node allocation code
+32.6 — Verify rain visual matches existing look; update tests
+```
+
+**Expected impact:** ~200 Polygon2D nodes eliminated per scene, ~0 CPU particle processing per frame, reduced draw calls.
+
+---
+
+### Part 33: Cache Highway Chunk Templates Per Type
+
+**Problem:** Every chunk recycle in `Highway.gd:66-85` fully regenerates all child nodes (stripe MultiMesh, guardrails, decorations, collision areas). For 8 active chunks, this creates constant node allocation churn even though there are only 5 chunk types.
+
+**Findings:**
+- `Highway.gd:_spawn_chunk()` fully clears and rebuilds every recycle — even for the same chunk type as before
+- 5 distinct `ChunkType` values exist but no caching by type
+- Each rebuild creates MultiMeshInstance2D, Line2D, Area2D, StaticBody2D, and up to 60+ decoration Polygon2D nodes
+- Recycling every ~3 seconds with 8 chunks = 2-3 full rebuilds per second
+
+**Plan:**
+1. Create a `ChunkCache` dictionary: keyed by `ChunkType`, values are pre-built Node2D templates
+2. On first encounter of a given ChunkType, build and store the template
+3. On subsequent recycles, clone the cached template with `duplicate()` (much cheaper than `_generate_chunk_tiles()`)
+4. Clone cost vs regenerate cost: `duplicate()` is ~5-10x faster than full procedural generation
+5. Hold 3 chunks ahead per type to absorb burst traffic
+6. Keep pre-generated template pool warm across difficulty tier transitions (weights change but chunk types don't)
+
+**Subtasks:**
+```
+33.1 — Add ChunkCache dictionary to Highway.gd
+33.2 — Split _spawn_chunk into _build_template + _clone_template
+33.3 — Cache template after first generation per type
+33.4 — Verify chunk type-specific variations (debris, bridge gaps) are preserved in templates
+33.5 — Add cache hit/miss debug logging (optional)
+33.6 — Test with all 5 chunk types across tier transitions
+```
+
+**Expected impact:** 80-90% reduction in chunk node creation; elimination of procedural generation cost on recycle.
+
+---
+
+### Part 34: Switch Renderer to Forward+ and Add Post-Processing
+
+**Problem:** `project.godot:520` uses `gl_compatibility` (OpenGL 3.0 / WebGL 2.0) which lacks glow, bloom, tonemapping, and color grading. A neon post-apocalyptic game needs these for visual impact.
+
+**Findings:**
+- `project.godot:520` — `rendering/renderer/rendering_method=gl_compatibility`
+- No `WorldEnvironment` node exists anywhere in the game
+- No post-processing: no glow/bloom on neon elements, no color grading, no vignette
+- Enemy sprites, highway lanes, and UI all render flat — visual presentation is muted for the intended aesthetic
+- `gl_compatibility` is only required for web exports; desktop can use `forward_plus`
+
+**Plan:**
+1. Add a second export preset for desktop: `forward_plus` renderer, keep `gl_compatibility` for web
+2. Add `WorldEnvironment` node to `Game.tscn` with environment tweaks:
+   - Glow (bloom) intensity 0.3 on an "emissive" layer for neon elements
+   - Tonemap mode: Filmic or Reinhard for high dynamic range
+   - Ambient light: dim cool tone to match post-apocalyptic mood
+3. Add per-scene `WorldEnvironment` for Main menu, Game, and Garage (different ambience)
+4. Add subtle vignette via `Environment.tonemap_vignette`
+5. Verify 60 FPS target still holds — `forward_plus` 2D is negligible overhead
+
+**Subtasks:**
+```
+34.1 — Add desktop export preset with rendering_method=forward_plus
+34.2 — Create environment.tres base resource (tone map, glow, ambient)
+34.3 — Add WorldEnvironment node to Game.tscn
+34.4 — Add WorldEnvironment to Main.tscn (darker, no glow)
+34.5 — Add WorldEnvironment to Garage.tscn (warm, low glow)
+34.6 — Tune glow layer to affect only neon elements (lane stripes, boost, enemy eyes)
+34.7 — Verify FPS impact < 2% on medium hardware
+```
+
+**Expected impact:** Dramatic visual improvement — neon elements pop, scenes feel atmospheric. Negligible performance cost (forward_plus in 2D is very lightweight).
+
+---
+
+### Part 35: Enemy Inheritance via `class_name` Instead of String Path
+
+**Problem:** `Drone.gd:1`, `Scav.gd:1`, `Rotor.gd:1` use `extends "res://scripts/scenes/enemies/Enemy.gd"` — a fragile string path that breaks silently if the file is renamed or moved.
+
+**Findings:**
+- All 3 enemy subtypes use a string literal for the base class
+- Base `Enemy.gd` has no `class_name` declaration
+- Renaming/moving `Enemy.gd` would cause all 3 subclass scripts to silently fail to load
+- Godot 4's recommended approach is `class_name EnemyBase` + `extends EnemyBase`
+- String path extends also prevents GDScript from resolving autocomplete and type hints for the base class
+
+**Plan:**
+1. Add `class_name EnemyBase` at the top of `scripts/scenes/enemies/Enemy.gd`
+2. Change all 3 subclass files: `extends "res://..."` → `extends EnemyBase`
+3. Update any `load("res://...Enemy.gd").` references to use the class name directly
+4. Verify all enemy subtypes still work (spawn, AI, take damage, die)
+5. Run full test suite
+
+**Subtasks:**
+```
+35.1 — Add class_name EnemyBase to Enemy.gd
+35.2 — Update Drone.gd extends directive
+35.3 — Update Scav.gd extends directive
+35.4 — Update Rotor.gd extends directive
+35.5 — Search for load("...Enemy.gd") references and update
+35.6 — Run full test suite, fix any type resolution issues
+```
+
+**Expected impact:** Robust inheritance chain, proper type hints/autocomplete in all subclasses, safe to rename/move base file.
+
+---
+
+### Part 36: Implement Pause Menu
+
+**Problem:** `GameManager.gd:12` defines `GameState.PAUSED` but it is never set anywhere. There is no way to pause the game during gameplay — a critical missing UX feature.
+
+**Findings:**
+- `GameState.PAUSED = 2` defined at `GameManager.gd:12` — zero references outside test code
+- `GameState.GAME_OVER = 3` in same enum works correctly
+- No "Pause" action in `project.godot` input map
+- No pause overlay panel or menu in any scene
+- `get_tree().paused = true` is used in `GameManager.gd:140` for garage transition (global pause)
+- Tests verify PAUSED enum value but nothing tests the actual pause behavior
+
+**Plan:**
+1. Add "pause" input action in `project.godot` (ESC key, Start button on gamepad)
+2. Create `PauseMenu.tscn` — CanvasLayer with Panel, Resume/Options/Quit buttons and a "PAUSED" title label
+3. Add to `Game.tscn` as hidden by default
+4. In `Game.gd` or `GameManager.gd`: on pause action, toggle `GameState.PAUSED` and show/hide overlay
+5. On pause: `get_tree().paused = true` only during gameplay (not on menu/garage)
+6. Resume: restore state, hide overlay, `get_tree().paused = false`
+7. Options button opens the existing `Options.gd` scene on top
+8. Quit button shows confirmation dialog → Main menu
+
+**Subtasks:**
+```
+36.1 — Add "pause" input action to project.godot (ESC / Start)
+36.2 — Create PauseMenu.tscn with overlay, buttons, title
+36.3 — Create PauseMenu.gd with signal connections
+36.4 — Integrate into Game.tscn + wire input handling in Game.gd
+36.5 — Test pause/unpause cycle with all game systems paused correctly
+36.6 — Verify enemies, bullets, highway, weather, and score timer all freeze
+36.7 — Add confirmation dialog for quit action
+36.8 — Run full test suite (ensure pause interaction with existing tests)
+```
+
+**Expected impact:** Complete pause functionality — players can pause, resume, adjust settings, or quit mid-run.
+
+---
+
+### Part 37: Input Remapping UI
+
+**Problem:** All input bindings are hardcoded in `project.godot` and `GameManager.gd:144-192`. Players cannot rebind controls, which is a critical accessibility and UX gap.
+
+**Findings:**
+- `project.godot:464-510` defines 10 input actions with hardcoded keys/buttons
+- `GameManager.gd:144-192` adds programmatic binds every startup (arrow keys, E, M, Space)
+- No UI for rebinding — no way to customize for AZERTY keyboards, left-handed play, or controller preference
+- `GameManager.gd:146-158` uses potentially deprecated joypad constants
+- `InputMap.action_add_event()` is never used anywhere
+
+**Plan:**
+1. Expand Options.gd scene with an "Input" tab showing all 10 actions in a scrollable list
+2. Each row: action name label + current key/button label + "Change" button
+3. On "Change" click: enter listening mode, capture next keypress/button, display confirmation
+4. Store bindings per-device (keyboard separate from gamepad) using `ConfigFile`
+5. Apply on game start via `InputMap.load_from_project_settings()` + custom overrides
+6. Add "Reset to Defaults" button
+7. Update `GameManager.gd` programmatic bind logic to check for conflicts
+
+**Subtasks:**
+```
+37.1 — Design input rebinding UI layout (scrollable list, action rows)
+37.2 — Create InputRemapping.gd script with listen/rebind logic
+37.3 — Create InputMappingRow.tscn (label + current + change + clear)
+37.4 — Add Input tab to Options.gd / Options.tscn
+37.5 — Implement save/load for custom bindings via ConfigFile
+37.6 — Implement "Reset to Defaults" using project.godot defaults
+37.7 — Update GameManager.gd programmatic binding to respect saved overrides
+37.8 — Verify all 10 actions are rebindable and persist across restarts
+37.9 — Test edge cases: unbind all, same key for two actions, empty bind
+```
+
+**Expected impact:** Full input remapping support — accessibility compliant, AZERTY-compatible, left-handed, custom controller layouts.
+
+---
+
+### Part 38: Camera Shake System
+
+**Problem:** There is no camera shake on explosions, collisions, or boost activation. The game feels flat during combat — no visceral feedback for high-impact events.
+
+**Findings:**
+- `Camera2D` is a child of `Interceptor.tscn` at `$Camera2D` with a fixed Y offset
+- No `offset` manipulation, no shake decay, no `PerlinNoise` usage in the project
+- `Mine.gd:_explode()` has no visual feedback beyond a temporary Polygon2D circle
+- `Enemy.gd:_die()` plays sound but no screen feedback
+- `Interceptor.gd:_take_damage()` changes modulate but no camera shake
+
+**Plan:**
+1. Create `CameraShake.gd` autoload or component with a `shake(power, duration)` method
+2. Implement using Camera2D offset with exponential decay (aka "trauma" pattern):
+   - `offset = Vector2(cos(randf() * TAU), sin(randf() * TAU)) * trauma * max_offset`
+   - `trauma = max(0, trauma - decay * delta)`
+3. Connect shake calls from: `Enemy._die()` (medium), `Mine._explode()` (strong), `DroneBomb._detonate()` (very strong), `Interceptor._take_damage()` (medium), `BOOST` activation (weak)
+4. Vary shake power by event proximity to player (closer = stronger)
+5. Optionally use `PerlinNoise` for organic shake pattern instead of pure random
+
+**Subtasks:**
+```
+38.1 — Create CameraShake.gd with trauma/decay pattern
+38.2 — Implement shake(power, duration, max_offset) method
+38.3 — Wire into Camera2D via signal or direct reference
+38.4 — Add proximity-based intensity calculation
+38.5 — Add shake calls to: Enemy._die, Mine._explode, DroneBomb._detonate, Interceptor._take_damage, BOOST
+38.6 — Test shake does not cause motion sickness (cap max offset to 8px)
+38.7 — Add optional toggle in Options: "Screen Shake"
+```
+
+**Expected impact:** Significantly improved combat feel — every explosion and hit registers viscerally through the camera.
+
+---
+
+### Part 39: Audio Overhaul — Higher Quality, Longer Music, FX Bus
+
+**Problem:** Procedural audio at 8000-11025 Hz / 8-bit sounds very low-fidelity. Music loops are only 4-6.4 seconds long. No audio bus effects (reverb, compression).
+
+**Findings:**
+- `AudioManager.gd` — all `_generate_*` methods use 8000-11025 Hz, 8-bit PCM
+- Music: 4 seconds (menu) and 6.4 seconds (game) — extremely short and repetitive
+- No audio bus effects in `project.godot` audio section
+- `_find_lowest_priority_player()` does not actually respect priority despite `_priority` parameter
+- No pitch randomization on repeated sounds — same waveform plays identically each time
+
+**Plan:**
+1. Increase sample rate to 22050 Hz across all generators (balance quality vs memory)
+2. Use 16-bit PCM for all procedural streams (8-bit has audible quantization noise)
+3. Generate longer music: 16-32 second loops with chord progression, bridge, and fills
+4. Add `compress` effect to Master bus (light 3:1 ratio, -6dB threshold)
+5. Add `reverb` effect to SFX bus (room 0.3, damp 0.5, wet 0.2)
+6. Fix `_find_lowest_priority_player()` to actually respect priority parameter
+7. Add `pitch_scale = randf_range(0.9, 1.1)` randomization on SFX playback
+
+**Subtasks:**
+```
+39.1 — Update all _generate_* sample rate to 22050 Hz and to 16-bit
+39.2 — Rewrite _generate_menu_music() for 16-32 second loop (add chord variations)
+39.3 — Rewrite _generate_game_music() for 16-32 second loop (add fills, breakdown section)
+39.4 — Add Reverb effect to SFX bus in AudioManager._ready() or project.godot
+39.5 — Add Compression to Master bus
+39.6 — Fix _find_lowest_priority_player to evaluate priority correctly
+39.7 — Add pitch_scale randomization to all SFX playback
+39.8 — Test: verify music loops seamlessly, audio quality improved, no crackling
+```
+
+**Expected impact:** Dramatically improved audio quality — music no longer feels like a 4-second loop, SFX have spatial presence via reverb, no more audio starvation.
+
+---
+
+### Part 40: Integration, Stress, and Performance Tests
+
+**Problem:** All 26 test files are unit tests with mocked dependencies. There are no integration tests (multiple systems interacting), stress tests (extreme entity counts), or performance benchmarks.
+
+**Findings:**
+- 122 tests across 26 files — all unit tests with isolated components
+- No test spawns enemies + fires weapons + verifies score tracking end-to-end
+- No test measures FPS under load (50+ enemies, 200+ bullets)
+- `run_tests.gd` uses manually configured batches rather than glob-based discovery
+- `test_helper.gd:24-28` mock is incomplete — uses `set()` for methods instead of actual method definitions
+
+**Plan:**
+1. **Integration tests (3-5 new files):**
+   - "Spawner + Interceptor combat loop": Spawn enemy, fire weapon from player, enemy takes damage, enemy dies, score increases
+   - "Highway + player movement": Player vehicles moves through 10 highway chunks, verify chunk recycle and position tracking
+   - "Weather + player interaction": Rain starts, player enters bridge zone, verify both systems active simultaneously
+2. **Stress tests (1 file):**
+   - Spawn 30 enemies, fire 100 bullets, verify no crash and FPS > 30 (simulated)
+   - Pool exhaustion: acquire 200 items from ObjectPool, verify no null returns
+3. **Performance benchmarks (1 file):**
+   - Time chunk generation: average of 10 generation cycles, report ms
+   - Time bullet pool acquire/release: 1000 cycle average
+4. **Cleanup `run_tests.gd`** to auto-discover test files using `-gdir` instead of hardcoded lists
+5. **Fix `test_helper.gd`** mock — replace `set()` with actual `MockPlayer.gd` script
+
+**Subtasks:**
+```
+40.1 — Create test_integration_combat.gd (spawn → fight → score → die)
+40.2 — Create test_integration_highway.gd (chunk generation, recycle, player movement)
+40.3 — Create test_stress.gd (30 enemies + 100 bullets + weather, verify stability)
+40.4 — Create test_performance.gd (benchmark pool operations, chunk generation)
+40.5 — Fix test_helper.gd MockPlayer with proper method definitions
+40.6 — Convert run_tests.gd to glob-based test discovery
+40.7 — Add target FPS assertions to stress tests
+40.8 — Run full suite: verify 122 unit + new integration/stress tests all pass
+```
+
+**Expected impact:** End-to-end coverage across system boundaries; performance regression detection; simpler test runner maintenance.
+
+---
+
+### Part 41: Code Quality Deep Cleanup
+
+**Problem:** Multiple long-standing code quality issues remain: fragile string key usage, dead code, utility files cluttering root, and deprecated pattern usage.
+
+**Findings:**
+- `set_meta`/`get_meta` for pool state in `ObjectPool.gd` — slower than typed properties, not refactorable
+- `upgrade_levels` dictionary with string keys throughout `GameManager.gd`, `Garage.gd` — typo-prone
+- Dead code: `test_input.gd` at root, `check_bg.py`, `remove_bg.py`, other dev utilities
+- `default_env.tres` exists but is unused
+- `WEAPON_TYPES` array in Interceptor + `WEAPON_COLORS` array in HUD must match manually (no shared def)
+- `_lane_to_x()` in `Interceptor.gd` recalculates from LANE_WIDTH instead of using `Constants.LANE_POSITIONS`
+- `randi()`, `randf()` in Highway/Spawner use global RNG with no seed for replay determinism
+- Two test files use `extends "res://addons/gut/test.gd"` instead of `extends GutTest`
+
+**Plan:**
+1. Replace `set_meta`/`get_meta` in ObjectPool with an inner `PoolItem` class or embedded Dictionary field
+2. Add `enum UpgradeType { SPEED, HANDLING, ARMOR, FIRE_RATE, MISSILE_DAMAGE, MINE_COUNT, EMP_AMMO }` and use typed keys
+3. Move dev utility scripts to `tools/` directory, remove dead `test_input.gd`
+4. Remove unused `default_env.tres` or connect it
+5. Create shared `WeaponData` resource: array of `{type: String, color: Color, icon: Texture2D}` used by both Interceptor and HUD
+6. Update `Interceptor._lane_to_x()` to use `Constants.LANE_POSITIONS`
+7. Add seeded `RandomNumberGenerator` instance to Highway and Spawner for replay determinism
+8. Fix the 2 test files to use `extends GutTest` for consistency
+
+**Subtasks:**
+```
+41.1 — Refactor ObjectPool.gd away from set_meta/get_meta into typed properties
+41.2 — Add UpgradeType enum, refactor all string key usage in GameManager/Garage
+41.3 — Move dev scripts to tools/, remove dead code /test_input.gd
+41.4 — Remove or wire default_env.tres
+41.5 — Create shared WeaponData resource, update Interceptor + HUD to use it
+41.6 — Fix Interceptor._lane_to_x() to reference Constants.LANE_POSITIONS
+41.7 — Add seeded RNG to Highway and Spawner for deterministic replay
+41.8 — Fix 2 test files: extends "res://addons/..." → extends GutTest
+41.9 — Run full test suite, verify no regressions
+```
+
+**Expected impact:** Type-safe code, refactorable string keys gone, cleaner project root, deterministic replays, consistent test bases.
+
+---
+
+### Priority Matrix
+
+| Part | Title | Effort | Impact | Priority |
+|------|-------|--------|--------|----------|
+| 32 | GPUParticles2D for Rain | Low | Medium | P1 |
+| 33 | Cache Highway Chunk Templates | Medium | High | P0 |
+| 34 | Forward+ Renderer + Post-Processing | Low | High | P1 |
+| 35 | class_name Enemy Inheritance | Low | Medium | P1 |
+| 36 | Pause Menu | Medium | High | P0 |
+| 37 | Input Remapping UI | High | High | P2 |
+| 38 | Camera Shake System | Low | Medium | P1 |
+| 39 | Audio Overhaul (quality, length, FX bus) | Medium | Medium | P2 |
+| 40 | Integration + Stress Tests | Medium | High | P1 |
+| 41 | Code Quality Deep Cleanup | Medium | Medium | P2 |
+
+**P0 (do now):** Parts 33, 36 — Highway chunk caching eliminates major node churn; Pause menu is critical UX gap.
+**P1 (do next):** Parts 32, 34, 35, 38, 40 — Visual + audio polish, type safety, test coverage expansion.
+**P2 (do later):** Parts 37, 39, 41 — Input remapping, audio overhaul complex refactors, deep cleanup.

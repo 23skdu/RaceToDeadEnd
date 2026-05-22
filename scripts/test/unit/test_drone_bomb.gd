@@ -86,7 +86,7 @@ func test_drone_bomb_ready_creates_collision_shape():
 		if child is CollisionShape2D:
 			has_col = true
 			assert_is(child.shape, CircleShape2D, "Shape should be CircleShape2D")
-			assert_eq(child.shape.radius, db.BLAST_RADIUS, "Radius should match BLAST_RADIUS")
+			assert_eq(child.shape.radius, Constants.BLAST_RADIUS, "Radius should match BLAST_RADIUS")
 			break
 	assert_true(has_col, "Should have collision shape")
 
@@ -103,8 +103,8 @@ func test_drone_bomb_detonate_clears_warning():
 	assert_true(db.warning_visual.is_queued_for_deletion(), "Warning visual should be queued for deletion")
 
 func test_drone_bomb_constants():
-	assert_eq(DroneBomb.DETONATION_TIME, 1.5, "Detonation time should be 1.5")
-	assert_eq(DroneBomb.BLAST_RADIUS, 80.0, "Blast radius should be 80")
+	assert_eq(Constants.DETONATION_TIME, 1.5, "Detonation time should be 1.5")
+	assert_eq(Constants.BLAST_RADIUS, 80.0, "Blast radius should be 80")
 
 func test_drone_bomb_fades_correctly():
 	var db = DroneBomb.new()

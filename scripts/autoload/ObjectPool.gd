@@ -53,32 +53,32 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 	if not _pools.has("pickup"):
 		create_pickup_pool()
 	var pool: Array[Node] = _pools["pickup"]
-	var i = 0
-	while i < pool.size():
-		var item = pool[i]
+	while pool.size() > 0:
+		var item = pool.pop_back()
 		if not is_instance_valid(item):
-			pool.remove_at(i)
 			continue
-		if item.get_meta("_in_pool", true):
-			item.set_meta("_in_pool", false)
-			item.visible = true
-			item.process_mode = Node.PROCESS_MODE_INHERIT
-			item.global_position = position
-			item.set_meta("_pickup_type", pickup_type)
-			if not item.body_entered.is_connected(_on_pickup_body_entered):
-				item.body_entered.connect(_on_pickup_body_entered.bind(item))
-			_pickup_pool_data[item] = {"type": pickup_type, "callback": on_collected}
-			var visual = _get_pickup_visual(item)
-			if visual:
-				match pickup_type:
-					"repair": visual.color = Color(0.2, 1.0, 0.3)
-					"ammo": visual.color = Color(1.0, 0.8, 0.2)
-					"boost": visual.color = Color(0.2, 0.8, 1.0)
-					"multiplier": visual.color = Color(1.0, 0.3, 1.0)
-			if item.get_parent():
-				item.get_parent().remove_child(item)
-			return item
-		i += 1
+		if not item.get_meta("_in_pool", true):
+			continue
+		item.set_meta("_in_pool", false)
+		item.visible = true
+		item.process_mode = Node.PROCESS_MODE_INHERIT
+		item.global_position = position
+		item.set_meta("_pickup_type", pickup_type)
+		if not item.body_entered.is_connected(_on_pickup_body_entered):
+			item.body_entered.connect(_on_pickup_body_entered.bind(item))
+		_pickup_pool_data[item] = {"type": pickup_type, "callback": on_collected}
+		var visual = _get_pickup_visual(item)
+		if visual:
+			match pickup_type:
+				"repair": visual.color = Color(0.2, 1.0, 0.3)
+				"ammo": visual.color = Color(1.0, 0.8, 0.2)
+				"boost": visual.color = Color(0.2, 0.8, 1.0)
+				"multiplier": visual.color = Color(1.0, 0.3, 1.0)
+		if item.has_method("on_pool_acquire"):
+			item.on_pool_acquire()
+		if item.get_parent():
+			item.get_parent().remove_child(item)
+		return item
 	var fallback = _create_pickup_node()
 	fallback.set_meta("_pool_name", "pickup")
 	fallback.set_meta("_in_pool", false)
@@ -115,17 +115,31 @@ func _on_pickup_body_entered(body: Node, pickup: Area2D) -> void:
 
 func acquire(pool_name: String) -> Node:
 	if not _pools.has(pool_name):
-		push_warning("Pool '%s' does not exist" % pool_name)
-		return null
+		if _scene_paths.has(pool_name):
+			var pscene = load(_scene_paths[pool_name]) as PackedScene
+			if pscene:
+				create_pool(pool_name, pscene, 4)
+			else:
+				push_warning("Pool '%s' scene not found" % pool_name)
+				return null
+		else:
+			push_warning("Pool '%s' does not exist" % pool_name)
+			return null
 	var pool: Array[Node] = _pools[pool_name]
-	for item in pool:
-		if item.get_meta("_in_pool", true):
-			item.set_meta("_in_pool", false)
-			item.visible = true
-			item.process_mode = Node.PROCESS_MODE_INHERIT
-			if item.get_parent():
-				item.get_parent().remove_child(item)
-			return item
+	while pool.size() > 0:
+		var item = pool.pop_back()
+		if not is_instance_valid(item):
+			continue
+		if not item.get_meta("_in_pool", true):
+			continue
+		item.set_meta("_in_pool", false)
+		item.visible = true
+		item.process_mode = Node.PROCESS_MODE_INHERIT
+		if item.has_method("on_pool_acquire"):
+			item.on_pool_acquire()
+		if item.get_parent():
+			item.get_parent().remove_child(item)
+		return item
 	var fallback = load(_scene_paths[pool_name]).instantiate()
 	fallback.set_meta("_pool_name", pool_name)
 	fallback.set_meta("_in_pool", false)
@@ -139,6 +153,8 @@ func release(node: Node) -> void:
 	if not pool_name or not _pools.has(pool_name):
 		node.queue_free()
 		return
+	if node.has_method("on_pool_release"):
+		node.on_pool_release()
 	node.set_meta("_in_pool", true)
 	node.visible = false
 	node.process_mode = Node.PROCESS_MODE_DISABLED

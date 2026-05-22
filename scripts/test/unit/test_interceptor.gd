@@ -26,15 +26,14 @@ func _create_player():
 	return player
 
 func test_constants():
-	var script = load("res://scripts/scenes/player/Interceptor.gd")
-	assert_eq(script.BOOST_SPEED_MULTIPLIER, 2.0, "Boost multiplier")
-	assert_eq(script.WEAVE_DISTANCE, 128.0, "Weave distance")
-	assert_eq(script.WEAVE_COOLDOWN, 0.5, "Weave cooldown")
-	assert_eq(script.BOOST_DURATION, 1.5, "Boost duration")
-	assert_eq(script.BOOST_RECHARGE_TIME, 8.0, "Boost recharge time")
-	assert_eq(script.DOUBLE_TAP_DELAY, 0.25, "Double tap delay")
-	assert_eq(script.ACCEL_SPEED, 300.0, "Acceleration speed")
-	assert_eq(script.REVERSE_SPEED, -350.0, "Reverse speed")
+	assert_eq(Constants.BOOST_SPEED_MULTIPLIER, 2.0, "Boost multiplier")
+	assert_eq(Constants.WEAVE_DISTANCE, 128.0, "Weave distance")
+	assert_eq(Constants.WEAVE_COOLDOWN, 0.5, "Weave cooldown")
+	assert_eq(Constants.BOOST_DURATION, 1.5, "Boost duration")
+	assert_eq(Constants.BOOST_RECHARGE_TIME, 8.0, "Boost recharge time")
+	assert_eq(Constants.DOUBLE_TAP_DELAY, 0.25, "Double tap delay")
+	assert_eq(Constants.ACCEL_SPEED, 300.0, "Acceleration speed")
+	assert_eq(Constants.REVERSE_SPEED, -350.0, "Reverse speed")
 
 func test_weapon_types_constant():
 	var script = load("res://scripts/scenes/player/Interceptor.gd")

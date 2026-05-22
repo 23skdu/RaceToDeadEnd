@@ -41,12 +41,18 @@ func _drop_bomb() -> void:
 	bomb_timer = bomb_interval
 	if not player:
 		return
-	var bomb = BOMB_SCENE.instantiate()
+	var bomb = ObjectPool.acquire("drone_bomb")
+	if not bomb:
+		bomb = BOMB_SCENE.instantiate()
 	if world_node:
 		world_node.add_child(bomb)
 	elif get_parent():
 		get_parent().add_child(bomb)
 	else:
+		if not bomb.has_meta("_pool_name"):
+			bomb.queue_free()
+		else:
+			ObjectPool.release(bomb)
 		return
 	
 	bomb.global_position = global_position + Vector2(0, 48)

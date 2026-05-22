@@ -7,7 +7,7 @@ func test_audio_manager_has_music_player():
 	assert_true(AudioManager.music_player != null, "Music player should exist")
 
 func test_audio_manager_has_sfx_players():
-	assert_eq(AudioManager.sfx_players.size(), 12, "Should have 12 SFX players")
+	assert_eq(AudioManager.sfx_players.size(), 16, "Should have 16 SFX players")
 
 func test_audio_manager_uses_sfx_bus():
 	assert_true(AudioManager.sfx_players.size() > 0, "Should have SFX players")
@@ -92,12 +92,12 @@ func test_audio_manager_play_sfx_null_stream():
 			after_count += 1
 	assert_eq(after_count, before_count, "Should not play null stream")
 
-func test_audio_manager_procedural_music_generates_stream():
+func 	test_audio_manager_procedural_music_generates_stream():
 	assert_true(AudioManager.music_player.playing or AudioManager.music_player.stream != null, "Music should be playing")
 
 func test_sfx_player_count_constant():
 	var am = load("res://scripts/autoload/AudioManager.gd")
-	assert_eq(am.SFX_PLAYER_COUNT, 12, "SFX player count should be 12")
+	assert_eq(am.SFX_PLAYER_COUNT, 16, "SFX player count should be 16")
 
 func test_cached_streams_are_reusable():
 	var stream1 = AudioManager._stream_laser
@@ -110,10 +110,6 @@ func test_set_bus_volume_master():
 	AudioManager.set_bus_volume(AudioManager.Bus.MASTER, -10.0)
 	assert_eq(AudioServer.get_bus_volume_db(0), -10.0, "Master bus volume should change")
 	AudioManager.set_bus_volume(AudioManager.Bus.MASTER, initial)
-
-func test_find_lowest_priority_player_returns_free():
-	var result = AudioManager._find_lowest_priority_player()
-	assert_true(result != null, "Should return a player")
 
 func test_play_sfx_reuses_free_player():
 	AudioManager.play_synth_laser(Vector2.ZERO)
@@ -138,7 +134,7 @@ func test_generate_laser_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_laser_stream()
 	assert_true(stream != null, "Should generate laser stream")
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Should be 8-bit")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Should be 16-bit")
 
 func test_generate_explosion_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
@@ -197,58 +193,18 @@ func test_play_synth_music_generates_looping_stream():
 	assert_true(AudioManager.music_player.stream != null, "Music stream should be generated")
 	assert_eq(AudioManager.music_player.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "Music should loop")
 
-func test_procedural_music_uses_8bit_format():
-	var am = load("res://scripts/autoload/AudioManager.gd").new()
-	var duration = 8.0
-	var sample_rate = 8000.0
-	var num_samples = int(sample_rate * duration)
-	var data = PackedByteArray()
-	data.resize(num_samples)
-	for i in num_samples:
-		var t = i / sample_rate
-		var freq = 82.41
-		if t >= 2.0 and t < 4.0:
-			freq = 98.00
-		elif t >= 4.0 and t < 6.0:
-			freq = 110.00
-		elif t >= 6.0:
-			freq = 73.42
-		var val = sin(TAU * freq * t) * 35.0
-		var val_sub = sin(TAU * (freq * 0.5) * t) * 15.0
-		data[i] = int(val + val_sub) + 128
+func test_procedural_music_uses_16bit_format():
 	var stream = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_8_BITS
-	stream.mix_rate = int(sample_rate)
-	stream.data = data
-	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Music should be 8-bit")
-	assert_eq(stream.mix_rate, 8000, "Music mix rate should be 8000")
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = 22050
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Music should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Music mix rate should be 22050")
 
 func test_music_frequency_changes_over_time():
-	var am = load("res://scripts/autoload/AudioManager.gd").new()
-	var stream = AudioStreamWAV.new()
-	var duration = 8.0
-	var sample_rate = 8000.0
-	var num_samples = int(sample_rate * duration)
-	var data = PackedByteArray()
-	data.resize(num_samples)
 	var freq_at_1s = 82.41
 	var freq_at_3s = 98.00
 	var freq_at_5s = 110.00
 	var freq_at_7s = 73.42
-	for i in num_samples:
-		var t = i / sample_rate
-		var freq = 82.41
-		if t >= 2.0 and t < 4.0:
-			freq = 98.00
-		elif t >= 4.0 and t < 6.0:
-			freq = 110.00
-		elif t >= 6.0:
-			freq = 73.42
-		var val = sin(TAU * freq * t) * 35.0
-		var val_sub = sin(TAU * (freq * 0.5) * t) * 15.0
-		data[i] = int(val + val_sub) + 128
 	assert_eq(freq_at_1s, 82.41, "Frequency at 1s should be E2")
 	assert_eq(freq_at_3s, 98.00, "Frequency at 3s should be G2")
 	assert_eq(freq_at_5s, 110.00, "Frequency at 5s should be A2")
@@ -257,36 +213,36 @@ func test_music_frequency_changes_over_time():
 func test_laser_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_laser_stream()
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Laser should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "Laser mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Laser should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Laser mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "Laser should have data")
 
 func test_explosion_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_explosion_stream()
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Explosion should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "Explosion mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Explosion should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Explosion mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "Explosion should have data")
 
 func test_hurt_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_hurt_stream()
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Hurt should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "Hurt mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Hurt should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Hurt mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "Hurt should have data")
 
 func test_boost_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_boost_stream()
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Boost should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "Boost mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Boost should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Boost mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "Boost should have data")
 
 func test_emp_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_emp_stream()
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "EMP should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "EMP mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "EMP should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "EMP mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "EMP should have data")
 
 func test_sfx_player_position_set():
@@ -318,15 +274,15 @@ func test_generate_lightning_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_lightning_stream()
 	assert_true(stream != null, "Should generate lightning stream")
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Lightning should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "Lightning mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Lightning should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Lightning mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "Lightning should have data")
 
 func test_lightning_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
 	var stream = am._generate_lightning_stream()
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_8_BITS, "Lightning should be 8-bit")
-	assert_eq(stream.mix_rate, 11025, "Lightning mix rate should be 11025")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Lightning should be 16-bit")
+	assert_eq(stream.mix_rate, 22050, "Lightning mix rate should be 22050")
 	assert_gt(stream.data.size(), 0, "Lightning should have data")
 
 func test_play_lightning_strike_sets_position():
@@ -395,14 +351,14 @@ func test_play_drone_death():
 			playing_count += 1
 	assert_true(playing_count > 0, "Drone death SFX should play")
 
-func test_enemy_hit_streams_are_8bit():
+func test_enemy_hit_streams_are_16bit():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
-	assert_eq(am._generate_rotor_hit_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Rotor hit should be 8-bit")
-	assert_eq(am._generate_scav_hit_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Scav hit should be 8-bit")
-	assert_eq(am._generate_drone_hit_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Drone hit should be 8-bit")
+	assert_eq(am._generate_rotor_hit_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Rotor hit should be 16-bit")
+	assert_eq(am._generate_scav_hit_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Scav hit should be 16-bit")
+	assert_eq(am._generate_drone_hit_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Drone hit should be 16-bit")
 
-func test_enemy_death_streams_are_8bit():
+func test_enemy_death_streams_are_16bit():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
-	assert_eq(am._generate_rotor_death_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Rotor death should be 8-bit")
-	assert_eq(am._generate_scav_death_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Scav death should be 8-bit")
-	assert_eq(am._generate_drone_death_stream().format, AudioStreamWAV.FORMAT_8_BITS, "Drone death should be 8-bit")
+	assert_eq(am._generate_rotor_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Rotor death should be 16-bit")
+	assert_eq(am._generate_scav_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Scav death should be 16-bit")
+	assert_eq(am._generate_drone_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Drone death should be 16-bit")

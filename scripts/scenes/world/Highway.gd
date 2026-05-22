@@ -33,10 +33,16 @@ var current_segment: int = 0
 var player: Node = null
 var white_texture: Texture2D
 
+var _chunk_template_cache: Dictionary = {}
+
+var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
 func _ready() -> void:
 	var img = Image.create(1, 1, false, Image.FORMAT_RGBA8)
 	img.fill(Color.WHITE)
 	white_texture = ImageTexture.create_from_image(img)
+	
+	_rng.seed = hash("highway_seed")
 	
 	for i in range(-3, PREWARM_CHUNKS - 3):
 		_spawn_chunk(i)
@@ -58,7 +64,10 @@ func _spawn_chunk(offset: int) -> void:
 	chunk.position.y = -offset * CHUNK_PIXEL_HEIGHT
 	chunk.set_meta("chunk_type", chunk_type)
 	chunk.set_meta("segment", current_segment)
-	_generate_chunk_tiles(chunk, chunk_type)
+	
+	var tiles = _get_cached_or_build(chunk_type)
+	chunk.add_child(tiles)
+	
 	active_chunks.append(chunk)
 	add_child(chunk)
 	current_segment += 1
@@ -73,37 +82,69 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	chunk.set_meta("chunk_type", new_type)
 	chunk.set_meta("segment", current_segment)
 	
-	# Build new tiles first, then swap to avoid one-frame visual gap
-	var new_tiles = Node2D.new()
-	new_tiles.name = "Tiles_New"
-	_generate_chunk_tiles_into(new_tiles, new_type)
+	# Swap tiles from cache instead of full regeneration
+	var new_tiles = _get_cached_or_build(new_type)
 	_clear_chunk_tiles(chunk)
-	new_tiles.name = "Tiles"
 	chunk.add_child(new_tiles)
 	
 	current_segment += 1
 	segment_completed.emit(current_segment)
 
+func _get_cached_or_build(chunk_type: ChunkType) -> Node2D:
+	if _chunk_template_cache.has(chunk_type):
+		var cached = _chunk_template_cache[chunk_type]
+		var clone = cached.duplicate()
+		# Reconnect signals for ICE and BRIDGE chunks
+		_reconnect_chunk_signals(clone, chunk_type)
+		return clone
+	
+	var tiles = Node2D.new()
+	tiles.name = "Tiles"
+	tiles.set_y_sort_enabled(true)
+	_build_tiles_into(tiles, chunk_type)
+	
+	# Cache the template — but signals won't duplicate, so store without them
+	_chunk_template_cache[chunk_type] = tiles.duplicate()
+	
+	_reconnect_chunk_signals(tiles, chunk_type)
+	return tiles
+
+func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
+	if chunk_type == ChunkType.ICE:
+		for child in tiles_node.get_children():
+			if child is Area2D:
+				if not child.body_entered.is_connected(_on_ice_entered):
+					child.body_entered.connect(_on_ice_entered)
+				if not child.body_exited.is_connected(_on_ice_exited):
+					child.body_exited.connect(_on_ice_exited)
+	elif chunk_type == ChunkType.BRIDGE:
+		for child in tiles_node.get_children():
+			if child is Area2D:
+				if not child.body_entered.is_connected(_on_bridge_fall):
+					child.body_entered.connect(_on_bridge_fall)
+
 func _pick_chunk_type() -> ChunkType:
 	var tier = GameManager.difficulty_tier
-	var adjusted_weights = chunk_weights.duplicate()
 	var hazard_increase = mini(tier - 1, 10) * 2
-	adjusted_weights[ChunkType.STANDARD] = maxi(40 - hazard_increase * 2, 15)
-	adjusted_weights[ChunkType.DEBRIS] = mini(20 + hazard_increase, 35)
-	adjusted_weights[ChunkType.ICE] = mini(10 + hazard_increase, 25)
-	adjusted_weights[ChunkType.CONSTRUCTION] = mini(15 + hazard_increase, 30)
-	adjusted_weights[ChunkType.BRIDGE] = mini(15 + hazard_increase, 30)
-	
-	var total = 0
-	for w in adjusted_weights.values():
-		total += w
-	var roll = randi() % total
-	var cumulative = 0
-	for type in adjusted_weights:
-		cumulative += adjusted_weights[type]
-		if roll < cumulative:
-			return type
-	return ChunkType.STANDARD
+	var w_standard = maxi(40 - hazard_increase * 2, 15)
+	var w_debris = mini(20 + hazard_increase, 35)
+	var w_ice = mini(10 + hazard_increase, 25)
+	var w_construction = mini(15 + hazard_increase, 30)
+	var w_bridge = mini(15 + hazard_increase, 30)
+	var total = w_standard + w_debris + w_ice + w_construction + w_bridge
+	var roll = _rng.randi() % total
+	if roll < w_standard:
+		return ChunkType.STANDARD
+	roll -= w_standard
+	if roll < w_debris:
+		return ChunkType.DEBRIS
+	roll -= w_debris
+	if roll < w_ice:
+		return ChunkType.ICE
+	roll -= w_ice
+	if roll < w_construction:
+		return ChunkType.CONSTRUCTION
+	return ChunkType.BRIDGE
 
 func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 	var chunk_local = Node2D.new()
@@ -192,17 +233,17 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		shoulder_merged.modulate = shoulder_polygons[0]["color"]
 		chunk_local.add_child(shoulder_merged)
 	
-	for stripe in stripe_positions:
-		var stripe_poly = Polygon2D.new()
-		stripe_poly.polygon = PackedVector2Array([
-			Vector2(-2, -half_h * 0.6),
-			Vector2(2, -half_h * 0.6),
-			Vector2(2, half_h * 0.6),
-			Vector2(-2, half_h * 0.6)
-		])
-		stripe_poly.color = Color(1.0, 1.0, 0.8)
-		stripe_poly.position = stripe["pos"]
-		chunk_local.add_child(stripe_poly)
+	if stripe_positions.size() > 0:
+		var stripe_mmi = MultiMeshInstance2D.new()
+		stripe_mmi.texture = white_texture
+		var smesh = MultiMesh.new()
+		smesh.mesh = _create_rect_mesh(Vector2(4, half_h * 1.2))
+		smesh.instance_count = stripe_positions.size()
+		for i in stripe_positions.size():
+			smesh.set_instance_transform_2d(i, Transform2D(0.0, stripe_positions[i]["pos"]))
+		stripe_mmi.multimesh = smesh
+		stripe_mmi.modulate = Color(1.0, 1.0, 0.8)
+		chunk_local.add_child(stripe_mmi)
 	
 	for decor in desert_decorations:
 		var decor_node = _create_desert_decoration(decor["type"])
@@ -253,6 +294,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var right_rail_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w
 	
 	var left_rail = Line2D.new()
+	left_rail.name = "LeftRail"
 	left_rail.width = 3.0
 	left_rail.default_color = Color(1.0, 1.0, 0.8) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
 	var left_points = PackedVector2Array()
@@ -263,6 +305,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	chunk_local.add_child(left_rail)
 	
 	var right_rail = Line2D.new()
+	right_rail.name = "RightRail"
 	right_rail.width = 3.0
 	right_rail.default_color = Color(1.0, 1.0, 0.8) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
 	var right_points = PackedVector2Array()
@@ -317,6 +360,31 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		right_bridge.add_child(right_col)
 		right_bridge.body_entered.connect(_on_bridge_fall)
 		chunk_local.add_child(right_bridge)
+
+func _create_rect_mesh(size: Vector2) -> ArrayMesh:
+	var mesh = ArrayMesh.new()
+	var half_w = size.x / 2.0
+	var half_h = size.y / 2.0
+	var vertices = PackedVector2Array([
+		Vector2(-half_w, -half_h),
+		Vector2(half_w, -half_h),
+		Vector2(half_w, half_h),
+		Vector2(-half_w, half_h)
+	])
+	var uvs = PackedVector2Array([
+		Vector2(0.0, 0.0),
+		Vector2(1.0, 0.0),
+		Vector2(1.0, 1.0),
+		Vector2(0.0, 1.0)
+	])
+	var indices = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var arrays = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 func _create_diamond_mesh() -> ArrayMesh:
 	var mesh = ArrayMesh.new()
@@ -457,9 +525,14 @@ func _get_tile_variant(chunk_type: ChunkType, row: int, col: int) -> int:
 		_:
 			return 0
 
-func _clear_chunk_tiles(chunk: Node2D) -> void:
+func _get_tiles_node(chunk: Node2D) -> Node2D:
 	for child in chunk.get_children():
 		if child.name == "Tiles":
-			chunk.remove_child(child)
-			child.queue_free()
-			break
+			return child
+	return null
+
+func _clear_chunk_tiles(chunk: Node2D) -> void:
+	var tiles = _get_tiles_node(chunk)
+	if tiles:
+		chunk.remove_child(tiles)
+		tiles.queue_free()

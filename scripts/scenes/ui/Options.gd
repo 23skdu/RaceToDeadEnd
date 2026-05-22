@@ -2,10 +2,13 @@ extends CanvasLayer
 
 signal back_to_menu_requested
 
-@onready var master_slider: HSlider = $Panel/MasterSlider
-@onready var music_slider: HSlider = $Panel/MusicSlider
-@onready var sfx_slider: HSlider = $Panel/SFXSlider
-@onready var fullscreen_check: CheckButton = $Panel/FullscreenCheck
+@onready var panel: Panel = $Panel
+@onready var tab_container: TabContainer = $Panel/TabContainer
+@onready var master_slider: HSlider = $Panel/TabContainer/AudioTab/MasterSlider
+@onready var music_slider: HSlider = $Panel/TabContainer/AudioTab/MusicSlider
+@onready var sfx_slider: HSlider = $Panel/TabContainer/AudioTab/SFXSlider
+@onready var fullscreen_check: CheckButton = $Panel/TabContainer/AudioTab/FullscreenCheck
+@onready var input_remap: InputRemap = $Panel/TabContainer/InputTab/InputRemap
 @onready var back_button: Button = $Panel/BackButton
 
 func _ready() -> void:
@@ -14,9 +17,14 @@ func _ready() -> void:
 	music_slider.value_changed.connect(_on_music_changed)
 	sfx_slider.value_changed.connect(_on_sfx_changed)
 	fullscreen_check.toggled.connect(_on_fullscreen_toggled)
-	
+
 	_load_volume_settings()
 	_load_fullscreen_setting()
+	input_remap.load_bindings()
+
+	if not input_remap.is_inside_tree():
+		await input_remap.ready
+	input_remap.load_bindings()
 
 func _load_volume_settings() -> void:
 	master_slider.value = db_to_linear(AudioServer.get_bus_volume_db(0))

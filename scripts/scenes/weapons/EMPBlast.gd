@@ -6,6 +6,7 @@ var expand_speed: float = 400.0
 var max_radius: float = 400.0
 var current_radius: float = 0.0
 var _col_shape: CollisionShape2D
+var _pooled: bool = false
 
 func _ready() -> void:
 	collision_layer = 0
@@ -18,12 +19,14 @@ func _ready() -> void:
 
 func init(pos: Vector2) -> void:
 	global_position = pos
+	_pooled = has_meta("_pool_name")
+	current_radius = 0.0
 
 func _process(delta: float) -> void:
 	current_radius = move_toward(current_radius, max_radius, expand_speed * delta)
 	_update_collision_radius()
 	if current_radius >= max_radius:
-		if has_meta("_pool_name"):
+		if _pooled:
 			ObjectPool.release(self)
 		else:
 			queue_free()

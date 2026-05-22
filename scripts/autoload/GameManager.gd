@@ -21,9 +21,8 @@ var current_segment: int = 0
 var credits: int = 0
 var high_score: int = 0
 
-const BASE_SCORE_RATE: int = 10
-const SEGMENT_DISTANCE: float = 10.0
-const MULTIPLIER_DURATION: float = 10.0
+var enemy_list: Array[Node] = []
+var _enemy_list_timer: float = 0.0
 
 var upgrade_levels: Dictionary = {
 	max_health = 1,
@@ -41,17 +40,23 @@ var _base_multiplier: int = 1
 var _last_tier_threshold: int = 0
 
 func _process(delta: float) -> void:
-	if state == GameState.PLAYING:
-		_score_timer += delta
-		if _score_timer >= 1.0:
-			_score_timer -= 1.0
-			add_score(BASE_SCORE_RATE)
-		
-		if _multiplier_timer > 0.0:
-			_multiplier_timer -= delta
-			multiplier_timer_updated.emit(_multiplier_timer)
-			if _multiplier_timer <= 0.0:
-				_reset_multiplier()
+	if state != GameState.PLAYING:
+		return
+	_score_timer += delta
+	if _score_timer >= 1.0:
+		_score_timer -= 1.0
+		add_score(Constants.SCORE_RATE)
+	
+	if _multiplier_timer > 0.0:
+		_multiplier_timer -= delta
+		multiplier_timer_updated.emit(_multiplier_timer)
+		if _multiplier_timer <= 0.0:
+			_reset_multiplier()
+	
+	_enemy_list_timer += delta
+	if _enemy_list_timer >= 0.25:
+		_enemy_list_timer = 0.0
+		enemy_list = get_tree().get_nodes_in_group("enemy")
 
 func _ready() -> void:
 	_add_input_mappings()
@@ -83,7 +88,7 @@ func add_score(points: int) -> void:
 	_check_difficulty_advance()
 
 func _check_difficulty_advance() -> void:
-	var new_tier = mini(1 + floori(_difficulty_progress / 1000.0), 20)
+	var new_tier = mini(1 + floori(_difficulty_progress / Constants.TIER_THRESHOLD), Constants.MAX_TIER)
 	if new_tier > difficulty_tier:
 		difficulty_tier = new_tier
 		difficulty_tier_changed.emit(difficulty_tier)
@@ -104,7 +109,7 @@ func set_multiplier(value: int) -> void:
 func add_temporary_multiplier(bonus: int) -> void:
 	_base_multiplier = multiplier
 	multiplier = clampi(multiplier + bonus, 1, 8)
-	_multiplier_timer = MULTIPLIER_DURATION
+	_multiplier_timer = Constants.MULTIPLIER_DURATION
 	multiplier_updated.emit(multiplier)
 
 func _reset_multiplier() -> void:
@@ -113,7 +118,7 @@ func _reset_multiplier() -> void:
 
 func advance_segment() -> void:
 	current_segment += 1
-	_difficulty_progress += 200.0
+	_difficulty_progress += Constants.SEGMENT_DIFFICULTY_BONUS
 	segment_advanced.emit(current_segment)
 	_check_difficulty_advance()
 

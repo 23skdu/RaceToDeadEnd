@@ -208,7 +208,7 @@ func test_score_timer_ticks():
 	var gm = get_gm()
 	gm.start_game()
 	gm._process(1.0)
-	assert_eq(gm.score, 10, "Score should increase by BASE_SCORE_RATE after 1 second")
+	assert_eq(gm.score, Constants.SCORE_RATE, "Score should increase by SCORE_RATE after 1 second")
 
 func test_score_timer_accumulates():
 	var gm = get_gm()
@@ -320,9 +320,8 @@ func test_game_state_enum_values():
 	assert_eq(GameManagerScript.GameState.GAME_OVER, 3, "GAME_OVER = 3")
 
 func test_constants():
-	assert_eq(GameManagerScript.BASE_SCORE_RATE, 10, "Base score rate")
-	assert_eq(GameManagerScript.SEGMENT_DISTANCE, 10.0, "Segment distance")
-	assert_eq(GameManagerScript.MULTIPLIER_DURATION, 10.0, "Multiplier duration")
+	assert_eq(Constants.SCORE_RATE, 10, "Score rate")
+	assert_eq(Constants.MULTIPLIER_DURATION, 10.0, "Multiplier duration")
 
 func test_process_does_not_tick_score_when_paused():
 	var gm = get_gm()

@@ -105,7 +105,7 @@ func test_homing_adjusts_direction():
 	target.global_position = Vector2(100, -100)
 	target.add_to_group("enemy")
 	add_child_autofree(target)
-	b._cache_timer = b.ENEMY_CACHE_INTERVAL
+	b._cache_timer = Constants.ENEMY_CACHE_INTERVAL
 	var initial_dir = b.direction
 	b._physics_process(0.1)
 	assert_ne(b.direction, initial_dir, "Direction should change with homing")
@@ -141,9 +141,7 @@ func test_homing_refreshes_cache_after_interval():
 	assert_eq(b._cached_enemies.size(), 0, "Cache should refresh after interval")
 
 func test_enemy_cache_interval_constant():
-	var b = BulletScene.instantiate()
-	assert_eq(b.ENEMY_CACHE_INTERVAL, 0.25, "Cache interval should be 0.25s")
-	b.queue_free()
+	assert_eq(Constants.ENEMY_CACHE_INTERVAL, 0.25, "Cache interval should be 0.25s")
 
 func test_on_body_entered_emits_signal():
 	var b = _create_bullet()
@@ -225,7 +223,7 @@ func test_bullet_direction_changes_with_homing():
 	target.global_position = Vector2(200, -100)
 	target.add_to_group("enemy")
 	add_child_autofree(target)
-	b._cache_timer = b.ENEMY_CACHE_INTERVAL
+	b._cache_timer = Constants.ENEMY_CACHE_INTERVAL
 	b._physics_process(0.3)
 	assert_ne(b.direction.x, 0.0, "Direction X should change toward target")
 

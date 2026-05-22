@@ -71,8 +71,12 @@ func _spawn_enemy(type: String) -> void:
 	if not player:
 		return
 		
-	var scene = enemy_scenes[type]
-	var enemy = scene.instantiate()
+	var enemy = ObjectPool.acquire(type)
+	if not enemy:
+		if enemy_scenes.has(type) and enemy_scenes[type]:
+			enemy = enemy_scenes[type].instantiate()
+		else:
+			return
 	var lane = randi_range(0, Constants.LANE_COUNT - 1)
 	var lane_x = Constants.LANE_POSITIONS[lane]
 	
@@ -89,16 +93,16 @@ func _spawn_enemy(type: String) -> void:
 	active_enemies.append(enemy)
 
 	if enemy.has_method("init"):
-		enemy.init(et, lane, player, Constants.BASE_SPEED)
+		enemy.init(et, lane, player, Constants.BASE_SPEED, self)
 		
 	if type == "scav" and "world_node" in enemy:
 		enemy.world_node = world_node
 	if type == "drone" and "world_node" in enemy:
 		enemy.world_node = world_node
 
-func _on_enemy_destroyed(position: Vector2, enemy_type: String) -> void:
-	ScoreManager.register_kill(enemy_type, position)
-	_drop_pickup(position)
+func _on_enemy_destroyed(pos: Vector2, enemy_type: String) -> void:
+	ScoreManager.register_kill(enemy_type, pos)
+	_drop_pickup(pos)
 
 func _drop_pickup(position: Vector2) -> void:
 	var roll = randf()

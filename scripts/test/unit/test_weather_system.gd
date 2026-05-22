@@ -109,41 +109,32 @@ func test_clear_overlay_transparent():
 
 func test_rain_particles_initialized():
 	var ws = _create_weather()
-	assert_eq(ws.rain_particles.size(), 200, "Should have 200 rain particles")
+	assert_true(ws._rain_particles != null, "Rain particles node should exist")
+	assert_eq(ws._rain_particles.amount, 200, "Should have 200 rain particles capacity")
+	assert_false(ws._rain_particles.emitting, "Rain should not emit initially")
 
-func test_rain_particle_has_node():
+func test_rain_particles_have_material():
 	var ws = _create_weather()
-	assert_true(ws.rain_particles[0]["node"] != null, "Particle should have node")
+	assert_true(ws._rain_particle_material != null, "Particle material should exist")
 
-func test_rain_particle_has_speed():
+func test_rain_particles_have_texture():
 	var ws = _create_weather()
-	assert_gt(ws.rain_particles[0]["speed"], 0.0, "Particle should have speed")
+	assert_true(ws._rain_particles.texture != null, "Rain particles should have a texture")
 
-func test_rain_particle_inactive_initially():
+func test_rain_particles_emit_on_storm():
 	var ws = _create_weather()
-	assert_false(ws.rain_particles[0]["active"], "Particle should be inactive initially")
+	ws._set_weather(ws.WeatherType.STORM)
+	ws._update_rain_particles(0.0)
+	assert_true(ws._rain_particles.emitting, "Rain should emit during storm")
 
-func test_reset_rain_particle_activates():
+func test_rain_particles_stop_on_clear():
 	var ws = _create_weather()
-	var p = ws.rain_particles[0]
-	ws.current_weather = ws.WeatherType.ACID_RAIN
-	ws._reset_rain_particle(p)
-	assert_true(p["pos"].y < 0.0, "Particle should be reset above screen")
-
-func test_rain_particle_color_acid_rain():
-	var ws = _create_weather()
-	ws.current_weather = ws.WeatherType.ACID_RAIN
-	var p = ws.rain_particles[0]
-	ws._reset_rain_particle(p)
-	assert_gt(p["node"].color.g, p["node"].color.r, "Acid rain should be green")
-	assert_gt(p["node"].color.g, p["node"].color.b, "Acid rain should be green")
-
-func test_rain_particle_color_light_rain():
-	var ws = _create_weather()
-	ws.current_weather = ws.WeatherType.LIGHT_RAIN
-	var p = ws.rain_particles[0]
-	ws._reset_rain_particle(p)
-	assert_gt(p["node"].color.b, p["node"].color.r, "Light rain should be bluish")
+	ws._set_weather(ws.WeatherType.STORM)
+	ws._update_rain_particles(0.0)
+	assert_true(ws._rain_particles.emitting, "Rain should emit during storm")
+	ws._set_weather(ws.WeatherType.CLEAR)
+	ws._update_rain_particles(0.0)
+	assert_false(ws._rain_particles.emitting, "Rain should stop on clear")
 
 func test_lightning_bolt_has_points():
 	var ws = _create_weather()
@@ -257,27 +248,20 @@ func test_cloud_recycles_when_offscreen():
 	ws._update_clouds(0.1)
 	assert_lt(cloud.position.x, 0.0, "Cloud should wrap to left side")
 
-func test_rain_updates_particle_positions():
+func test_rain_particles_color_acid_rain():
 	var ws = _create_weather()
 	ws._set_weather(ws.WeatherType.ACID_RAIN)
-	var p = ws.rain_particles[0]
-	p["active"] = true
-	p["pos"] = Vector2(100, 700)
-	p["speed"] = 500
-	p["wind"] = 0
-	ws._update_rain(0.1)
-	assert_gt(p["pos"].y, 700.0, "Particle should move down")
+	ws._update_rain_particles(0.0)
+	var c = ws._rain_particle_material.color
+	assert_gt(c.g, c.r, "Acid rain should be greenish")
+	assert_gt(c.g, c.b, "Acid rain should be greenish")
 
-func test_rain_particle_wraps():
+func test_rain_particles_emit_count_scales():
 	var ws = _create_weather()
-	ws._set_weather(ws.WeatherType.ACID_RAIN)
-	var p = ws.rain_particles[0]
-	p["active"] = true
-	p["pos"] = Vector2(100, 900)
-	p["speed"] = 500
-	p["wind"] = 0
-	ws._update_rain(0.1)
-	assert_lt(p["pos"].y, 0.0, "Particle should reset when below screen")
+	ws._set_weather(ws.WeatherType.LIGHT_RAIN)
+	ws.weather_intensity = 1.0
+	ws._update_rain_particles(0.0)
+	assert_lt(ws._rain_particles.amount, 200, "Light rain should have fewer particles than max")
 
 func test_white_texture_created():
 	var ws = _create_weather()

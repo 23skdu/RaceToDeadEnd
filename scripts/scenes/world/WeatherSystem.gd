@@ -5,12 +5,12 @@ signal lightning_strike(position: Vector2)
 
 enum WeatherType { CLEAR, LIGHT_RAIN, ACID_RAIN, STORM }
 
-const RAIN_DROP_COUNT: int = 200
-const LIGHTNING_DAMAGE: int = 1
-const ACID_RAIN_DAMAGE_INTERVAL: float = 2.0
-const ACID_RAIN_DAMAGE: int = 1
-const CLOUD_COUNT: int = 5
-const LIGHTNING_CHANCE_PER_SECOND: float = 0.15
+const RAIN_DROP_COUNT: int = Constants.RAIN_DROP_COUNT
+const LIGHTNING_DAMAGE: int = Constants.LIGHTNING_DAMAGE
+const ACID_RAIN_DAMAGE_INTERVAL: float = Constants.ACID_RAIN_DAMAGE_INTERVAL
+const ACID_RAIN_DAMAGE: int = Constants.ACID_RAIN_DAMAGE
+const CLOUD_COUNT: int = Constants.CLOUD_COUNT
+const LIGHTNING_CHANCE_PER_SECOND: float = Constants.LIGHTNING_CHANCE_PER_SECOND
 
 var current_weather: WeatherType = WeatherType.CLEAR
 var target_weather: WeatherType = WeatherType.CLEAR
@@ -21,23 +21,60 @@ var lightning_timer: float = 0.0
 var player_ref: Node = null
 var highway_ref: Node = null
 
-var rain_particles: Array[Dictionary] = []
 var active_clouds: Array[Node2D] = []
 var white_texture: Texture2D
 
-@onready var rain_container: Node2D = $RainContainer
+var _rain_particles: GPUParticles2D
+var _rain_particle_material: ParticleProcessMaterial
+
 @onready var cloud_container: Node2D = $CloudContainer
 @onready var lightning_container: Node2D = $LightningContainer
 @onready var acid_overlay: ColorRect = $WeatherCanvas/AcidOverlay
 
 func _ready() -> void:
 	white_texture = _create_white_texture()
-	_init_rain_particles()
+	_init_gpu_particles()
 	_set_weather(WeatherType.CLEAR)
+
+func _init_gpu_particles() -> void:
+	_rain_particles = GPUParticles2D.new()
+	_rain_particles.name = "RainParticles"
+	_rain_particles.z_index = 10
+	_rain_particles.amount = RAIN_DROP_COUNT
+	_rain_particles.lifetime = 1.5
+	_rain_particles.one_shot = false
+	_rain_particles.emitting = false
+	_rain_particles.local_coords = false
+
+	var rain_image = Image.create(2, 12, false, Image.FORMAT_RGBA8)
+	rain_image.fill(Color(0.5, 0.6, 0.8, 0.5))
+	rain_image.set_pixel(0, 0, Color(0.5, 0.6, 0.8, 0.0))
+	rain_image.set_pixel(1, 0, Color(0.5, 0.6, 0.8, 0.0))
+	rain_image.set_pixel(0, 11, Color(0.5, 0.6, 0.8, 0.0))
+	rain_image.set_pixel(1, 11, Color(0.5, 0.6, 0.8, 0.0))
+	var rain_tex = ImageTexture.create_from_image(rain_image)
+	_rain_particles.texture = rain_tex
+
+	var mat = ParticleProcessMaterial.new()
+	mat.direction = Vector3(0, 1, 0)
+	mat.spread = 15.0
+	mat.gravity = Vector3.ZERO
+	mat.initial_velocity_min = 400.0
+	mat.initial_velocity_max = 600.0
+	mat.scale_min = 1.0
+	mat.scale_max = 1.0
+	mat.color = Color(0.5, 0.6, 0.8, 0.5)
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(800.0, 0.0, 0.0)
+
+	_rain_particle_material = mat
+	_rain_particles.process_material = mat
+	_rain_particles.position = Vector2(0, -300)
+	add_child(_rain_particles)
 
 func _process(delta: float) -> void:
 	_update_weather_transition(delta)
-	_update_rain(delta)
+	_update_rain_particles(delta)
 	_update_clouds(delta)
 	_update_acid_rain_damage(delta)
 	_try_spawn_lightning(delta)
@@ -54,32 +91,21 @@ func _update_weather_transition(delta: float) -> void:
 	else:
 		weather_intensity = 1.0 if current_weather != WeatherType.CLEAR else 0.0
 
-func _update_rain(delta: float) -> void:
-	var active_count = 0
+func _update_rain_particles(_delta: float) -> void:
 	match current_weather:
+		WeatherType.CLEAR:
+			_rain_particles.emitting = false
+			return
 		WeatherType.LIGHT_RAIN:
-			active_count = int(RAIN_DROP_COUNT * 0.5 * weather_intensity)
-		WeatherType.ACID_RAIN, WeatherType.STORM:
-			active_count = int(RAIN_DROP_COUNT * weather_intensity)
-	
-	for i in rain_particles.size():
-		var p = rain_particles[i]
-		if i < active_count:
-			if not p["active"]:
-				p["active"] = true
-				_reset_rain_particle(p)
-			
-			p["pos"].y += p["speed"] * delta
-			p["pos"].x += p["wind"] * delta
-			
-			if p["pos"].y > 800:
-				_reset_rain_particle(p)
-			
-			p["node"].position = p["pos"]
-			p["node"].visible = true
-		else:
-			p["node"].visible = false
-			p["active"] = false
+			_rain_particles.amount = int(RAIN_DROP_COUNT * 0.5 * weather_intensity)
+			_rain_particle_material.color = Color(0.5, 0.6, 0.8, 0.3 * weather_intensity)
+		WeatherType.ACID_RAIN:
+			_rain_particles.amount = int(RAIN_DROP_COUNT * weather_intensity)
+			_rain_particle_material.color = Color(0.2, 0.9, 0.2, 0.5 * weather_intensity)
+		WeatherType.STORM:
+			_rain_particles.amount = int(RAIN_DROP_COUNT * weather_intensity)
+			_rain_particle_material.color = Color(0.3, 0.8, 0.3, 0.6 * weather_intensity)
+	_rain_particles.emitting = _rain_particles.amount > 0
 
 func _update_clouds(delta: float) -> void:
 	if current_weather == WeatherType.ACID_RAIN or current_weather == WeatherType.STORM:
@@ -195,42 +221,6 @@ func _spawn_cloud() -> void:
 	
 	cloud_container.add_child(cloud)
 	active_clouds.append(cloud)
-
-func _init_rain_particles() -> void:
-	for i in RAIN_DROP_COUNT:
-		var p = {
-			"pos": Vector2(randf_range(-100, 700), randf_range(-200, 800)),
-			"speed": randf_range(400, 600),
-			"wind": randf_range(-20, 20),
-			"active": false,
-			"node": null
-		}
-		
-		var drop = Polygon2D.new()
-		drop.polygon = PackedVector2Array([
-			Vector2(-0.5, -4),
-			Vector2(0.5, -4),
-			Vector2(0.5, 4),
-			Vector2(-0.5, 4)
-		])
-		drop.visible = false
-		rain_container.add_child(drop)
-		p["node"] = drop
-		
-		rain_particles.append(p)
-
-func _reset_rain_particle(p: Dictionary) -> void:
-	p["pos"] = Vector2(randf_range(-100, 700), randf_range(-200, -50))
-	p["speed"] = randf_range(400, 600)
-	p["wind"] = randf_range(-20, 20)
-	
-	match current_weather:
-		WeatherType.LIGHT_RAIN:
-			p["node"].color = Color(0.5, 0.6, 0.8, 0.4)
-		WeatherType.ACID_RAIN:
-			p["node"].color = Color(0.2, 0.9, 0.2, 0.6)
-		WeatherType.STORM:
-			p["node"].color = Color(0.3, 0.8, 0.3, 0.7)
 
 func _set_weather(type: WeatherType) -> void:
 	current_weather = type

@@ -51,12 +51,18 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _fire_bullet() -> void:
-	var bullet = BULLET_SCENE.instantiate()
+	var bullet = ObjectPool.acquire("bullet")
+	if not bullet:
+		bullet = BULLET_SCENE.instantiate()
 	if world_node:
 		world_node.add_child(bullet)
 	elif get_parent():
 		get_parent().add_child(bullet)
 	else:
+		if not bullet.has_meta("_pool_name"):
+			bullet.queue_free()
+		else:
+			ObjectPool.release(bullet)
 		return
 	var mount_pos = global_position
 	if has_node("WeaponMount"):

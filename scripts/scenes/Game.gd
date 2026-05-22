@@ -3,6 +3,12 @@ extends Node
 const BULLET_SCENE = preload("res://scenes/weapons/Bullet.tscn")
 const MINE_SCENE = preload("res://scenes/weapons/Mine.tscn")
 const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
+const ROTOR_SCENE = preload("res://scenes/enemies/Rotor.tscn")
+const SCAV_SCENE = preload("res://scenes/enemies/Scav.tscn")
+const DRONE_SCENE = preload("res://scenes/enemies/Drone.tscn")
+const DRONE_BOMB_SCENE = preload("res://scenes/weapons/DroneBomb.tscn")
+
+const POPUP_POOL_SIZE: int = 10
 
 @onready var world: Node2D = $World
 @onready var highway: Node2D = $World/Highway
@@ -16,10 +22,21 @@ const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
 func _ready() -> void:
 	world.scale = Vector2(1.0, 0.5)
 	world.set_y_sort_enabled(true)
+
+	var env_res = load("res://assets/environments/game_env.tres")
+	if env_res:
+		var we = WorldEnvironment.new()
+		we.environment = env_res
+		add_child(we)
+		move_child(we, get_child_count() - 1)
 	
 	ObjectPool.create_pool("bullet", BULLET_SCENE, 50)
 	ObjectPool.create_pool("mine", MINE_SCENE, 10)
 	ObjectPool.create_pool("emp", EMP_SCENE, 5)
+	ObjectPool.create_pool("rotor", ROTOR_SCENE, 8)
+	ObjectPool.create_pool("scav", SCAV_SCENE, 6)
+	ObjectPool.create_pool("drone", DRONE_SCENE, 4)
+	ObjectPool.create_pool("drone_bomb", DRONE_BOMB_SCENE, 6)
 	ObjectPool.create_pickup_pool(20)
 	
 	GameManager.start_game()
@@ -54,7 +71,7 @@ func _ready() -> void:
 	if game_over and game_over.has_signal("garage_requested"):
 		game_over.garage_requested.connect(_go_to_garage)
 	
-	if hud:
+	if hud and not GameManager.game_over.is_connected(hud._on_game_over):
 		GameManager.game_over.connect(hud._on_game_over)
 	
 	ScoreManager.score_popped.connect(_on_score_popped)
@@ -90,10 +107,51 @@ func _go_to_garage() -> void:
 		_restart_game()
 	)
 
+var _pause_menu: CanvasLayer = null
+var _options_menu: CanvasLayer = null
+
 func _process(_delta: float) -> void:
 	if GameManager.state == GameManager.GameState.GAME_OVER:
 		if Input.is_action_just_pressed("ui_accept"):
 			_restart_game()
+	elif GameManager.state == GameManager.GameState.PLAYING:
+		if Input.is_action_just_pressed("pause"):
+			_show_pause_menu()
+
+func _show_pause_menu() -> void:
+	if _pause_menu:
+		return
+	GameManager.state = GameManager.GameState.PAUSED
+	get_tree().paused = true
+	_pause_menu = preload("res://scripts/scenes/ui/PauseMenu.gd").new()
+	add_child(_pause_menu)
+	_pause_menu.resume_requested.connect(_hide_pause_menu)
+	_pause_menu.options_requested.connect(_show_pause_options)
+	_pause_menu.quit_requested.connect(_on_pause_quit)
+
+func _hide_pause_menu() -> void:
+	if _pause_menu:
+		_pause_menu.queue_free()
+		_pause_menu = null
+	GameManager.state = GameManager.GameState.PLAYING
+	get_tree().paused = false
+
+func _show_pause_options() -> void:
+	_hide_pause_menu()
+	get_tree().paused = false
+	_options_menu = preload("res://scripts/scenes/ui/Options.gd").new()
+	add_child(_options_menu)
+	_options_menu.back_to_menu_requested.connect(func():
+		if _options_menu:
+			_options_menu.queue_free()
+			_options_menu = null
+		_show_pause_menu()
+	)
+
+func _on_pause_quit() -> void:
+	_hide_pause_menu()
+	get_tree().paused = false
+	_go_to_menu()
 
 func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 	match type:
@@ -125,14 +183,33 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_emp(pos)
 
-func _on_score_popped(position: Vector2, points: int, label: String) -> void:
-	var popup = Label.new()
+var _popup_pool: Array[Label] = []
+
+func _get_popup_label() -> Label:
+	while _popup_pool.size() > 0:
+		var pop = _popup_pool.pop_back()
+		if is_instance_valid(pop):
+			return pop
+	return Label.new()
+
+func _return_popup_label(pop: Label) -> void:
+	pop.text = ""
+	pop.position = Vector2.ZERO
+	pop.modulate = Color.WHITE
+	pop.visible = false
+	if pop.get_parent():
+		pop.get_parent().remove_child(pop)
+	_popup_pool.append(pop)
+
+func _on_score_popped(pos: Vector2, points: int, label: String) -> void:
+	var popup = _get_popup_label()
 	popup.text = label
 	popup.add_theme_color_override("font_color", Color(1.0, 1.0, 0.5))
 	popup.add_theme_font_size_override("font_size", 18)
-	popup.position = position
+	popup.position = pos
+	popup.visible = true
 	score_popup_container.add_child(popup)
 	var tween = create_tween()
-	tween.tween_property(popup, "position:y", position.y - 60.0, 0.8)
+	tween.tween_property(popup, "position:y", pos.y - 60.0, 0.8)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(popup.queue_free)
+	tween.tween_callback(_return_popup_label.bind(popup))

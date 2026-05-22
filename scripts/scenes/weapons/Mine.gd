@@ -1,9 +1,10 @@
 extends Area2D
 
-var damage: int = 2
-var explosion_radius: float = 64.0
+var damage: int = Constants.MINE_DAMAGE
+var explosion_radius: float = Constants.MINE_EXPLOSION_RADIUS
 var armed: bool = false
-var arm_time: float = 0.5
+var arm_time: float = Constants.MINE_ARM_TIME
+var _blast_col: CollisionShape2D
 
 func _ready() -> void:
 	collision_layer = 0
@@ -11,11 +12,16 @@ func _ready() -> void:
 	add_to_group("mine")
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	_blast_col = CollisionShape2D.new()
+	_blast_col.shape = CircleShape2D.new()
+	add_child(_blast_col)
 	await get_tree().create_timer(arm_time).timeout
 	armed = true
 
 func init(pos: Vector2) -> void:
 	global_position = pos
+	_blast_col.shape.radius = explosion_radius
+	_blast_col.disabled = true
 
 func _on_body_entered(body: Node) -> void:
 	if not armed:
@@ -32,13 +38,25 @@ func _on_area_entered(area: Area2D) -> void:
 	_explode()
 
 func _explode() -> void:
-	var enemies = get_tree().get_nodes_in_group("enemy")
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-		var dist = global_position.distance_to(enemy.global_position)
-		if dist <= explosion_radius and enemy.has_method("take_damage"):
-			enemy.take_damage(damage)
+	CameraShake.shake(0.6, 0.3, 8.0)
+	_blast_col.disabled = false
+	var hit = false
+	for body in get_overlapping_bodies():
+		if body.has_method("take_damage"):
+			body.take_damage(damage)
+			hit = true
+	for area in get_overlapping_areas():
+		if area.has_method("take_damage"):
+			area.take_damage(damage)
+			hit = true
+	if not hit:
+		var enemies = get_tree().get_nodes_in_group("enemy")
+		for enemy in enemies:
+			if not is_instance_valid(enemy):
+				continue
+			var dist = global_position.distance_to(enemy.global_position)
+			if dist <= explosion_radius and enemy.has_method("take_damage"):
+				enemy.take_damage(damage)
 	
 	var flash = Polygon2D.new()
 	var pts = []
