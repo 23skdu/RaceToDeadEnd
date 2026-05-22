@@ -70,7 +70,9 @@ func test_emp_updates_collision_shape_radius():
 	var e = _create_emp()
 	e.current_radius = 200.0
 	e._update_collision_radius()
-	if e._col_shape and e._col_shape.shape is CircleShape2D:
+	assert_not_null(e._col_shape, "Collision shape should exist after ready")
+	assert_not_null(e._col_shape.shape, "Collision shape should have a shape resource")
+	if e._col_shape.shape is CircleShape2D:
 		assert_eq(e._col_shape.shape.radius, 200.0, "Collision shape radius should match current_radius")
 
 func test_emp_starts_with_zero_radius():

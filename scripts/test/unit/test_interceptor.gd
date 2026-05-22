@@ -33,7 +33,8 @@ func test_constants():
 	assert_eq(script.BOOST_DURATION, 1.5, "Boost duration")
 	assert_eq(script.BOOST_RECHARGE_TIME, 8.0, "Boost recharge time")
 	assert_eq(script.DOUBLE_TAP_DELAY, 0.25, "Double tap delay")
-	assert_eq(script.SPEED_MODIFIER, 0.5, "Speed modifier")
+	assert_eq(script.ACCEL_SPEED, 300.0, "Acceleration speed")
+	assert_eq(script.REVERSE_SPEED, -350.0, "Reverse speed")
 
 func test_weapon_types_constant():
 	var script = load("res://scripts/scenes/player/Interceptor.gd")
@@ -244,6 +245,47 @@ func test_ready_sets_collision_layers():
 	assert_eq(player.collision_layer, 1, "Player should be on layer 1")
 	assert_eq(player.collision_mask, 1, "Player should mask layer 1")
 	assert_true(player.is_in_group("player"), "Player should be in player group")
+
+func test_ready_sets_z_index():
+	var player = _create_player()
+	assert_eq(player.z_index, 1, "Player z_index should be 1")
+
+func test_ready_sets_camera_offset():
+	var player = _create_player()
+	assert_eq(player.get_node("Camera2D").position.y, -100, "Camera should be offset upward")
+
+
+
+func test_accelerate_sets_forward_speed():
+	var player = _create_player()
+	player.speed = 200.0
+	Input.action_press("accelerate")
+	player._physics_process(0.1)
+	Input.action_release("accelerate")
+	assert_eq(player.velocity.y, -300.0, "Accelerate should give 300 px/s forward")
+
+func test_reverse_sets_backward_speed():
+	var player = _create_player()
+	player.speed = 200.0
+	Input.action_press("brake")
+	player._physics_process(0.1)
+	Input.action_release("brake")
+	assert_eq(player.velocity.y, 350.0, "Reverse should give 350 px/s backward")
+
+func test_coast_uses_base_speed():
+	var player = _create_player()
+	player.speed = 200.0
+	player._physics_process(0.1)
+	assert_eq(player.velocity.y, -200.0, "Coast should use base speed of 200")
+
+func test_boost_overrides_speed_input():
+	var player = _create_player()
+	player.speed = 200.0
+	Input.action_press("brake")
+	player.boost_active = true
+	player._physics_process(0.1)
+	Input.action_release("brake")
+	assert_eq(player.velocity.y, -400.0, "Boost should override reverse with 400 px/s")
 
 func test_ready_applies_upgrades():
 	var save_path = "user://save.dat"

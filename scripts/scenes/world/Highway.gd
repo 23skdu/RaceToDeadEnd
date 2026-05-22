@@ -6,16 +6,17 @@ signal ice_exited(body: Node)
 signal bridge_fall(body: Node)
 
 const CHUNK_HEIGHT: int = 10
-const CHUNK_WIDTH: int = 10
+const CHUNK_WIDTH: int = 14
 const TILE_SIZE: Vector2i = Vector2i(48, 24)
 const CHUNK_PIXEL_HEIGHT: int = 240
-const PREWARM_CHUNKS: int = 5
-const DESPAWN_CHUNKS_BEHIND: int = 1
+const PREWARM_CHUNKS: int = 8
+const DESPAWN_CHUNKS_BEHIND: int = 3
 
 const LANE_COUNT: int = 6
-const SHOULDER_COLUMNS: int = 2
-const LANE_START_COL: int = 2
-const LANE_END_COL: int = 7
+const SHOULDER_COLUMNS: int = 4
+const LANE_START_COL: int = 4
+const LANE_END_COL: int = 9
+const HALF_CHUNK: float = (CHUNK_WIDTH - 1) / 2.0
 
 enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
 
@@ -37,7 +38,7 @@ func _ready() -> void:
 	img.fill(Color.WHITE)
 	white_texture = ImageTexture.create_from_image(img)
 	
-	for i in PREWARM_CHUNKS:
+	for i in range(-3, PREWARM_CHUNKS - 3):
 		_spawn_chunk(i)
 
 func _process(_delta: float) -> void:
@@ -71,8 +72,15 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	var new_type = _pick_chunk_type()
 	chunk.set_meta("chunk_type", new_type)
 	chunk.set_meta("segment", current_segment)
+	
+	# Build new tiles first, then swap to avoid one-frame visual gap
+	var new_tiles = Node2D.new()
+	new_tiles.name = "Tiles_New"
+	_generate_chunk_tiles_into(new_tiles, new_type)
 	_clear_chunk_tiles(chunk)
-	_generate_chunk_tiles(chunk, new_type)
+	new_tiles.name = "Tiles"
+	chunk.add_child(new_tiles)
+	
 	current_segment += 1
 	segment_completed.emit(current_segment)
 
@@ -100,7 +108,16 @@ func _pick_chunk_type() -> ChunkType:
 func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 	var chunk_local = Node2D.new()
 	chunk_local.name = "Tiles"
-	
+	chunk_local.set_y_sort_enabled(true)
+	_build_tiles_into(chunk_local, chunk_type)
+	chunk.add_child(chunk_local)
+
+func _generate_chunk_tiles_into(parent: Node2D, chunk_type: ChunkType) -> void:
+	parent.name = "Tiles"
+	parent.set_y_sort_enabled(true)
+	_build_tiles_into(parent, chunk_type)
+
+func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var half_w = TILE_SIZE.x / 2.0
 	var half_h = TILE_SIZE.y / 2.0
 	
@@ -114,7 +131,7 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 		for col in CHUNK_WIDTH:
 			var tile_variant = _get_tile_variant(chunk_type, row, col)
 			
-			var x_pos = (col - 4.5) * TILE_SIZE.x
+			var x_pos = (col - HALF_CHUNK) * TILE_SIZE.x
 			if row % 2 == 1:
 				x_pos += half_w
 			var y_pos = row * TILE_SIZE.y
@@ -130,10 +147,9 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 					var tile_color = Color(0.76, 0.64, 0.42)
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 					
-					if col == 0 or col == CHUNK_WIDTH - 1:
-						if randf() < 0.08:
-							var decor_type = randi() % 4
-							desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type})
+					if randf() < 0.03:
+						var decor_type = randi() % 4
+						desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type})
 			else:
 				if chunk_type == ChunkType.ICE:
 					var tile_color = Color(0.2, 0.6, 0.9, 0.6)
@@ -233,8 +249,8 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 		
 		chunk_local.add_child(obstacle)
 	
-	var left_rail_x = (LANE_START_COL - 4.5) * TILE_SIZE.x - half_w
-	var right_rail_x = (LANE_END_COL - 4.5) * TILE_SIZE.x + half_w
+	var left_rail_x = (LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w
+	var right_rail_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w
 	
 	var left_rail = Line2D.new()
 	left_rail.width = 3.0
@@ -301,8 +317,6 @@ func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 		right_bridge.add_child(right_col)
 		right_bridge.body_entered.connect(_on_bridge_fall)
 		chunk_local.add_child(right_bridge)
-	
-	chunk.add_child(chunk_local)
 
 func _create_diamond_mesh() -> ArrayMesh:
 	var mesh = ArrayMesh.new()

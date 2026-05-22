@@ -14,7 +14,7 @@ script = ExtResource("1_jv2gt")
 shape = SubResource("2_mwkdf")
 
 [node name="Visual" type="Polygon2D" parent="."]
-polygon = PackedVector2Array([Vector2(0, -10), Vector2(4, 4), Vector2(0, 8), Vector2(-4, 4)])
+polygon = PackedVector2Array(0, -10, 4, 4, 0, 8, -4, 4)
 color = Color(1, 1, 0.5, 1)
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]

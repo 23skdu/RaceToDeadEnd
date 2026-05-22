@@ -134,49 +134,48 @@ func _create_enemy():
 	add_child_autofree(e)
 	return e
 
+func test_ready_sets_z_index():
+	var e = _create_enemy()
+	assert_eq(e.z_index, 1, "Enemy z_index should be 1")
+
+func _stop_all_sfx():
+	for p in AudioManager.sfx_players:
+		p.stop()
+
 func test_take_damage_plays_hit_sound():
+	_stop_all_sfx()
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
-	var before_count = 0
-	for p in AudioManager.sfx_players:
-		if p.playing:
-			before_count += 1
 	e.take_damage(1)
-	var after_count = 0
+	var playing = 0
 	for p in AudioManager.sfx_players:
 		if p.playing:
-			after_count += 1
-	assert_gt(after_count, before_count, "Hit sound should play on damage")
+			playing += 1
+	assert_gt(playing, 0, "Hit sound should play on damage")
 
 func test_die_plays_death_sound():
+	_stop_all_sfx()
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	var before_count = 0
-	for p in AudioManager.sfx_players:
-		if p.playing:
-			before_count += 1
 	e.take_damage(1)
-	var after_count = 0
+	var playing = 0
 	for p in AudioManager.sfx_players:
 		if p.playing:
-			after_count += 1
-	assert_gt(after_count, before_count, "Death sound should play on kill")
+			playing += 1
+	assert_gt(playing, 0, "Death sound should play on kill")
 
 func test_drone_hit_plays_sound():
+	_stop_all_sfx()
 	var scene = load("res://scenes/enemies/Drone.tscn")
 	var e = scene.instantiate()
 	add_child_autofree(e)
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.DRONE, 0, player, 200.0)
-	var before_count = 0
-	for p in AudioManager.sfx_players:
-		if p.playing:
-			before_count += 1
 	e.take_damage(1)
-	var after_count = 0
+	var playing = 0
 	for p in AudioManager.sfx_players:
 		if p.playing:
-			after_count += 1
-	assert_gt(after_count, before_count, "Drone hit sound should play")
+			playing += 1
+	assert_gt(playing, 0, "Drone hit sound should play")

@@ -10,7 +10,7 @@ func test_constants_lane_positions():
 	assert_eq(Constants.LANE_POSITIONS[5], 120.0, "Lane 5 position")
 
 func test_constants_lane_width():
-	assert_eq(Constants.LANE_WIDTH, 64.0, "Lane width should be 64")
+	assert_eq(Constants.LANE_WIDTH, 48.0, "Lane width should be 48")
 
 func test_constants_lane_count():
 	assert_eq(Constants.LANE_COUNT, 6, "Lane count should be 6")

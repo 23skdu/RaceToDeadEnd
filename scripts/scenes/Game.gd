@@ -15,6 +15,7 @@ const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
 
 func _ready() -> void:
 	world.scale = Vector2(1.0, 0.5)
+	world.set_y_sort_enabled(true)
 	
 	ObjectPool.create_pool("bullet", BULLET_SCENE, 50)
 	ObjectPool.create_pool("mine", MINE_SCENE, 10)

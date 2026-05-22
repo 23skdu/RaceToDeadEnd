@@ -13,7 +13,8 @@ const BOOST_DURATION: float = 1.5
 const BOOST_RECHARGE_TIME: float = 8.0
 const PRIMARY_FIRE_COOLDOWN: float = 0.1
 const DOUBLE_TAP_DELAY: float = 0.25
-const SPEED_MODIFIER: float = 0.5
+const ACCEL_SPEED: float = 300.0
+const REVERSE_SPEED: float = -350.0
 const WEAPON_TYPES: Array[String] = ["missile", "mine", "emp"]
 
 var current_lane: int = 1
@@ -47,8 +48,10 @@ const BASE_VIEWPORT_WIDTH: float = 1280.0
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1
+	z_index = 1
 	add_to_group("player")
 	_scale_sprite()
+	$Camera2D.position.y = -100
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
 	var missile_level = GameManager.upgrade_levels.get("missile_ammo", 1)
 	var mine_level = GameManager.upgrade_levels.get("mine_ammo", 1)
@@ -72,13 +75,21 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_handle_input(delta)
-	var current_speed = speed * (BOOST_SPEED_MULTIPLIER if boost_active else 1.0) * (1.0 + speed_input * SPEED_MODIFIER)
-	velocity.y = -current_speed
+	var effective_speed: float
+	if boost_active:
+		effective_speed = speed * BOOST_SPEED_MULTIPLIER
+	elif speed_input > 0:
+		effective_speed = ACCEL_SPEED
+	elif speed_input < 0:
+		effective_speed = REVERSE_SPEED
+	else:
+		effective_speed = speed
+	velocity.y = -effective_speed
 	var x_diff = target_x - position.x
 	
 	if abs(x_diff) > 2.0:
 		var lateral_coeff = 2.5 if slippery else 10.0
-		velocity.x = move_toward(velocity.x, x_diff * 8.0, current_speed * delta * lateral_coeff)
+		velocity.x = move_toward(velocity.x, x_diff * 8.0, abs(effective_speed) * delta * lateral_coeff)
 	else:
 		velocity.x = 0.0
 		position.x = target_x
@@ -100,8 +111,8 @@ func _handle_input(_delta: float) -> void:
 	speed_input = 0.0
 	if Input.is_action_pressed("accelerate"):
 		speed_input = 1.0
-	elif Input.is_action_pressed("brake"):
-		speed_input = -0.5
+	if Input.is_action_pressed("brake"):
+		speed_input = -1.0
 		
 	if Input.is_action_just_pressed("move_left"):
 		var now = Time.get_ticks_msec() / 1000.0

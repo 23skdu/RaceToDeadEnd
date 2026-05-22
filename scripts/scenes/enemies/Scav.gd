@@ -62,3 +62,4 @@ func _fire_bullet() -> void:
 	if has_node("WeaponMount"):
 		mount_pos = $WeaponMount.global_position
 	bullet.init(mount_pos, Vector2.DOWN, false)
+	AudioManager.play_synth_laser(mount_pos)

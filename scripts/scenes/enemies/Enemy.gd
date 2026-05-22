@@ -25,6 +25,7 @@ const BASE_VIEWPORT_WIDTH: float = 1280.0
 
 func _ready() -> void:
 	collision_layer = 2
+	z_index = 1
 	add_to_group("enemy")
 	_scale_sprite()
 

@@ -171,8 +171,9 @@ func test_advance_segment_advances_difficulty_every_5():
 func test_advance_difficulty_caps_at_20():
 	var gm = get_gm()
 	gm.start_game()
-	for i in range(50):
-		gm._advance_difficulty()
+	for i in range(95):
+		gm._difficulty_progress += 200.0
+		gm._check_difficulty_advance()
 	assert_eq(gm.difficulty_tier, 20, "Tier should cap at 20")
 
 func test_spend_credits_success():
@@ -321,7 +322,6 @@ func test_game_state_enum_values():
 func test_constants():
 	assert_eq(GameManagerScript.BASE_SCORE_RATE, 10, "Base score rate")
 	assert_eq(GameManagerScript.SEGMENT_DISTANCE, 10.0, "Segment distance")
-	assert_eq(GameManagerScript.DIFFICULTY_TIER_INTERVAL, 5, "Difficulty tier interval")
 	assert_eq(GameManagerScript.MULTIPLIER_DURATION, 10.0, "Multiplier duration")
 
 func test_process_does_not_tick_score_when_paused():

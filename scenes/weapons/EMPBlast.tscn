@@ -1,19 +1,19 @@
-[gd_scene load_steps=3 format=3 uid="uid://cdvpi36s1m3j2"]
+[gd_scene load_steps=3 format=3 uid="uid://b5y3t68gnk38f"]
 
-[ext_resource type="Script" path="res://scripts/scenes/weapons/EMPBlast.gd" id="1_1ynyj"]
+[ext_resource type="Script" path="res://scripts/scenes/weapons/EMPBlast.gd" id="1_jv2gt"]
 
-[sub_resource type="CircleShape2D" id="2_p112j"]
-radius = 200.0
+[sub_resource type="RectangleShape2D" id="2_emp"]
+size = Vector2(32, 16)
 
 [node name="EMPBlast" type="Area2D"]
 collision_layer = 4
 collision_mask = 2
-script = ExtResource("1_1ynyj")
+script = ExtResource("1_jv2gt")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("2_p112j")
-disabled = false
+disabled = true
+shape = SubResource("2_emp")
 
 [node name="Visual" type="Polygon2D" parent="."]
-polygon = PackedVector2Array([Vector2(-12, -8), Vector2(12, -8), Vector2(16, 0), Vector2(12, 8), Vector2(-12, 8), Vector2(-16, 0)])
+polygon = PackedVector2Array(-12, -8, 12, -8, 16, 0, 12, 8, -12, 8, -16, 0)
 color = Color(0.3, 0.8, 1, 0.6)

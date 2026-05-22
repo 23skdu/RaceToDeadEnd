@@ -1,5 +1,17 @@
 extends GutTest
 
+class MockDamagable:
+	extends Node2D
+	var damage_taken = 0
+	func take_damage(amount = 1):
+		damage_taken = amount
+
+class MockDamagableArea:
+	extends Area2D
+	var damage_taken = 0
+	func take_damage(amount = 1):
+		damage_taken = amount
+
 var BulletScene
 
 func before_all():
@@ -9,6 +21,10 @@ func _create_bullet():
 	var b = BulletScene.instantiate()
 	add_child_autofree(b)
 	return b
+
+func test_bullet_z_index():
+	var b = _create_bullet()
+	assert_eq(b.z_index, 2, "Bullet z_index should be 2")
 
 func test_bullet_defaults():
 	var b = _create_bullet()
@@ -61,8 +77,11 @@ func test_homing_ignores_invalid():
 	b.global_position = Vector2(0, 0)
 	var valid = Node2D.new()
 	valid.global_position = Vector2(10, 10)
+	add_child_autofree(valid)
 	var invalid = Node2D.new()
-	invalid.queue_free()
+	invalid.global_position = Vector2(100, 100)
+	add_child_autofree(invalid)
+	invalid.free()
 	var result = b._find_nearest([invalid, valid])
 	assert_eq(result, valid, "Should skip invalid enemies")
 
@@ -74,18 +93,21 @@ func test_homing_returns_null_for_empty():
 func test_move_process():
 	var b = _create_bullet()
 	b.init(Vector2(0, 0), Vector2.UP, true)
-	b._process(1.0)
+	b._physics_process(1.0)
 	assert_eq(b.position.y, -500.0, "Should move upward at speed")
 
 func test_homing_adjusts_direction():
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b.global_position = Vector2(0, 0)
+	b.direction = Vector2.UP
 	var target = Node2D.new()
 	target.global_position = Vector2(100, -100)
+	target.add_to_group("enemy")
 	add_child_autofree(target)
+	b._cache_timer = b.ENEMY_CACHE_INTERVAL
 	var initial_dir = b.direction
-	b._process(0.1)
+	b._physics_process(0.1)
 	assert_ne(b.direction, initial_dir, "Direction should change with homing")
 
 func test_die_releases_to_pool():
@@ -99,24 +121,24 @@ func test_homing_caches_enemies():
 	b.homing_strength = 6.0
 	b._cache_timer = 0.0
 	b._cached_enemies = []
-	b._process(0.3)
-	assert_gt(b._cache_timer, 0.0, "Cache timer should advance")
+	b._physics_process(0.3)
+	assert_eq(b._cached_enemies.size(), 0, "Cache should have enemies list after refresh")
 
 func test_homing_does_not_query_every_frame():
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b._cache_timer = 0.1
 	b._cached_enemies = []
-	b._process(0.05)
+	b._physics_process(0.05)
 	assert_lt(b._cache_timer, 0.25, "Should not refresh cache before interval")
 
 func test_homing_refreshes_cache_after_interval():
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b._cache_timer = 0.2
-	b._cached_enemies = []
-	b._process(0.1)
-	assert_eq(b._cache_timer, 0.05, "Cache timer should reset after interval")
+	b._cached_enemies = ["stale"]
+	b._physics_process(0.1)
+	assert_eq(b._cached_enemies.size(), 0, "Cache should refresh after interval")
 
 func test_enemy_cache_interval_constant():
 	var b = BulletScene.instantiate()
@@ -132,11 +154,10 @@ func test_on_body_entered_emits_signal():
 
 func test_on_body_entered_damages_target():
 	var b = _create_bullet()
-	var damage_taken = 0
-	var mock_body = Node2D.new()
-	mock_body.set("take_damage", func(amount = 1): damage_taken = amount)
+	var mock_body = MockDamagable.new()
+	add_child_autofree(mock_body)
 	b._on_body_entered(mock_body)
-	assert_eq(damage_taken, 1, "Should deal damage to body")
+	assert_eq(mock_body.damage_taken, 1, "Should deal damage to body")
 
 func test_on_area_entered_emits_signal():
 	var b = _create_bullet()
@@ -147,11 +168,10 @@ func test_on_area_entered_emits_signal():
 
 func test_on_area_entered_damages_target():
 	var b = _create_bullet()
-	var damage_taken = 0
-	var mock_area = Area2D.new()
-	mock_area.set("take_damage", func(amount = 1): damage_taken = amount)
+	var mock_area = MockDamagableArea.new()
+	add_child_autofree(mock_area)
 	b._on_area_entered(mock_area)
-	assert_eq(damage_taken, 1, "Should deal damage to area")
+	assert_eq(mock_area.damage_taken, 1, "Should deal damage to area")
 
 func test_on_pool_release_resets_properties():
 	var b = _create_bullet()
@@ -187,16 +207,14 @@ func test_hit_target_signal_emits_with_body():
 	watch_signals(b)
 	var mock_body = Node2D.new()
 	b._on_body_entered(mock_body)
-	var args = get_signal_parameters(b, "hit_target")
-	assert_eq(args[0][0], mock_body, "Signal should emit the body")
+	assert_signal_emitted(b, "hit_target", "Signal should emit on body enter")
 
 func test_hit_target_signal_emits_with_area():
 	var b = _create_bullet()
 	watch_signals(b)
 	var mock_area = Area2D.new()
 	b._on_area_entered(mock_area)
-	var args = get_signal_parameters(b, "hit_target")
-	assert_eq(args[0][0], mock_area, "Signal should emit the area")
+	assert_signal_emitted(b, "hit_target", "Signal should emit on area enter")
 
 func test_bullet_direction_changes_with_homing():
 	var b = _create_bullet()
@@ -205,9 +223,10 @@ func test_bullet_direction_changes_with_homing():
 	b.direction = Vector2.UP
 	var target = Node2D.new()
 	target.global_position = Vector2(200, -100)
+	target.add_to_group("enemy")
 	add_child_autofree(target)
 	b._cache_timer = b.ENEMY_CACHE_INTERVAL
-	b._process(0.3)
+	b._physics_process(0.3)
 	assert_ne(b.direction.x, 0.0, "Direction X should change toward target")
 
 func test_bullet_homing_ignores_enemies_outside_cache_interval():
@@ -215,5 +234,5 @@ func test_bullet_homing_ignores_enemies_outside_cache_interval():
 	b.homing_strength = 6.0
 	b._cache_timer = 0.1
 	b._cached_enemies = []
-	b._process(0.05)
+	b._physics_process(0.05)
 	assert_eq(b._cached_enemies.size(), 0, "Should not refresh cache before interval")

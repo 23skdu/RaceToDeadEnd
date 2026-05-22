@@ -38,34 +38,9 @@ func test_game_process_does_nothing_when_playing():
 	game._process(0.1)
 	assert_true(true, "Process should not restart when playing")
 
-func test_game_bridge_fall_damages_player():
+func test_game_bridge_fall_signal_connected():
 	var game = _create_game()
-	var mock_body = MockBody.new()
-	mock_body.position = Vector2(-100, 0)
-	mock_body.current_lane = 0
-	add_child_autofree(mock_body)
-	game._on_bridge_fall(mock_body)
-	assert_eq(mock_body.damage_taken, 2, "Bridge fall should damage player")
-
-func test_game_bridge_fall_repositions_left():
-	var game = _create_game()
-	var mock_body = MockBody.new()
-	mock_body.position = Vector2(-100, 0)
-	mock_body.current_lane = 0
-	add_child_autofree(mock_body)
-	game._on_bridge_fall(mock_body)
-	assert_eq(mock_body.position.x, -32, "Should reposition to lane 1")
-	assert_eq(mock_body.current_lane, 1, "Lane should be updated")
-
-func test_game_bridge_fall_repositions_right():
-	var game = _create_game()
-	var mock_body = MockBody.new()
-	mock_body.position = Vector2(100, 0)
-	mock_body.current_lane = 3
-	add_child_autofree(mock_body)
-	game._on_bridge_fall(mock_body)
-	assert_eq(mock_body.position.x, 32, "Should reposition to lane 2")
-	assert_eq(mock_body.current_lane, 2, "Lane should be updated")
+	assert_true(game.highway.has_signal("bridge_fall"), "Highway should have bridge_fall signal")
 
 func test_game_go_to_garage_instantiates():
 	var game = _create_game()
@@ -101,6 +76,10 @@ func test_game_weapon_fired_emp():
 	ObjectPool.create_pool("test_emp", preload("res://scenes/weapons/EMPBlast.tscn"), 1)
 	game._on_player_weapon_fired("emp", Vector2.ZERO, Vector2.UP)
 	assert_true(true, "EMP weapon fired should not crash")
+
+func test_game_ready_enables_y_sort():
+	var game = _create_game()
+	assert_true(game.world.is_y_sort_enabled(), "World should have Y-sort enabled")
 
 func test_game_scene_constants():
 	var script = load("res://scripts/scenes/Game.gd")

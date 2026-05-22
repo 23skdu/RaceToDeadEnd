@@ -13,9 +13,11 @@ var _cache_timer: float = 0.0
 signal hit_target(target: Node)
 
 func _ready() -> void:
+	z_index = 2
 	add_to_group("bullet")
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	$VisibleOnScreenNotifier2D.screen_exited.connect(_on_visible_on_screen_notifier_screen_exited)
 	monitoring = true
 	monitorable = true
 

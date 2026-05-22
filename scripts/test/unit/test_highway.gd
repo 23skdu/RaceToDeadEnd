@@ -8,11 +8,15 @@ func before_all():
 func test_chunk_constants():
 	var h = Highway.new()
 	assert_eq(h.CHUNK_HEIGHT, 10, "Chunk height should be 10")
-	assert_eq(h.CHUNK_WIDTH, 10, "Chunk width should be 10")
+	assert_eq(h.CHUNK_WIDTH, 14, "Chunk width should be 14")
 	assert_eq(h.TILE_SIZE, Vector2i(48, 24), "Tile size should be 48x24")
 	assert_eq(h.CHUNK_PIXEL_HEIGHT, 240, "Chunk pixel height should be 240")
-	assert_eq(h.PREWARM_CHUNKS, 5, "Prewarm chunks should be 5")
-	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 1, "Despawn chunks behind should be 1")
+	assert_eq(h.PREWARM_CHUNKS, 8, "Prewarm chunks should be 8")
+	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 3, "Despawn chunks behind should be 3")
+	assert_eq(h.SHOULDER_COLUMNS, 4, "Shoulder columns should be 4")
+	assert_eq(h.LANE_START_COL, 4, "Lane start col should be 4")
+	assert_eq(h.LANE_END_COL, 9, "Lane end col should be 9")
+	assert_eq(h.HALF_CHUNK, 6.5, "Half chunk should be 6.5")
 
 func test_chunk_type_enum():
 	var h = Highway.new()
@@ -56,25 +60,25 @@ func test_first_chunks_are_standard():
 	var second_chunk = h.active_chunks[1]
 	assert_eq(second_chunk.get_meta("chunk_type"), h.ChunkType.STANDARD, "Second chunk should be STANDARD")
 
-func test_prewarm_creates_5_chunks():
+func test_prewarm_creates_8_chunks():
 	var h = Highway.new()
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
-	assert_eq(h.active_chunks.size(), 5, "Should have 5 prewarmed chunks")
+	assert_eq(h.active_chunks.size(), 8, "Should have 8 prewarmed chunks")
 
 func test_chunks_positioned_correctly():
 	var h = Highway.new()
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
-	for i in range(5):
-		var expected_y = -i * 240
-		assert_eq(h.active_chunks[i].position.y, expected_y, "Chunk " + str(i) + " Y position")
+	var expected_positions = [720, 480, 240, 0, -240, -480, -720, -960]
+	for i in range(8):
+		assert_eq(h.active_chunks[i].position.y, expected_positions[i], "Chunk " + str(i) + " Y position")
 
 func test_current_segment_increments():
 	var h = Highway.new()
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
-	assert_eq(h.current_segment, 5, "Should have 5 segments after prewarm")
+	assert_eq(h.current_segment, 8, "Should have 8 segments after prewarm")
 
 func test_clear_chunk_tiles_removes_tiles():
 	var h = Highway.new()
@@ -129,9 +133,9 @@ func test_get_tile_variant_standard():
 
 func test_get_tile_variant_debris():
 	var h = Highway.new()
-	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 2), 1, "Debris at row 0 col 2")
-	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 0), 0, "No Debris at row 0 col 0")
-	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 1, 2), 0, "No Debris at row 1 col 2")
+	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 4), 1, "Debris at row 0 col 4 (first lane col)")
+	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 0), 0, "No Debris at row 0 col 0 (shoulder)")
+	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 1, 4), 0, "No Debris at row 1 col 4")
 
 func test_get_tile_variant_ice():
 	var h = Highway.new()
@@ -139,9 +143,9 @@ func test_get_tile_variant_ice():
 
 func test_get_tile_variant_construction():
 	var h = Highway.new()
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 1), 3, "Construction at col 1")
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 8), 3, "Construction at col 8")
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 3), 0, "No Construction at col 3")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 3), 3, "Construction at col 3 (left of lane)")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 10), 3, "Construction at col 10 (right of lane)")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 5), 0, "No Construction at col 5 (mid lane)")
 
 func test_get_tile_variant_bridge():
 	var h = Highway.new()
@@ -158,7 +162,7 @@ func test_process_recycles_chunk_when_player_passes():
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
 	var initial_count = h.active_chunks.size()
-	h.player.global_position = Vector2(0, -500)
+	h.player.global_position = Vector2(0, 500)
 	h._process(0.1)
 	assert_eq(h.active_chunks.size(), initial_count, "Chunk count should stay same after recycle")
 
@@ -193,6 +197,14 @@ func test_create_diamond_mesh_returns_array_mesh():
 	var h = Highway.new()
 	var mesh = h._create_diamond_mesh()
 	assert_is(mesh, ArrayMesh, "Should return ArrayMesh")
+
+func test_chunk_tiles_have_y_sort_enabled():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	for chunk in h.active_chunks:
+		var tiles = chunk.get_node_or_null("Tiles")
+		assert_true(tiles != null and tiles.is_y_sort_enabled(), "Chunk Tiles should have Y-sort enabled")
 
 func test_generate_chunk_tiles_creates_obstacles_for_debris():
 	var h = Highway.new()

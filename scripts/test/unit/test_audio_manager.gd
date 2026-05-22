@@ -193,7 +193,7 @@ func test_set_bus_volume_sfx():
 	AudioManager.set_bus_volume(AudioManager.Bus.SFX, initial)
 
 func test_play_synth_music_generates_looping_stream():
-	AudioManager.play_synth_music()
+	AudioManager.play_menu_music()
 	assert_true(AudioManager.music_player.stream != null, "Music stream should be generated")
 	assert_eq(AudioManager.music_player.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "Music should loop")
 
