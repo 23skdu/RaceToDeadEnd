@@ -53,7 +53,12 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 	if not _pools.has("pickup"):
 		create_pickup_pool()
 	var pool: Array[Node] = _pools["pickup"]
-	for item in pool:
+	var i = 0
+	while i < pool.size():
+		var item = pool[i]
+		if not is_instance_valid(item):
+			pool.remove_at(i)
+			continue
 		if item.get_meta("_in_pool", true):
 			item.set_meta("_in_pool", false)
 			item.visible = true
@@ -73,6 +78,7 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 			if item.get_parent():
 				item.get_parent().remove_child(item)
 			return item
+		i += 1
 	var fallback = _create_pickup_node()
 	fallback.set_meta("_pool_name", "pickup")
 	fallback.set_meta("_in_pool", false)

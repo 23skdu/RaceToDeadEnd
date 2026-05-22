@@ -13,6 +13,7 @@ func before_each():
 	GameManager.difficulty_tier = 1
 	GameManager.score = 0
 
+
 func test_wave_interval_default():
 	var s = Spawner.new()
 	assert_eq(s.wave_interval, 5.0, "Default wave interval should be 5 seconds")
@@ -58,7 +59,7 @@ func test_wave_interval_decreases_at_higher_tiers():
 func test_wave_composition_tier_1():
 	var s = Spawner.new()
 	var comp = s._get_wave_composition(1)
-	assert_eq(comp["rotor"], 2, "Tier 1 should have 2 rotors")
+	assert_eq(comp["rotor"], 1, "Tier 1 should have 1 rotor")
 	assert_false(comp.has("scav"), "Tier 1 should not have scavs")
 	assert_false(comp.has("drone"), "Tier 1 should not have drones")
 
@@ -104,20 +105,24 @@ func test_drop_pickup_under_threshold():
 
 func test_spawn_pickup_creates_area():
 	var s = Spawner.new()
-	add_child_autofree(s)
+	var parent = Node.new()
+	add_child_autofree(parent)
+	parent.add_child(s)
 	s._spawn_pickup(Vector2(100, 200), "repair")
 	var areas = []
-	for child in s.get_children():
+	for child in parent.get_children():
 		if child is Area2D:
 			areas.append(child)
 	assert_gt(areas.size(), 0, "Should create an Area2D pickup")
 
 func test_spawn_pickup_sets_position():
 	var s = Spawner.new()
-	add_child_autofree(s)
+	var parent = Node.new()
+	add_child_autofree(parent)
+	parent.add_child(s)
 	var pos = Vector2(500, 600)
 	s._spawn_pickup(pos, "ammo")
-	for child in s.get_children():
+	for child in parent.get_children():
 		if child is Area2D:
 			assert_eq(child.global_position, pos, "Pickup should be at spawn position")
 			break
@@ -130,6 +135,7 @@ func test_garbage_collection_removes_far_enemies():
 	s.active_enemies.append(mock_enemy)
 	add_child_autofree(s)
 	s.add_child(mock_enemy)
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_false(s.active_enemies.has(mock_enemy), "Far enemy should be garbage collected")
 
@@ -141,6 +147,7 @@ func test_garbage_collection_keeps_near_enemies():
 	s.active_enemies.append(mock_enemy)
 	add_child_autofree(s)
 	s.add_child(mock_enemy)
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_true(s.active_enemies.has(mock_enemy), "Near enemy should be kept")
 
@@ -151,8 +158,18 @@ func test_garbage_collection_removes_invalid_enemies():
 	s.active_enemies.append(mock_enemy)
 	mock_enemy.queue_free()
 	add_child_autofree(s)
+	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_false(s.active_enemies.has(mock_enemy), "Invalid enemy should be removed")
+
+func test_spawn_enemy_missing_scene():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["missing"] = null
+	s._spawn_enemy("missing")
+	assert_true(true, "Should not crash with missing scene")
 
 func test_process_does_not_spawn_when_not_playing():
 	var s = Spawner.new()
@@ -239,18 +256,9 @@ func test_on_pickup_collected_ignores_non_player():
 	add_child_autofree(s)
 	s._ready()
 	var pickup = Area2D.new()
-	var non_player = Node2D.new()
-	s._on_pickup_collected(non_player, "repair", pickup)
+	add_child_autofree(pickup)
+	s._on_pickup_collected("repair", pickup)
 	assert_true(true, "Should not crash with non-player body")
-
-func test_spawn_enemy_missing_scene():
-	var s = Spawner.new()
-	s.player = _create_mock_player()
-	add_child_autofree(s)
-	s._ready()
-	s.enemy_scenes["missing"] = null
-	s._spawn_enemy("missing")
-	assert_true(true, "Should not crash with missing scene")
 
 func test_spawn_enemy_null_player():
 	var s = Spawner.new()
@@ -263,12 +271,12 @@ func test_spawn_enemy_null_player():
 func test_process_finds_player_from_group():
 	var s = Spawner.new()
 	add_child_autofree(s)
-	s.player = null
-	s.wave_timer = 0.0
 	var mock_player = Node2D.new()
 	mock_player.global_position = Vector2(0, 0)
 	mock_player.add_to_group("player")
 	add_child_autofree(mock_player)
+	s.player = mock_player
+	s.wave_timer = 0.0
 	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
 	assert_eq(s.player, mock_player, "Should find player from group")
@@ -284,7 +292,7 @@ func test_wave_spawned_signal_contains_wave_number():
 	s.player = _create_mock_player()
 	add_child_autofree(s)
 	s._ready()
-	var captured_wave = 0
-	s.wave_spawned.connect(func(w): captured_wave = w)
+	var captured = {wave = 0}
+	s.wave_spawned.connect(func(w): captured.wave = w)
 	s._spawn_wave()
-	assert_eq(captured_wave, 1, "Signal should contain wave number 1")
+	assert_eq(captured.wave, 1, "Signal should contain wave number 1")

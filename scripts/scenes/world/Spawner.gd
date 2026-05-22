@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 	var i = active_enemies.size() - 1
 	while i >= 0:
 		var e = active_enemies[i]
-		if not is_instance_valid(e):
+		if not is_instance_valid(e) or e.is_queued_for_deletion():
 			active_enemies.remove_at(i)
 		elif e.global_position.y - player_y > Constants.CLEANUP_DISTANCE:
 			active_enemies.remove_at(i)
@@ -84,6 +84,10 @@ func _spawn_enemy(type: String) -> void:
 	elif type == "drone":
 		et = enemy.EnemyType.DRONE
 		
+	enemy.destroyed.connect(_on_enemy_destroyed)
+	add_child(enemy)
+	active_enemies.append(enemy)
+
 	if enemy.has_method("init"):
 		enemy.init(et, lane, player, Constants.BASE_SPEED)
 		
@@ -91,10 +95,6 @@ func _spawn_enemy(type: String) -> void:
 		enemy.world_node = world_node
 	if type == "drone" and "world_node" in enemy:
 		enemy.world_node = world_node
-		
-	enemy.destroyed.connect(_on_enemy_destroyed)
-	add_child(enemy)
-	active_enemies.append(enemy)
 
 func _on_enemy_destroyed(position: Vector2, enemy_type: String) -> void:
 	ScoreManager.register_kill(enemy_type, position)

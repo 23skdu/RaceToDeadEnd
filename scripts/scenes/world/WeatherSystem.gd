@@ -163,7 +163,7 @@ func _create_lightning_bolt(start_pos: Vector2) -> void:
 	tween.tween_property(bolt, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(bolt.queue_free)
 
-func _create_lightning_flash(pos: Vector2) -> Node2D:
+func _create_lightning_flash(pos: Vector2) -> Node:
 	var flash = ColorRect.new()
 	flash.size = Vector2(200, 200)
 	flash.position = pos - Vector2(100, 100)

@@ -69,23 +69,23 @@ func test_register_pickup_multiplier_is_temporary():
 	assert_eq(GameManager._multiplier_timer, 10.0, "Multiplier timer should be 10 seconds")
 
 func test_register_pickup_boost():
-	GameManager.start_game()
 	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	player.add_to_group("player")
 	add_child_autofree(player)
 	player.boost_charges = 1
+	GameManager.start_game()
 	var initial_charges = player.boost_charges
 	ScoreManager.register_pickup("boost", Vector2(100, 200))
 	assert_eq(player.boost_charges, initial_charges + 1, "Boost pickup should add charge")
 
 func test_register_pickup_ammo():
-	GameManager.start_game()
 	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	player.add_to_group("player")
 	add_child_autofree(player)
 	player.secondary_ammo[0] = 0
 	player.secondary_ammo[1] = 0
 	player.secondary_ammo[2] = 0
+	GameManager.start_game()
 	ScoreManager.register_pickup("ammo", Vector2(100, 200))
 	assert_eq(player.secondary_ammo, [1, 1, 1], "Ammo pickup should add one to each type")
 

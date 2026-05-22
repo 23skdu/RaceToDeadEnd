@@ -85,7 +85,8 @@ func test_set_highway():
 func test_acid_rain_overlay_color():
 	var ws = _create_weather()
 	ws._set_weather(ws.WeatherType.ACID_RAIN)
-	var overlay = ws.get_node_or_null("AcidOverlay")
+	var overlay = ws.get_node_or_null("WeatherCanvas/AcidOverlay")
+	assert_not_null(overlay, "Acid overlay should exist")
 	if overlay:
 		assert_gt(overlay.color.a, 0.0, "Acid overlay should have alpha")
 		assert_gt(overlay.color.g, overlay.color.r, "Acid overlay should be greenish")
@@ -93,14 +94,16 @@ func test_acid_rain_overlay_color():
 func test_storm_overlay_darker():
 	var ws = _create_weather()
 	ws._set_weather(ws.WeatherType.STORM)
-	var overlay = ws.get_node_or_null("AcidOverlay")
+	var overlay = ws.get_node_or_null("WeatherCanvas/AcidOverlay")
+	assert_not_null(overlay, "Storm overlay should exist")
 	if overlay:
 		assert_gt(overlay.color.a, 0.0, "Storm overlay should have alpha")
 
 func test_clear_overlay_transparent():
 	var ws = _create_weather()
 	ws._set_weather(ws.WeatherType.CLEAR)
-	var overlay = ws.get_node_or_null("AcidOverlay")
+	var overlay = ws.get_node_or_null("WeatherCanvas/AcidOverlay")
+	assert_not_null(overlay, "Clear overlay should exist")
 	if overlay:
 		assert_eq(overlay.color.a, 0.0, "Clear overlay should be transparent")
 
@@ -159,8 +162,9 @@ func test_lightning_bolt_has_points():
 func test_lightning_flash_created():
 	var ws = _create_weather()
 	var flash = ws._create_lightning_flash(Vector2(0, -400))
-	assert_true(flash != null, "Flash should be created")
-	assert_gt(flash.color.a, 0.0, "Flash should be visible")
+	assert_not_null(flash, "Flash should be created")
+	if flash:
+		assert_gt(flash.color.a, 0.0, "Flash should be visible")
 
 func test_cloud_spawn():
 	var ws = _create_weather()
