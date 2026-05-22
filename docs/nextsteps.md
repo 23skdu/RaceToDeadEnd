@@ -1751,3 +1751,386 @@ Following the completion of 15 P0/P1/P2 optimization issues, a comprehensive re-
 **P0 (do now):** Parts 33, 36 — Highway chunk caching eliminates major node churn; Pause menu is critical UX gap.
 **P1 (do next):** Parts 32, 34, 35, 38, 40 — Visual + audio polish, type safety, test coverage expansion.
 **P2 (do later):** Parts 37, 39, 41 — Input remapping, audio overhaul complex refactors, deep cleanup.
+
+---
+
+## Phase 4: Deep Codebase Audit — 10 New Improvement Opportunities
+
+Following completion of Phase 3, a comprehensive re-audit of all 36+ game scripts, 7 autoloads, and full test suite identified these 10 remaining high-value improvements spanning performance, gameplay depth, code quality, UX, and design-doc completion.
+
+---
+
+### Part 42: Replace Polling Enemy List with Signal-Based Live List
+
+**Problem:** `GameManager.gd:56-59` calls `get_tree().get_nodes_in_group("enemy")` every 0.25s, allocating and discarding a full array every time. This runs even when no homing bullets are active and does redundant work when multiple calls happen in the same frame.
+
+**Findings:**
+- `GameManager.gd:56-59` — `enemy_list = get_tree().get_nodes_in_group("enemy")` every 250ms regardless of combat state
+- `Spawner.gd:92` — Connects `enemy.destroyed` signal but never manages a live list itself
+- `active_enemies` in Spawner (line 8) already tracks all spawned enemies but is not shared with GameManager
+- `Bullet.gd:37` — Copies `GameManager.enemy_list` reference each cache interval per homing bullet
+- No null check on `nearest` return before accessing `nearest.global_position` in `Bullet.gd:40`
+
+**Plan:**
+1. Remove `_enemy_list_timer` and group query from `GameManager._process()`
+2. Add `enemy_spawned` signal to `Spawner.gd`; emit when `_spawn_enemy()` completes
+3. Add `enemy_destroyed` signal to `Spawner.gd`; reuse existing `_on_enemy_destroyed()` path
+4. `GameManager` listens to both signals and maintains enemy list as a live array
+5. `Bullet.gd:_find_nearest()` — add null guard before `nearest.global_position` access
+6. Move enemy list from GameManager to a dedicated `CombatRegistry` autoload or keep in GameManager but decouple from timer
+
+**Subtasks:**
+```
+42.1 — Add enemy_spawned signal to Spawner.gd
+42.2 — Wire Spawner.enemy_spawned → GameManager live list append
+42.3 — Wire Spawner._on_enemy_destroyed → GameManager live list remove
+42.4 — Remove _enemy_list_timer and group query from GameManager._process()
+42.5 — Add null guard to Bullet.gd:38-41 before nearest.global_position
+42.6 — Update all test references (test_bullet.gd, test_game_manager.gd, test_spawner.gd)
+42.7 — Verify homing missile behavior unchanged with signal-driven list
+```
+
+**Expected impact:** Eliminates periodic full tree traversal, reduces allocations during combat by ~4 arrays/sec (16 arrays in flight at any time), fixes latent null-pointer crash in homing logic.
+
+---
+
+### Part 43: Add Parallax Background Layers
+
+**Problem:** No scrolling background layers exist beyond a solid dark color from `game_env.tres` ambient light. The design doc (`docs/design.md:129-133`) specifies 3 parallax layers: near (guardrails/signs), mid (ruined buildings), far (mountains/skybeams). The world feels flat and empty during gameplay.
+
+**Findings:**
+- `assets/environments/` — Contains only `game_env.tres` (Environment resource)
+- No background Sprite2D, ParallaxBackground, or ParallaxLayer nodes in `Game.tscn` world tree
+- `project.godot` — No background textures imported
+- `Game.gd:_ready()` (line 23) — `world.scale = Vector2(1.0, 0.5)` squashes world but background could be unscaled
+- Game feels visually shallow; scrolling background is the single biggest visual polish gap
+
+**Plan:**
+1. Create `assets/textures/backgrounds/` directory with 3 gradient/stripe textures for far mountains, mid ruins silhouette, near guardrails
+2. Add `ParallaxBackground` node as child of `$World` in `Game.tscn` but before the y-scaled world contents (or outside the world Node2D)
+3. Far layer: `ParallaxLayer` with `motion_scale = Vector2(0.1, 0.0)` — mountain silhouettes, slow horizontal parallax
+4. Mid layer: `motion_scale = Vector2(0.3, 0.0)` — ruined building silhouettes, moderate tracking
+5. Near layer: `motion_scale = Vector2(0.6, 0.0)` — guardrail/sign silhouettes, faster movement
+6. All layers scroll vertically to match highway movement direction (downward = forward)
+7. Tint layers with `self_modulate` to match game_env ambient lighting
+
+**Subtasks:**
+```
+43.1 — Create 3 background texture assets (far mountains, mid ruins, near guardrails)
+43.2 — Add ParallaxBackground node to Game.tscn as sibling of $World
+43.3 — Configure ParallaxLayer × 3 with motion scales and textures
+43.4 — Apply shader/material tint to match game_env ambient light color
+43.5 — Verify 60 FPS with all 3 layers active (negligible overhead)
+43.6 — Optionally add parallax to Main menu background too
+```
+
+**Expected impact:** Dramatic visual depth — world goes from flat dark void to atmospheric three-plane landscape. Design doc feature completed.
+
+---
+
+### Part 44: Implement Civilian Vehicles
+
+**Problem:** `ScoreManager.gd:9` defines `civilian_protected = 500`, and `register_civilian_protected()` (lines 33-35) is fully implemented, but no civilian vehicle scene, spawn logic, or collision handling exists. The design doc (`docs/design.md:87-91`) specifies: "+500 bonus for protecting civilians, -1 HP for hitting them."
+
+**Findings:**
+- `ScoreManager.gd:9` — `civilian_protected = 500` defined but never triggered
+- `ScoreManager.gd:33-35` — `register_civilian_protected()` is dead code
+- `Constants.gd` — No civilian constants (speed, HP, spawn interval, etc.)
+- `Spawner.gd` — No civilian spawn logic in `_get_wave_composition()` or `_process()`
+- No civilian TSCN scene exists in the project
+- Pickup `"repair"` restores 1 HP when collected — but civilian collision does nothing
+
+**Plan:**
+1. Create `Civilian.tscn` — CharacterBody2D with lower speed, distinctive sprite (civilian car), `take_damage()` method
+2. Create `scripts/scenes/enemies/Civilian.gd` — Passive driving behavior, flee or stay in lane, no combat
+3. Add `CIVILIAN_SPAWN_CHANCE`, `CIVILIAN_BONUS`, `CIVILIAN_HIT_PENALTY` to Constants.gd
+4. Integrate into `Spawner.gd`: spawn civilians periodically alongside enemies with low probability
+5. Player collision with civilian: call `Player.take_damage(1)` + remove civilian + display "+500 PROTECTED!" or "CIVILIAN HIT -1"
+6. If civilian exits screen safely: call `ScoreManager.register_civilian_protected()` and emit score popup
+7. Add `Civilian`s to ObjectPool for recycling
+
+**Subtasks:**
+```
+44.1 — Create Civilian.tscn + Civilian.gd (simple passive vehicle, vulnerable)
+44.2 — Add civilian constants to Constants.gd (SPEED, SPAWN_CHANCE, SCORE_VALUES)
+44.3 — Integrate into Spawner.gd _get_wave_composition or _drop_pickup odds
+44.4 — Wire player-civilian collision → take_damage + score popup
+44.5 — Wire safe exit → register_civilian_protected → "+500 PROTECTED!" popup
+44.6 — Add civilian pool to Game.gd ObjectPool setup
+44.7 — Test: civilian spawns, moves, can be hit/protected, score reflects correctly
+```
+
+**Expected impact:** Design doc feature completed. Adds moral decision to combat — avoid hitting civilians for bonus, risk damage for protecting them.
+
+---
+
+### Part 45: Implement Boss Encounters
+
+**Problem:** Design doc (`docs/design.md:144`) specifies boss waves every 3000 points — "giant Scav war-rig or alien carrier" with multiple HP segments. No boss logic, scenes, or Spawner integration exists despite `GameManager.gd` having latent boss check code.
+
+**Findings:**
+- `GameManager.gd:65-66` — `_check_boss_wave()` originally had a `pass` body (dead code removed in Phase 2 cleanups)
+- `Spawner.gd:_get_wave_composition()` (lines 51-66) — No boss wave entries at any tier
+- No boss scene files exist in `scenes/enemies/`
+- `Constants.gd` — No boss constants (HP, speed, attack interval, score reward)
+- Design doc: boss every 3000 pts, multi-HP, special attacks
+- `Enemy.gd` stun system and multiple HP mechanics already exist and can be reused
+
+**Plan:**
+1. Create `BossWarRig.tscn` and `scripts/scenes/enemies/BossWarRig.gd` — large sprite, 5x HP, 2 attack patterns (ram + spawn minions)
+2. Create `BossAlienCarrier.tscn` and `scripts/scenes/enemies/BossAlienCarrier.gd` — hover boss, drops drone swarms, beam attack
+3. Add boss constants to Constants.gd (BOSS_INTERVAL, BOSS_HP, BOSS_SCORE, attack cooldowns)
+4. Extend `Spawner.gd:_get_wave_composition()`: when `GameManager.score >= 3000 * boss_count`, spawn boss instead of normal wave
+5. Spawner emits `boss_spawned` signal; GameManager listens for boss state
+6. Boss death: big explosion, large score award (+500-1000), camera shake (very strong)
+7. Add boss scenes to ObjectPool
+
+**Subtasks:**
+```
+45.1 — Create BossWarRig.tscn + BossWarRig.gd (ram attack, spawn scavs, 5x HP)
+45.2 — Create BossAlienCarrier.tscn + BossAlienCarrier.gd (beam attack, spawn drones)
+45.3 — Add boss constants to Constants.gd
+45.4 — Update Spawner.gd: check score threshold, spawn boss wave, emit signal
+45.5 — Wire boss_spawned → GameManager boss state tracking
+45.6 — Add boss death sequence (big explosion, score award, camera shake)
+45.7 — Add boss scenes to ObjectPool
+45.8 — Test: boss spawns at 3000 pts, deals damage, dies, score awarded
+```
+
+**Expected impact:** Design doc feature completed. Adds climactic gameplay moments every 3000 points, breaks up endless-runner monotony.
+
+---
+
+### Part 46: Add Floating Combat Text / Damage Numbers
+
+**Problem:** When the player takes damage, enemies are hit, or weapons connect, there is no numeric feedback beyond health bar changes. The existing score popup system (`Game.gd:_on_score_popped()` lines 204-215) only handles scoring events, not combat feedback.
+
+**Findings:**
+- `Game.gd:204-215` — Score popups exist but only for score events, not damage
+- `Interceptor.gd:218-226` — `take_damage()` flashes sprite red + camera shake, no damage number
+- `Bullet.gd:56-66` — `_on_body_entered()` calls `take_damage()` but displays nothing
+- `Enemy.gd:107-118` — `_die()` emits destroyed signal but no damage number appears
+- No "DAMAGE" or "MISS" or "CRIT" floating text anywhere
+- Popup label pool already exists (`Game.gd:186-202`) and can be reused
+
+**Plan:**
+1. Extend `Game.gd:_get_popup_label()` → `_show_floating_text(pos, text, color, size)` that reuses the popup pool
+2. In `Interceptor.take_damage()`: call `_show_floating_text()` with red "-1" text
+3. In `Bullet._on_body_entered()`: call `_show_floating_text()` with yellow damage number at impact position
+4. In `Enemy._die()`: call `_show_floating_text()` with orange final hit marker
+5. Add critical hit color variation (white for 3+ damage, red for 1, orange for 2)
+6. Add font size scaling: larger numbers for bigger hits
+7. If damage > 3, add "CRIT!" label alongside number
+
+**Subtasks:**
+```
+46.1 — Create _show_floating_text() helper in Game.gd sharing popup label pool
+46.2 — Wire Interceptor.take_damage() → floating red "-1" at player position
+46.3 — Wire Bullet._on_body_entered() → floating yellow damage at hit position
+46.4 — Wire Enemy._die() → floating orange "+" finisher marker
+46.5 — Add color/size scaling by damage amount (1=red/18px, 3+=white/24px)
+46.6 — Add "CRIT!" label for hits dealing 3+ damage
+46.7 — Verify popup pool does not leak or overflow during rapid combat
+```
+
+**Expected impact:** Immediate visual feedback for all combat events. Every bullet hit and damage instance registers as clearly as score events.
+
+---
+
+### Part 47: Add Screen Transition Effects
+
+**Problem:** Scene changes use `get_tree().change_scene_to_file()` directly (Main.gd:28, Game.gd:96) with zero transition. The game snaps instantly between menu, gameplay, and game over screens — a jarring UX gap.
+
+**Findings:**
+- `Main.gd:28` — `get_tree().change_scene_to_file("res://scenes/Game.tscn")` — snap transition
+- `Game.gd:96` — `get_tree().change_scene_to_file("res://scenes/Main.tscn")` — snap transition
+- `Game.gd:92-93` — `get_tree().reload_current_scene()` — instant reload, no fade
+- No `SceneTreeTimer` usage for transition delays
+- No `ColorRect` fade overlay anywhere in the project
+- TransitionController or TransitionLayer pattern is standard in Godot 4 games
+
+**Plan:**
+1. Create `TransitionLayer.gd` autoload — a CanvasLayer with full-screen ColorRect that fades alpha
+2. Expose methods: `fade_to_black(duration: float)`, `fade_from_black(duration: float)`
+3. On scene change: call `fade_to_black()`, wait for completion via `await`, then `change_scene_to_file()`, then `fade_from_black()`
+4. Replace all direct `change_scene_to_file()` calls with `TransitionLayer.change_scene()` wrapper
+5. Add `reload_scene_with_transition()` for restart (fade → reload → fade)
+6. Create separate tween for fade overlay — independent of `get_tree().paused` state (use `process_mode = PROCESS_MODE_ALWAYS`)
+
+**Subtasks:**
+```
+47.1 — Create TransitionLayer.gd autoload (ColorRect overlay, cross-scene persistence)
+47.2 — Implement fade_to_black(duration) and fade_from_black(duration) with tweens
+47.3 — Create change_scene(path) wrapper: fade → await → change_scene → fade
+47.4 — Create reload_scene() wrapper with fade
+47.5 — Replace all change_scene_to_file calls in Main.gd, Game.gd
+47.6 — Replace reload_current_scene calls in Game.gd
+47.7 — Test: all scene transitions show smooth fade, no snap, no crash
+```
+
+**Expected impact:** Professional polish — every transition is smooth and visually pleasing. No more jarring scene snaps.
+
+---
+
+### Part 48: Add Gamepad Rumble Support
+
+**Problem:** Camera shake on explosions/damage/boost (Part 38) provides visual feedback but no tactile feedback. Godot 4's `Input.start_joy_vibration()` is never called anywhere in the project.
+
+**Findings:**
+- `Interceptor.gd:226` — `CameraShake.shake(0.4, 0.2, 5.0)` on damage — no rumble
+- `Interceptor.gd:211` — `CameraShake.shake(0.2, 0.15, 3.0)` on boost — no rumble
+- `Enemy.gd:_die()` — `CameraShake.shake(0.3, 0.2, 4.0)` — no rumble
+- `Mine.gd:_explode()` — `CameraShake.shake(0.6, 0.3, 8.0)` — no rumble
+- `DroneBomb.gd:_detonate()` — `CameraShake.shake(0.8, 0.4, 10.0)` — no rumble
+- All 5 shake calls share the same pattern — rumble can be added alongside each shake call
+- No controller_id management needed for single-player (use 0 for first connected gamepad)
+
+**Plan:**
+1. Add `rumble(power: float, duration: float)` method to `CameraShake.gd` (same module, same call sites)
+2. `rumble()` calls `Input.start_joy_vibration(0, power, power, duration)` and stops after duration via `SceneTreeTimer`
+3. Add rumble calls alongside every existing `CameraShake.shake()` call:
+   - Enemy death: weak rumble (0.3, 0.2s)
+   - Player damage: medium rumble (0.5, 0.3s)
+   - Mine explosion: strong rumble (0.8, 0.4s)
+   - DroneBomb detonation: very strong (1.0, 0.5s)
+   - Boost activation: light rumble (0.2, 0.15s)
+4. Add "Controller Rumble" toggle to Options → Audio tab
+5. Check `Input.get_connected_joypads().size() > 0` before vibrating
+
+**Subtasks:**
+```
+48.1 — Add rumble(power, duration) method to CameraShake.gd
+48.2 — Wire rumble calls at all 5 CameraShake.shake() call sites
+48.3 — Add rumble toggle to Options → Audio section
+48.4 — Add connected-gamepad check before vibration calls
+48.5 — Test: rumble fires on each event, respects toggle, stops after duration
+```
+
+**Expected impact:** Tactile feedback for all high-impact events. Immersion improvement proportional to effort — ~50 lines of code for significant sensory gain.
+
+---
+
+### Part 49: Extract Shared Sprite Scaling Utility
+
+**Problem:** `Interceptor.gd:231-241` and `Enemy.gd:66-76` contain identical `_scale_sprite()` logic: get viewport width, divide by `BASE_VIEWPORT_WIDTH`, multiply by `BASE_SPRITE_SIZE`, divide by texture height, apply scale. Duplicated code violates DRY and both instances call the function twice during initialization.
+
+**Findings:**
+- `Interceptor.gd:231-241` — `_scale_sprite()` — 11 lines, identical formula to Enemy.gd
+- `Enemy.gd:66-76` — `_scale_sprite()` — 11 lines, identical formula to Interceptor.gd
+- Both use `BASE_SPRITE_SIZE = 64.0` and `BASE_VIEWPORT_WIDTH = 1280.0` as local consts
+- Both are called from `_ready()` AND from `_update_sprite()`/`init()` — double-scaled on init
+- `Enemy.gd:73` checks `if sprite.texture:` before scaling (Interceptor.gd:238 also checks)
+- A shared helper reduces duplication and centralizes viewport-responsive scaling logic
+
+**Plan:**
+1. Add a static utility function `scale_sprite_to_viewport(sprite: Sprite2D, base_size: float = 64.0, base_viewport: float = 1280.0)` to a new `helpers.gd` autoload or as a static method on existing autoload
+2. Replace both `_scale_sprite()` methods with calls to the shared utility
+3. Remove duplicate const declarations from both files
+4. Fix double-scaling: remove the `_scale_sprite()` call from `_ready()` in Enemy.gd (line 34) — `init()` already calls `_update_sprite()` which calls `_scale_sprite()`
+5. Fix double-scaling in Interceptor.gd: `_scale_sprite()` called from both `_ready()` and weapon-init paths
+
+**Subtasks:**
+```
+49.1 — Create helpers.gd autoload or add static method to existing autoload
+49.2 — Implement scale_sprite_to_viewport(sprite, base_size, base_viewport) utility
+49.3 — Replace Interceptor.gd _scale_sprite() with utility call
+49.4 — Replace Enemy.gd _scale_sprite() with utility call
+49.5 — Remove redundant _scale_sprite() call from Enemy.gd _ready()
+49.6 — Remove redundant _scale_sprite() call from Interceptor.gd _ready()
+49.7 — Verify sprite scaling identical before/after for all viewport sizes
+```
+
+**Expected impact:** DRY compliance — 22 duplicated lines reduced to 1 utility call × 2. Eliminates double-scaling on initialization (~20% wasted work per enemy spawn).
+
+---
+
+### Part 50: Add Multiplier Timer HUD Indicator
+
+**Problem:** `GameManager.gd:52` emits `multiplier_timer_updated(time_left)` every frame during active multiplier, but `HUD.gd` never connects to this signal. The player has zero visual feedback showing how much time remains on their score multiplier.
+
+**Findings:**
+- `GameManager.gd:10` — `signal multiplier_timer_updated(time_left: float)` — defined
+- `GameManager.gd:50-54` — emitted every frame when `_multiplier_timer > 0.0` — functional
+- `HUD.gd:16-20` — connects to `score_updated`, `health_updated`, `multiplier_updated`, `difficulty_tier_changed` — but NOT to `multiplier_timer_updated`
+- `HUD.gd:7` — `@onready var multiplier_label: Label = $MultiplierLabel` — exists and shows "x1" etc.
+- `HUD.gd:28-29` — `_on_multiplier_updated()` updates label text — works, but no timer indicator
+- HUD has no progress bar or countdown visual for the multiplier timer
+
+**Plan:**
+1. Add `multiplier_timer_bar: TextureProgressBar` or `ProgressBar` node to `HUD.tscn` scene (small bar below multiplier label)
+2. Connect `GameManager.multiplier_timer_updated` in `HUD._ready()`
+3. On signal: update progress bar value from `time_left / MULTIPLIER_DURATION`
+4. Show bar only when `time_left > 0` (visible = `time_left > 0` via signal data or check)
+5. Style bar: yellow/gold color to match multiplier theme, pulsing animation when < 3 seconds remain
+6. Ensure bar is hidden during normal (non-timed) multiplier state
+
+**Subtasks:**
+```
+50.1 — Add ProgressBar node to HUD.tscn below multiplier_label
+50.2 — Connect multiplier_timer_updated signal in HUD._ready()
+50.3 — Update bar value = time_left / MULTIPLIER_DURATION on each signal
+50.4 — Show bar only when time_left > 0
+50.5 — Add pulse animation (modulate oscillation) when time_left < 3.0
+50.6 — Test: collect multiplier pickup, verify bar appears/animates/disappears
+```
+
+**Expected impact:** Clear visual feedback for timed multiplier — player knows exactly how long their 2× bonus lasts. Signal that was already fully wired on the emitter side finally has a consumer.
+
+---
+
+### Part 51: Consolidate Remaining Hardcoded Values into Constants.gd
+
+**Problem:** Despite three previous phases of constant extraction (`Constants.gd:68 lines`), several gameplay-critical values remain hardcoded across scripts. This makes tuning impossible without editing individual files.
+
+**Findings:**
+- `Game.gd:23` — `world.scale = Vector2(1.0, 0.5)` — isometric scale factor should be `Constants.WORLD_SCALE`
+- `Interceptor.gd:257-263` — bridge fall repositioning uses literal `-32` and `32` for lane reset — should reference `Constants.LANE_POSITIONS[1]` and `LANE_POSITIONS[2]`
+- `Interceptor.gd:45` — `Camera2D` offset `position.y = -100` — should be `Constants.CAMERA_Y_OFFSET`
+- `Interceptor.gd:113` — `move_toward(velocity.x, Constants.WEAVE_DISTANCE` — uses constant but also has literal `128.0` comment
+- `WeatherSystem.gd:244,247` — acid overlay alpha values `Color(0.1, 0.3, 0.1, 0.15)` and `Color(0.15, 0.2, 0.15, 0.25)` — should be constants
+- `Scav.gd:25` — `flank_offset = 64.0` — should be `Constants.SCAV_FLANK_OFFSET`
+- `Enemy.gd:7-8` — `BASE_SPRITE_SIZE: float = 64.0` and `BASE_VIEWPORT_WIDTH: float = 1280.0` — duplicated in Interceptor.gd
+- `Highway.gd:178-179` — `Line2D.width = 3.0` for guardrails — should be `Constants.GUARDRAIL_WIDTH`
+
+**Plan:**
+1. Add all identified values to `Constants.gd` with clear section naming
+2. Update all 7+ files to reference constants instead of literals
+3. Verify no gameplay changes — values remain identical, only source changes
+4. Run full test suite — no regression expected since values are unchanged
+5. Document each constant with its range and purpose
+
+**Subtasks:**
+```
+51.1 — Add world, camera, UI constants to Constants.gd
+51.2 — Fix Game.gd world.scale → Constants.WORLD_SCALE
+51.3 — Fix Interceptor.gd bridge fall literal lanes → Constants.LANE_POSITIONS
+51.4 — Fix Interceptor.gd camera Y offset → Constants.CAMERA_Y_OFFSET
+51.5 — Fix WeatherSystem.gd overlay alpha values → constants
+51.6 — Fix Scav.gd flank_offset → Constants.SCAV_FLANK_OFFSET
+51.7 — Fix Highway.gd guardrail width → Constants.GUARDRAIL_WIDTH
+51.8 — Move Enemy.gd/Interceptor.gd BASE_SPRITE_SIZE/VIEWPORT_WIDTH to Constants
+51.9 — Run full test suite, verify zero gameplay changes
+```
+
+**Expected impact:** Single source of truth for game balance. Tuning any value requires editing Constants.gd only. Enables future inspector-based tuning via `@export`.
+
+---
+
+### Priority Matrix
+
+| Part | Title | Effort | Impact | Priority |
+|------|-------|--------|--------|----------|
+| 42 | Signal-Based Enemy List | Medium | High | P0 |
+| 43 | Parallax Background Layers | High | High | P2 |
+| 44 | Civilian Vehicles | Medium | Medium | P2 |
+| 45 | Boss Encounters | High | High | P1 |
+| 46 | Floating Combat Text | Low | Medium | P1 |
+| 47 | Screen Transition Effects | Low | Medium | P1 |
+| 48 | Gamepad Rumble | Low | Low | P2 |
+| 49 | Shared Sprite Scaling Utility | Low | Low | P2 |
+| 50 | Multiplier Timer HUD Indicator | Low | Low | P1 |
+| 51 | Constants Consolidation | Low | Medium | P1 |
+
+**P0 (do now):** Part 42 — Eliminates periodic tree traversal and fixes latent null-pointer crash in homing logic.
+**P1 (do next):** Parts 45, 46, 47, 50, 51 — Boss encounters, combat text, screen transitions, timer indicator, constants consolidation.
+**P2 (do later):** Parts 43, 44, 48, 49 — Parallax backgrounds, civilian vehicles, gamepad rumble, shared utility.
