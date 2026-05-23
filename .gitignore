@@ -30,3 +30,4 @@ Thumbs.db
 addons/gut/
 opencode.json
 venv/
+.vscode/
