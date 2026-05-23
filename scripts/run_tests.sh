@@ -1,13 +1,14 @@
 #!/bin/bash
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 GODOT="${GODOT:-godot}"
 
 run_batch() {
     local label="$1"
     local tests="$2"
     echo "=== BATCH $label ==="
-    if ! "$GODOT" --headless -s "$SCRIPT_DIR/addons/gut/gut_cmdln.gd" \
+    if ! "$GODOT" --headless -s "$ROOT_DIR/addons/gut/gut_cmdln.gd" \
         -gtest="$tests" -gexit -glog=3; then
         echo "FAILED: $label"
         return 1

@@ -414,8 +414,8 @@ func test_play_sfx_skips_when_lower_priority():
 				AudioManager.sfx_players[i].stream = AudioStreamWAV.new()
 				AudioManager.sfx_players[i].play()
 			AudioManager._player_priorities[i] = 50
-		var low_priority_event = false
-		var skip = false
+		var _low_priority_event = false
+		var _skip = false
 		for i in AudioManager.sfx_players.size():
 			AudioManager._player_priorities[i] = 10
 		AudioManager.play_sfx(AudioStreamWAV.new(), Vector2.ZERO, 5)
