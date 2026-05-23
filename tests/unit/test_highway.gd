@@ -265,9 +265,9 @@ func test_recycle_chunk_updates_type():
 	add_child_autofree(h)
 	h._spawn_chunk(0)
 	var chunk = h.active_chunks[0]
-	var old_type = chunk.get_meta("chunk_type")
+	var _old_type = chunk.get_meta("chunk_type")
 	h._recycle_chunk(chunk)
-	var new_type = chunk.get_meta("chunk_type")
+	var _new_type = chunk.get_meta("chunk_type")
 	assert_true(true, "Chunk type should be updated")
 
 func test_segment_completed_signal_emits_segment_number():
