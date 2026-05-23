@@ -32,16 +32,20 @@ Isometric vehicular combat racing game. Drive a futuristic interceptor down an e
 
 ```
 res://
-├── autoload/        # Singleton scripts (GameManager, ScoreManager, AudioManager)
-├── scenes/
-│   ├── world/       # Highway, Spawner
-│   ├── player/      # Interceptor
-│   ├── enemies/     # Rotor, Scav, Drone
-│   ├── weapons/     # Bullet, Missile, Mine, EMPBlast
-│   └── ui/          # HUD, GameOver, Garage
-├── scripts/         # Shared utility scripts
 ├── assets/          # Sprites, audio, tilesets
-└── addons/          # External plugins
+├── addons/          # External plugins
+├── docs/            # Architecture and planning documentation
+├── scenes/          # Visual .tscn files
+│   ├── enemies/     # Rotor, Scav, Drone
+│   ├── player/      # Interceptor
+│   ├── ui/          # HUD, GameOver, Garage
+│   ├── weapons/     # Bullet, Missile, Mine, EMPBlast
+│   └── world/       # Highway, Spawner
+├── scripts/         # All .gd and .py scripts
+│   ├── autoload/    # Singleton scripts (GameManager, ScoreManager, AudioManager)
+│   ├── scenes/      # Scene-specific logic
+│   └── utils/       # Shared utility scripts
+└── tests/           # GUT unit and integration tests
 ```
 
 ## License

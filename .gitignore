@@ -29,3 +29,4 @@ Thumbs.db
 # Third-party addons (install locally)
 addons/gut/
 opencode.json
+venv/
