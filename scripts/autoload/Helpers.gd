@@ -1,6 +1,6 @@
 extends Node
 
-static func scale_sprite_to_viewport(sprite: Sprite2D, base_size: float = 64.0, base_viewport: float = 1280.0) -> void:
+func scale_sprite_to_viewport(sprite: Sprite2D, base_size: float = 64.0, base_viewport: float = 1280.0) -> void:
 	if not sprite or not sprite.texture:
 		return
 	var viewport = sprite.get_viewport()

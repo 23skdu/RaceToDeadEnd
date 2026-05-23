@@ -304,12 +304,16 @@ func test_spawner_has_spawn_minion_requested_signal():
 	assert_true(s.has_signal("spawn_minion_requested"), "Spawner should have spawn_minion_requested signal")
 
 class MockBossNode extends Node2D:
+	@warning_ignore("unused_signal")
 	signal destroyed(pos: Vector2, enemy_type: String, enemy: Node)
 	var player = null
+	@warning_ignore("unused_private_class_variable")
 	var _spawner = null
 
 class MockCivilianNode extends Node2D:
+	@warning_ignore("unused_signal")
 	signal exited_safely
+	@warning_ignore("unused_signal")
 	signal hit_by_player
 	var _init_called = false
 	func init(_lane, _speed, _dir, _player):

@@ -137,7 +137,7 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 		if _player_priorities[i] < lowest_priority:
 			lowest_priority = _player_priorities[i]
 			best_idx = i
-	if all_busy and best_idx >= 0 and priority < lowest_priority:
+	if all_busy and best_idx >= 0 and priority <= lowest_priority:
 		return
 	if best_idx == -1:
 		best_idx = 0

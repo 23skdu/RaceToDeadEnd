@@ -40,6 +40,7 @@ var invincible: bool = false
 var invincible_timer: float = 0.0
 var slippery: bool = false
 var speed_input: float = 0.0
+var max_forward_y: float = 0.0
 
 var last_left_tap_time: float = 0.0
 var last_right_tap_time: float = 0.0
@@ -94,7 +95,16 @@ func _physics_process(delta: float) -> void:
 		effective_speed = Constants.REVERSE_SPEED
 	else:
 		effective_speed = speed
+		
+	max_forward_y = minf(max_forward_y, position.y)
+	
 	velocity.y = -effective_speed
+	
+	# Restrict reversing to not go beyond the current tile (approx 240 pixels)
+	if velocity.y > 0 and position.y >= max_forward_y + 240.0:
+		velocity.y = 0.0
+		position.y = max_forward_y + 240.0
+		
 	var x_diff = target_x - position.x
 	
 	if abs(x_diff) > 2.0:

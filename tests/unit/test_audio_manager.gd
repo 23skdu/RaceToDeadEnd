@@ -8,6 +8,10 @@ func before_each():
 		AudioManager.music_player.bus = &"Music"
 		for p in AudioManager.sfx_players:
 			p.bus = &"SFX"
+	for p in AudioManager.sfx_players:
+		p.stop()
+	for i in AudioManager._player_priorities.size():
+		AudioManager._player_priorities[i] = 0
 
 func test_audio_manager_has_music_player():
 	assert_true(AudioManager.music_player != null, "Music player should exist")

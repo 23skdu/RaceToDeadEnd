@@ -87,7 +87,9 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	var old_tiles = _get_tiles_node(chunk)
 	if old_tiles:
 		chunk.remove_child(old_tiles)
-		_mark_buffer_free(old_tiles)
+		var was_clone = _mark_buffer_free(old_tiles)
+		if was_clone:
+			old_tiles.queue_free()
 	
 	var new_tiles = _reserve_tiles(new_type)
 	chunk.add_child(new_tiles)
@@ -125,16 +127,19 @@ func _reserve_tiles(chunk_type: ChunkType) -> Node2D:
 	_reconnect_chunk_signals(clone, chunk_type)
 	return clone
 
-func _mark_buffer_free(tiles_node: Node2D) -> void:
+func _mark_buffer_free(tiles_node: Node2D) -> bool:
 	for chunk_type in _chunk_dual_buffers:
 		var buffers = _chunk_dual_buffers[chunk_type]
 		var in_use = _buffer_in_use.get(chunk_type, [false, false])
 		for i in 2:
 			if buffers[i] == tiles_node:
 				in_use[i] = false
+				return false
 	var idx = _fallback_clones.find(tiles_node)
 	if idx >= 0:
 		_fallback_clones.remove_at(idx)
+		return true
+	return false
 
 func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
 	if chunk_type == ChunkType.ICE:
@@ -153,13 +158,13 @@ func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void
 func _pick_chunk_type() -> ChunkType:
 	var tier = GameManager.difficulty_tier
 	var hazard_increase = mini(tier - 1, Constants.CHUNK_HAZARD_CAP) * Constants.CHUNK_HAZARD_STEP
-	var w_standard = maxi(Constants.CHUNK_WEIGHT_STANDARD_BASE - hazard_increase, Constants.CHUNK_WEIGHT_STANDARD_MIN)
-	var w_debris = mini(Constants.CHUNK_WEIGHT_DEBRIS_BASE + hazard_increase, Constants.CHUNK_WEIGHT_DEBRIS_MAX)
-	var w_ice = mini(Constants.CHUNK_WEIGHT_ICE_BASE + hazard_increase, Constants.CHUNK_WEIGHT_ICE_MAX)
-	var w_construction = mini(Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE + hazard_increase, Constants.CHUNK_WEIGHT_CONSTRUCTION_MAX)
-	var w_bridge = mini(Constants.CHUNK_WEIGHT_BRIDGE_BASE + hazard_increase, Constants.CHUNK_WEIGHT_BRIDGE_MAX)
+	var w_standard = maxi(int(Constants.CHUNK_WEIGHT_STANDARD_BASE) - hazard_increase, int(Constants.CHUNK_WEIGHT_STANDARD_MIN))
+	var w_debris = mini(int(Constants.CHUNK_WEIGHT_DEBRIS_BASE) + hazard_increase, int(Constants.CHUNK_WEIGHT_DEBRIS_MAX))
+	var w_ice = mini(int(Constants.CHUNK_WEIGHT_ICE_BASE) + hazard_increase, int(Constants.CHUNK_WEIGHT_ICE_MAX))
+	var w_construction = mini(int(Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE) + hazard_increase, int(Constants.CHUNK_WEIGHT_CONSTRUCTION_MAX))
+	var w_bridge = mini(int(Constants.CHUNK_WEIGHT_BRIDGE_BASE) + hazard_increase, int(Constants.CHUNK_WEIGHT_BRIDGE_MAX))
 	var total = w_standard + w_debris + w_ice + w_construction + w_bridge
-	var roll = _rng.randi() % total
+	var roll = _rng.randi() % int(total)
 	if roll < w_standard:
 		return ChunkType.STANDARD
 	roll -= w_standard
@@ -553,9 +558,8 @@ func _get_tile_variant(chunk_type: ChunkType, row: int, col: int) -> int:
 			return 0
 
 func _get_tiles_node(chunk: Node2D) -> Node2D:
-	for child in chunk.get_children():
-		if child.name == "Tiles":
-			return child
+	if chunk.get_child_count() > 0:
+		return chunk.get_child(0) as Node2D
 	return null
 
 func _clear_chunk_tiles(chunk: Node2D) -> void:

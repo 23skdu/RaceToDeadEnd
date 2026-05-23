@@ -80,7 +80,6 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 			item.get_parent().remove_child(item)
 		return item
 	var fallback = _create_pickup_node()
-	fallback.set_meta("_pool_name", "pickup")
 	fallback.set_meta("_in_pool", false)
 	fallback.global_position = position
 	fallback.set_meta("_pickup_type", pickup_type)
@@ -144,7 +143,6 @@ func acquire(pool_name: String) -> Node:
 			item.get_parent().remove_child(item)
 		return item
 	var fallback = load(_scene_paths[pool_name]).instantiate()
-	fallback.set_meta("_pool_name", pool_name)
 	fallback.set_meta("_in_pool", false)
 	add_child(fallback)
 	if fallback.has_method("on_pool_acquire"):
