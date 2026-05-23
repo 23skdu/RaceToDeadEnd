@@ -523,7 +523,3 @@ pause={
 gut={
 "enable": true
 }
-
-[rendering]
-
-renderer/rendering_method="forward_plus"
