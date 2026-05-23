@@ -1,5 +1,15 @@
 extends Node2D
 
+@export_group("Weather Timing")
+@export var transition_speed: float = 0.5
+@export var lightning_cooldown_min: float = 1.0
+@export var lightning_cooldown_max: float = 3.0
+
+@export_group("Weather Effects")
+@export var acid_damage_interval: float = Constants.ACID_RAIN_DAMAGE_INTERVAL
+@export var acid_damage_amount: int = Constants.ACID_RAIN_DAMAGE
+@export var rain_drop_count: int = Constants.RAIN_DROP_COUNT
+
 signal weather_changed(weather_type: String)
 signal lightning_strike(position: Vector2)
 
@@ -47,11 +57,11 @@ func _init_gpu_particles() -> void:
 	_rain_particles.local_coords = false
 
 	var rain_image = Image.create(2, 12, false, Image.FORMAT_RGBA8)
-	rain_image.fill(Color(0.5, 0.6, 0.8, 0.5))
-	rain_image.set_pixel(0, 0, Color(0.5, 0.6, 0.8, 0.0))
-	rain_image.set_pixel(1, 0, Color(0.5, 0.6, 0.8, 0.0))
-	rain_image.set_pixel(0, 11, Color(0.5, 0.6, 0.8, 0.0))
-	rain_image.set_pixel(1, 11, Color(0.5, 0.6, 0.8, 0.0))
+	rain_image.fill(Constants.RAIN_DROPLET_COLOR)
+	rain_image.set_pixel(0, 0, Constants.RAIN_DROPLET_ZERO_ALPHA)
+	rain_image.set_pixel(1, 0, Constants.RAIN_DROPLET_ZERO_ALPHA)
+	rain_image.set_pixel(0, 11, Constants.RAIN_DROPLET_ZERO_ALPHA)
+	rain_image.set_pixel(1, 11, Constants.RAIN_DROPLET_ZERO_ALPHA)
 	var rain_tex = ImageTexture.create_from_image(rain_image)
 	_rain_particles.texture = rain_tex
 
@@ -63,7 +73,7 @@ func _init_gpu_particles() -> void:
 	mat.initial_velocity_max = 600.0
 	mat.scale_min = 1.0
 	mat.scale_max = 1.0
-	mat.color = Color(0.5, 0.6, 0.8, 0.5)
+	mat.color = Constants.RAIN_DROPLET_COLOR
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 	mat.emission_box_extents = Vector3(800.0, 0.0, 0.0)
 
@@ -98,13 +108,16 @@ func _update_rain_particles(_delta: float) -> void:
 			return
 		WeatherType.LIGHT_RAIN:
 			_rain_particles.amount = int(RAIN_DROP_COUNT * 0.5 * weather_intensity)
-			_rain_particle_material.color = Color(0.5, 0.6, 0.8, 0.3 * weather_intensity)
+			var c = Constants.RAIN_PARTICLE_CLEAR
+			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 		WeatherType.ACID_RAIN:
 			_rain_particles.amount = int(RAIN_DROP_COUNT * weather_intensity)
-			_rain_particle_material.color = Color(0.2, 0.9, 0.2, 0.5 * weather_intensity)
+			var c = Constants.RAIN_PARTICLE_ACID
+			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 		WeatherType.STORM:
 			_rain_particles.amount = int(RAIN_DROP_COUNT * weather_intensity)
-			_rain_particle_material.color = Color(0.3, 0.8, 0.3, 0.6 * weather_intensity)
+			var c = Constants.RAIN_PARTICLE_STORM
+			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 	_rain_particles.emitting = _rain_particles.amount > 0
 
 func _update_clouds(delta: float) -> void:
@@ -171,7 +184,7 @@ func _spawn_lightning_strike() -> void:
 func _create_lightning_bolt(start_pos: Vector2) -> void:
 	var bolt = Line2D.new()
 	bolt.width = 3.0
-	bolt.default_color = Color(0.8, 0.9, 1.0, 1.0)
+	bolt.default_color = Constants.LIGHTNING_BOLT_COLOR
 	
 	var points = PackedVector2Array()
 	var current = start_pos
@@ -193,7 +206,7 @@ func _create_lightning_flash(pos: Vector2) -> Node:
 	var flash = ColorRect.new()
 	flash.size = Vector2(200, 200)
 	flash.position = pos - Vector2(100, 100)
-	flash.color = Color(0.9, 0.95, 1.0, 0.8)
+	flash.color = Constants.LIGHTNING_FLASH_COLOR
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return flash
 
@@ -210,13 +223,13 @@ func _spawn_cloud() -> void:
 		var r = radius * randf_range(0.6, 1.0)
 		points.append(Vector2(cos(angle) * r, sin(angle) * r * 0.5))
 	cloud_body.polygon = points
-	cloud_body.color = Color(0.15, 0.1, 0.2, 0.7)
+	cloud_body.color = Constants.CLOUD_BODY_COLOR
 	cloud.add_child(cloud_body)
 	
 	if current_weather == WeatherType.ACID_RAIN or current_weather == WeatherType.STORM:
 		var glow = Polygon2D.new()
 		glow.polygon = points
-		glow.color = Color(0.0, 0.8, 0.2, 0.2)
+		glow.color = Constants.CLOUD_GLOW_COLOR
 		cloud.add_child(glow)
 	
 	cloud_container.add_child(cloud)
@@ -235,16 +248,16 @@ func _update_visuals_for_weather(type: WeatherType) -> void:
 	match type:
 		WeatherType.CLEAR:
 			if acid_overlay:
-				acid_overlay.color = Color(0, 0, 0, 0)
+				acid_overlay.color = Constants.ACID_OVERLAY_CLEAR
 		WeatherType.LIGHT_RAIN:
 			if acid_overlay:
-				acid_overlay.color = Color(0, 0, 0, 0)
+				acid_overlay.color = Constants.ACID_OVERLAY_CLEAR
 		WeatherType.ACID_RAIN:
 			if acid_overlay:
-				acid_overlay.color = Color(0.1, 0.3, 0.1, 0.15)
+				acid_overlay.color = Constants.ACID_OVERLAY_COLOR_LIGHT
 		WeatherType.STORM:
 			if acid_overlay:
-				acid_overlay.color = Color(0.15, 0.2, 0.15, 0.25)
+				acid_overlay.color = Constants.ACID_OVERLAY_COLOR_HEAVY
 
 func set_weather(type: WeatherType) -> void:
 	if target_weather != type:

@@ -1,4 +1,4 @@
-extends "res://addons/gut/test.gd"
+extends GutTest
 
 func test_drone_transparency():
 	var tex = load("res://assets/sprites/enemies/drone.png")

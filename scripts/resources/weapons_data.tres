@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[resource]
+script = ExtResource("1_xkprf")
+type_name = "missile"
+display_name = "Homing Missile"
+color = Color(1, 0, 0, 1)
+base_ammo = 30
+description = "Lock-on homing missile"
+
+[resource]
+type_name = "mine"
+display_name = "Proximity Mine"
+color = Color(1, 1, 0, 1)
+base_ammo = 15
+description = "Deployable area-denial mine"
+
+[resource]
+type_name = "emp"
+display_name = "EMP Blast"
+color = Color(0, 1, 1, 1)
+base_ammo = 5
+description = "Stuns all enemies on screen"

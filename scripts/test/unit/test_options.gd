@@ -137,3 +137,15 @@ func test_options_has_input_remap():
 func test_options_has_input_tab():
 	var options = _create_options()
 	assert_not_null(options.get_node("Panel/TabContainer/InputTab"), "Should have InputTab child")
+
+func test_options_master_slider_updates_settings_manager():
+	var options = _create_options()
+	watch_signals(SettingsManager)
+	options._on_master_changed(0.5)
+	assert_gt(SettingsManager.get_volume("Master", 0.0), 0.0, "Master volume should persist via SettingsManager")
+
+func test_options_fullscreen_toggle_saves_via_settings_manager():
+	var options = _create_options()
+	options._on_fullscreen_toggled(true)
+	var saved = SettingsManager.get_fullscreen()
+	assert_true(saved, "Fullscreen toggle should save via SettingsManager")

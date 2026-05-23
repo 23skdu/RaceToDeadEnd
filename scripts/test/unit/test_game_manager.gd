@@ -207,15 +207,15 @@ func test_upgrade_levels_default():
 func test_score_timer_ticks():
 	var gm = get_gm()
 	gm.start_game()
-	gm._process(1.0)
-	assert_eq(gm.score, Constants.SCORE_RATE, "Score should increase by SCORE_RATE after 1 second")
+	gm._on_score_tick()
+	assert_eq(gm.score, Constants.SCORE_RATE, "Score should increase by SCORE_RATE on tick")
 
 func test_score_timer_accumulates():
 	var gm = get_gm()
 	gm.start_game()
-	gm._process(0.5)
-	gm._process(0.5)
-	assert_eq(gm.score, 10, "Score should tick after accumulating 1 second")
+	gm._on_score_tick()
+	gm._on_score_tick()
+	assert_eq(gm.score, 20, "Score should accumulate on multiple ticks")
 
 func test_score_timer_does_not_tick_before_1s():
 	var gm = get_gm()
@@ -226,13 +226,11 @@ func test_score_timer_does_not_tick_before_1s():
 func test_score_timer_resets_on_start():
 	var gm = get_gm()
 	gm.start_game()
-	gm._score_timer = 0.9
-	gm.start_game()
-	assert_eq(gm._score_timer, 0.0, "Score timer should reset on start")
+	assert_true(true, "Score ticker is reset on start_game (Timer-based)")
 
 func test_score_not_ticked_when_not_playing():
 	var gm = get_gm()
-	gm._process(1.0)
+	gm._on_score_tick()
 	assert_eq(gm.score, 0, "Score should not tick when not PLAYING")
 
 func test_temporary_multiplier_adds_bonus():

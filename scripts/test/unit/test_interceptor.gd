@@ -35,12 +35,11 @@ func test_constants():
 	assert_eq(Constants.ACCEL_SPEED, 300.0, "Acceleration speed")
 	assert_eq(Constants.REVERSE_SPEED, -350.0, "Reverse speed")
 
-func test_weapon_types_constant():
-	var script = load("res://scripts/scenes/player/Interceptor.gd")
-	assert_eq(script.WEAPON_TYPES.size(), 3, "Should have 3 weapon types")
-	assert_eq(script.WEAPON_TYPES[0], "missile", "First weapon should be missile")
-	assert_eq(script.WEAPON_TYPES[1], "mine", "Second weapon should be mine")
-	assert_eq(script.WEAPON_TYPES[2], "emp", "Third weapon should be emp")
+func test_weapon_types_from_constants():
+	assert_eq(Constants.WEAPON_DATA.size(), 3, "Should have 3 weapon data entries")
+	assert_eq(Constants.WEAPON_DATA[0].type_name, "missile", "First weapon should be missile")
+	assert_eq(Constants.WEAPON_DATA[1].type_name, "mine", "Second weapon should be mine")
+	assert_eq(Constants.WEAPON_DATA[2].type_name, "emp", "Third weapon should be emp")
 
 func test_lane_to_x():
 	var player = _create_player()

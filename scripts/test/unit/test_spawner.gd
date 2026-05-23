@@ -296,3 +296,7 @@ func test_wave_spawned_signal_contains_wave_number():
 	s.wave_spawned.connect(func(w): captured.wave = w)
 	s._spawn_wave()
 	assert_eq(captured.wave, 1, "Signal should contain wave number 1")
+
+func test_spawner_has_spawn_minion_requested_signal():
+	var s = Spawner.new()
+	assert_true(s.has_signal("spawn_minion_requested"), "Spawner should have spawn_minion_requested signal")

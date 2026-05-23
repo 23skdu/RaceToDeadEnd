@@ -94,6 +94,26 @@ const SCAV_FLANK_OFFSET: float = 64.0
 const MULTIPLIER_BAR_WIDTH: float = 120.0
 const MULTIPLIER_BAR_HEIGHT: float = 8.0
 
-# Weather
+# Weapon Data (shared between Interceptor and HUD)
+const WEAPON_DATA: Array[Dictionary] = [
+	{type_name = "missile", display_name = "Homing Missile", color = Color.RED, base_ammo = 30},
+	{type_name = "mine", display_name = "Proximity Mine", color = Color.YELLOW, base_ammo = 15},
+	{type_name = "emp", display_name = "EMP Blast", color = Color.CYAN, base_ammo = 5},
+]
+
+# Weather Colors
+const RAIN_DROPLET_COLOR: Color = Color(0.5, 0.6, 0.8, 0.5)
+const RAIN_DROPLET_ZERO_ALPHA: Color = Color(0.5, 0.6, 0.8, 0.0)
+const RAIN_PARTICLE_CLEAR: Color = Color(0.5, 0.6, 0.8, 0.3)
+const RAIN_PARTICLE_ACID: Color = Color(0.2, 0.9, 0.2, 0.5)
+const RAIN_PARTICLE_STORM: Color = Color(0.3, 0.8, 0.3, 0.6)
+const LIGHTNING_BOLT_COLOR: Color = Color(0.8, 0.9, 1.0, 1.0)
+const LIGHTNING_FLASH_COLOR: Color = Color(0.9, 0.95, 1.0, 0.8)
+const CLOUD_BODY_COLOR: Color = Color(0.15, 0.1, 0.2, 0.7)
+const CLOUD_GLOW_COLOR: Color = Color(0.0, 0.8, 0.2, 0.2)
+const ACID_OVERLAY_CLEAR: Color = Color(0, 0, 0, 0)
+const ACID_OVERLAY_COLOR_LIGHT: Color = Color(0.1, 0.3, 0.1, 0.15)
+const ACID_OVERLAY_COLOR_HEAVY: Color = Color(0.15, 0.2, 0.15, 0.25)
+
 const ACID_OVERLAY_ALPHA_LIGHT: float = 0.15
 const ACID_OVERLAY_ALPHA_HEAVY: float = 0.25

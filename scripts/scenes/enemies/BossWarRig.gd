@@ -45,6 +45,5 @@ func _ram_player() -> void:
 	CameraShake.rumble(0.5, 0.2)
 
 func _spawn_minions() -> void:
-	if _spawner and _spawner.has_method("_spawn_enemy"):
-		_spawner._spawn_enemy("scav")
-		_spawner._spawn_enemy("scav")
+	if _spawner and _spawner.has_signal("spawn_minion_requested"):
+		_spawner.spawn_minion_requested.emit("scav", 2)

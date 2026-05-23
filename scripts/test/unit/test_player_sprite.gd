@@ -1,4 +1,4 @@
-extends "res://addons/gut/test.gd"
+extends GutTest
 
 func test_interceptor_svg_exists():
 	var tex = load("res://assets/sprites/player/interceptor.svg")

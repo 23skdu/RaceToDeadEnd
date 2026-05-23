@@ -15,7 +15,21 @@ func test_drone_bomb_collision_layer():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
 	assert_eq(db.collision_layer, 4, "Collision layer should be 4")
-	assert_eq(db.collision_mask, 1, "Collision mask should be 1 (player)")
+	assert_eq(db.collision_mask, 1 | 3, "Collision mask should include player (1) and player bullets (3)")
+
+func test_drone_bomb_hit_by_bullet_detonates():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	var bullet = Area2D.new()
+	bullet.add_to_group("bullet")
+	db._on_area_entered(bullet)
+	assert_true(db.hit_by_bullet, "Should mark hit_by_bullet true")
+	assert_true(db.exploded, "Should detonate on bullet hit")
+
+func test_drone_bomb_has_area_entered_connected():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	assert_true(db.area_entered.is_connected(db._on_area_entered), "area_entered should be connected")
 
 func test_drone_bomb_has_collision_shape():
 	var db = DroneBomb.new()
@@ -76,7 +90,7 @@ func test_drone_bomb_ready_sets_collision():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
 	assert_eq(db.collision_layer, 4, "Collision layer should be 4")
-	assert_eq(db.collision_mask, 1, "Collision mask should be 1 (player)")
+	assert_eq(db.collision_mask, 1 | 3, "Collision mask should include player (1) and bullets (3)")
 
 func test_drone_bomb_ready_creates_collision_shape():
 	var db = DroneBomb.new()

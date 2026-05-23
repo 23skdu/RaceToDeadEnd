@@ -2,12 +2,14 @@ extends Area2D
 
 var age: float = 0.0
 var exploded: bool = false
+var hit_by_bullet: bool = false
 var warning_visual: Polygon2D
 var explosion_visual: Polygon2D
 
 func _ready() -> void:
 	collision_layer = 4
-	collision_mask = 1 # player layer
+	collision_mask = 1 | 3 # player layer + player bullets
+	area_entered.connect(_on_area_entered)
 	
 	# Collision shape
 	var col = CollisionShape2D.new()
@@ -46,6 +48,11 @@ func _process(delta: float) -> void:
 		else:
 			explosion_visual.scale = Vector2.ONE * (1.0 + t * 0.5)
 			explosion_visual.color = Color(1.0, 0.7, 0.1, 1.0 - t)
+
+func _on_area_entered(area: Area2D) -> void:
+	if not exploded and area.is_in_group("bullet"):
+		hit_by_bullet = true
+		_detonate()
 
 func _detonate() -> void:
 	exploded = true

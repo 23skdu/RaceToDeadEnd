@@ -1,5 +1,4 @@
 extends Resource
-class_name WeaponData
 
 @export var type_name: String = ""
 @export var display_name: String = ""

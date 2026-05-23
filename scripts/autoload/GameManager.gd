@@ -32,36 +32,41 @@ var upgrade_levels: Dictionary = {
 	emp_ammo = 1,
 }
 
-var _score_timer: float = 0.0
 var _difficulty_progress: float = 0.0
 var _multiplier_timer: float = 0.0
 var _base_multiplier: int = 1
 var _last_tier_threshold: int = 0
 
+var _score_ticker: Timer
+
+func _ready() -> void:
+	_add_input_mappings()
+	load_progress()
+	_score_ticker = Timer.new()
+	_score_ticker.name = "ScoreTicker"
+	_score_ticker.wait_time = 1.0
+	_score_ticker.timeout.connect(_on_score_tick)
+	_score_ticker.one_shot = false
+	add_child(_score_ticker)
+
 func _process(delta: float) -> void:
 	if state != GameState.PLAYING:
 		return
-	_score_timer += delta
-	if _score_timer >= 1.0:
-		_score_timer -= 1.0
-		add_score(Constants.SCORE_RATE)
 	
 	if _multiplier_timer > 0.0:
 		_multiplier_timer -= delta
 		multiplier_timer_updated.emit(_multiplier_timer)
 		if _multiplier_timer <= 0.0:
 			_reset_multiplier()
-	
 
-
-func _ready() -> void:
-	_add_input_mappings()
-	load_progress()
+func _on_score_tick() -> void:
+	if state != GameState.PLAYING:
+		return
+	add_score(Constants.SCORE_RATE)
 
 func start_game() -> void:
 	state = GameState.PLAYING
 	score = 0
-	_score_timer = 0.0
 	_difficulty_progress = 0.0
 	_multiplier_timer = 0.0
 	_base_multiplier = 1
@@ -75,6 +80,8 @@ func start_game() -> void:
 	multiplier_updated.emit(multiplier)
 	difficulty_tier_changed.emit(difficulty_tier)
 	game_started.emit()
+	if _score_ticker:
+		_score_ticker.start()
 
 func register_enemy_spawned(enemy: Node) -> void:
 	enemy_list.append(enemy)

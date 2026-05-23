@@ -1,9 +1,20 @@
 extends Node
 
+@export_group("Waves")
+@export var base_wave_interval: float = Constants.BASE_WAVE_INTERVAL
+@export var min_wave_interval: float = Constants.MIN_WAVE_INTERVAL
+@export var wave_interval_decay: float = Constants.WAVE_INTERVAL_DECAY
+
+@export_group("Spawning")
+@export var spawn_distance: float = Constants.SPAWN_DISTANCE
+@export var cleanup_distance: float = Constants.CLEANUP_DISTANCE
+@export var civilian_chance: float = Constants.CIVILIAN_SPAWN_CHANCE
+
 signal wave_spawned(wave_number: int)
 signal enemy_spawned(enemy: Node)
 signal enemy_destroyed(enemy: Node)
 signal boss_spawned(boss: Node)
+signal spawn_minion_requested(enemy_type: String, count: int)
 
 var player: Node = null
 var world_node: Node = null
@@ -32,7 +43,7 @@ func _process(delta: float) -> void:
 	wave_timer -= delta
 	if wave_timer <= 0.0:
 		_spawn_wave()
-		wave_interval = maxf(2.0, 5.0 - (GameManager.difficulty_tier - 1) * 0.3)
+		wave_interval = maxf(min_wave_interval, base_wave_interval - (GameManager.difficulty_tier - 1) * wave_interval_decay)
 		wave_timer = wave_interval
 
 	if randf() < Constants.CIVILIAN_SPAWN_CHANCE * delta:
@@ -102,7 +113,7 @@ func _spawn_civilian() -> void:
 			return
 	var lane = randi_range(0, Constants.LANE_COUNT - 1)
 	var dir = 1.0 if randi() % 2 == 0 else -1.0
-	civilian.init(lane, Constants.BASE_SPEED, dir)
+	civilian.init(lane, Constants.BASE_SPEED, dir, player)
 	civilian.global_position = Vector2(Constants.LANE_POSITIONS[lane], player.global_position.y - Constants.SPAWN_DISTANCE * 0.5)
 	civilian.exited_safely.connect(_on_civilian_safe_exit.bind(civilian), CONNECT_ONE_SHOT)
 	civilian.hit_by_player.connect(_on_civilian_hit.bind(civilian), CONNECT_ONE_SHOT)

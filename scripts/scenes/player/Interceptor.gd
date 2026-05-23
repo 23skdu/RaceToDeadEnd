@@ -1,13 +1,27 @@
 extends CharacterBody2D
 
+@export_group("Movement")
+@export var move_speed: float = Constants.BASE_SPEED
+@export var weave_dist: float = Constants.WEAVE_DISTANCE
+@export var weave_cooldown: float = Constants.WEAVE_COOLDOWN
+
+@export_group("Boost")
+@export var boost_speed_mult: float = Constants.BOOST_SPEED_MULTIPLIER
+@export var boost_duration: float = Constants.BOOST_DURATION
+@export var boost_recharge: float = Constants.BOOST_RECHARGE_TIME
+@export var max_boost: int = 3
+
+@export_group("Combat")
+@export var primary_cooldown: float = Constants.PRIMARY_FIRE_COOLDOWN
+@export var accel_speed: float = Constants.ACCEL_SPEED
+@export var reverse_speed: float = Constants.REVERSE_SPEED
+
 signal weapon_fired(weapon_type: String, position: Vector2, direction: Vector2)
 signal boost_activated
 signal boost_depleted
 signal boost_charge_updated(charges: int)
 signal weapon_switched(weapon_index: int)
 signal damage_taken(amount: int)
-
-const WEAPON_TYPES: Array[String] = ["missile", "mine", "emp"]
 
 var current_lane: int = 1
 var target_x: float = 0.0
@@ -184,10 +198,14 @@ func _fire_secondary() -> void:
 	if secondary_ammo[current_weapon] <= 0:
 		return
 	secondary_ammo[current_weapon] -= 1
-	weapon_fired.emit(WEAPON_TYPES[current_weapon], weapon_mount.global_position, Vector2.UP)
+	weapon_fired.emit(Constants.WEAPON_DATA[current_weapon].type_name, weapon_mount.global_position, Vector2.UP)
 
 func _fire_specific_weapon(type: String) -> void:
-	var idx = WEAPON_TYPES.find(type)
+	var idx = -1
+	for i in Constants.WEAPON_DATA.size():
+		if Constants.WEAPON_DATA[i].type_name == type:
+			idx = i
+			break
 	if idx != -1:
 		if secondary_ammo[idx] > 0:
 			secondary_ammo[idx] -= 1

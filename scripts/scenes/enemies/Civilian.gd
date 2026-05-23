@@ -7,6 +7,7 @@ var speed: float = 150.0
 var direction: float = 1.0
 var _protect_bonus_awarded: bool = false
 var _lane: int = 0
+var _player: Node = null
 
 const BASE_SPRITE_SIZE: float = 48.0
 const BASE_VIEWPORT_WIDTH: float = 1280.0
@@ -19,11 +20,12 @@ func _ready() -> void:
 	z_index = 0
 	_generate_sprite_texture()
 
-func init(start_lane: int, base_speed: float, travel_dir: float) -> void:
+func init(start_lane: int, base_speed: float, travel_dir: float, player_ref: Node = null) -> void:
 	_lane = start_lane
 	speed = base_speed * 0.6
 	direction = travel_dir
 	_protect_bonus_awarded = false
+	_player = player_ref
 
 	var lane_x = Constants.LANE_POSITIONS[start_lane] if start_lane < Constants.LANE_POSITIONS.size() else 0.0
 	global_position = Vector2(lane_x, 0)
@@ -43,9 +45,9 @@ func _generate_sprite_texture() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not _protect_bonus_awarded:
-		var player = get_tree().get_first_node_in_group("player")
-		if player and is_instance_valid(player):
-			var diff = global_position.y - player.global_position.y
+		var p = _player if is_instance_valid(_player) else get_tree().get_first_node_in_group("player")
+		if p and is_instance_valid(p):
+			var diff = global_position.y - p.global_position.y
 			if diff > Constants.CLEANUP_DISTANCE:
 				_protect_bonus_awarded = true
 				exited_safely.emit()
@@ -60,12 +62,14 @@ func take_damage(_amount: int = 1) -> void:
 func on_pool_acquire() -> void:
 	_generate_sprite_texture()
 	_protect_bonus_awarded = false
+	_player = null
 	velocity = Vector2.ZERO
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
 
 func on_pool_release() -> void:
 	_protect_bonus_awarded = false
+	_player = null
 	velocity = Vector2.ZERO
 	for conn in exited_safely.get_connections():
 		exited_safely.disconnect(conn.callable)

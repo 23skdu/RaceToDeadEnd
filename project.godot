@@ -44,6 +44,7 @@ PackManager="*res://scripts/autoload/PackManager.gd"
 CameraShake="*res://scripts/autoload/CameraShake.gd"
 TransitionLayer="*res://scripts/autoload/TransitionLayer.gd"
 Helpers="*res://scripts/autoload/Helpers.gd"
+SettingsManager="*res://scripts/autoload/SettingsManager.gd"
 
 [display]
 
