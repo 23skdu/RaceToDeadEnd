@@ -33,9 +33,8 @@ var current_segment: int = 0
 var player: Node = null
 var white_texture: Texture2D
 
-var _chunk_dual_buffers: Dictionary = {}
+var _chunk_buffers: Dictionary = {}
 var _buffer_in_use: Dictionary = {}
-var _fallback_clones: Array[Node2D] = []
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -87,9 +86,7 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	var old_tiles = _get_tiles_node(chunk)
 	if old_tiles:
 		chunk.remove_child(old_tiles)
-		var was_clone = _mark_buffer_free(old_tiles)
-		if was_clone:
-			old_tiles.queue_free()
+		_mark_buffer_free(old_tiles)
 	
 	var new_tiles = _reserve_tiles(new_type)
 	chunk.add_child(new_tiles)
@@ -98,48 +95,36 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	segment_completed.emit(current_segment)
 
 func _reserve_tiles(chunk_type: ChunkType) -> Node2D:
-	if not _chunk_dual_buffers.has(chunk_type):
-		_chunk_dual_buffers[chunk_type] = [null, null]
-		_buffer_in_use[chunk_type] = [false, false]
+	if not _chunk_buffers.has(chunk_type):
+		_chunk_buffers[chunk_type] = []
+		_buffer_in_use[chunk_type] = []
 	
-	var buffers = _chunk_dual_buffers[chunk_type]
-	var in_use = _buffer_in_use[chunk_type]
+	var buffers: Array = _chunk_buffers[chunk_type]
+	var in_use: Array = _buffer_in_use[chunk_type]
 	
-	for i in 2:
-		if buffers[i] != null and not in_use[i]:
+	for i in buffers.size():
+		if not in_use[i]:
 			in_use[i] = true
 			_reconnect_chunk_signals(buffers[i], chunk_type)
 			return buffers[i]
 	
-	for i in 2:
-		if buffers[i] == null:
-			var tiles = Node2D.new()
-			tiles.name = "Tiles"
-			tiles.set_y_sort_enabled(true)
-			_build_tiles_into(tiles, chunk_type)
-			buffers[i] = tiles
-			in_use[i] = true
-			_reconnect_chunk_signals(tiles, chunk_type)
-			return tiles
-	
-	var clone = buffers[0].duplicate()
-	_fallback_clones.append(clone)
-	_reconnect_chunk_signals(clone, chunk_type)
-	return clone
+	var tiles = Node2D.new()
+	tiles.name = "Tiles"
+	tiles.set_y_sort_enabled(true)
+	_build_tiles_into(tiles, chunk_type)
+	buffers.append(tiles)
+	in_use.append(true)
+	_reconnect_chunk_signals(tiles, chunk_type)
+	return tiles
 
-func _mark_buffer_free(tiles_node: Node2D) -> bool:
-	for chunk_type in _chunk_dual_buffers:
-		var buffers = _chunk_dual_buffers[chunk_type]
-		var in_use = _buffer_in_use.get(chunk_type, [false, false])
-		for i in 2:
+func _mark_buffer_free(tiles_node: Node2D) -> void:
+	for chunk_type in _chunk_buffers:
+		var buffers: Array = _chunk_buffers[chunk_type]
+		var in_use: Array = _buffer_in_use[chunk_type]
+		for i in buffers.size():
 			if buffers[i] == tiles_node:
 				in_use[i] = false
-				return false
-	var idx = _fallback_clones.find(tiles_node)
-	if idx >= 0:
-		_fallback_clones.remove_at(idx)
-		return true
-	return false
+				return
 
 func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
 	if chunk_type == ChunkType.ICE:

@@ -1,5 +1,8 @@
 extends CharacterBody2D
 
+const HelpersUtil = preload("res://scripts/utils/Helpers.gd")
+
+
 signal destroyed(position: Vector2, enemy_type: String, enemy: Node)
 
 enum EnemyType { ROTOR, SCAV, DRONE }
@@ -60,7 +63,7 @@ func _update_sprite() -> void:
 	_scale_sprite()
 
 func _scale_sprite() -> void:
-	Helpers.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
+	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
 func _physics_process(delta: float) -> void:
 	if stunned:

@@ -1,5 +1,8 @@
 extends CharacterBody2D
 
+const HelpersUtil = preload("res://scripts/utils/Helpers.gd")
+
+
 @export_group("Movement")
 @export var move_speed: float = Constants.BASE_SPEED
 @export var weave_dist: float = Constants.WEAVE_DISTANCE
@@ -100,10 +103,10 @@ func _physics_process(delta: float) -> void:
 	
 	velocity.y = -effective_speed
 	
-	# Restrict reversing to not go beyond the current tile (approx 240 pixels)
-	if velocity.y > 0 and position.y >= max_forward_y + 240.0:
+	# Restrict reversing tightly (approx 50 pixels) to prevent scrolling backwards past the camera
+	if velocity.y > 0 and position.y >= max_forward_y + 50.0:
 		velocity.y = 0.0
-		position.y = max_forward_y + 240.0
+		position.y = max_forward_y + 50.0
 		
 	var x_diff = target_x - position.x
 	
@@ -266,7 +269,7 @@ func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
 
 func _scale_sprite() -> void:
-	Helpers.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
+	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
 func add_boost() -> void:
 	if boost_charges < max_boost_charges:

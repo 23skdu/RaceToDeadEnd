@@ -12,7 +12,7 @@ Isometric vehicular combat racing game. Drive a futuristic interceptor down an e
 ## Controls
 
 | Action | Key |
-|---|---|
+| --- | --- |
 | Move left/right | A / D |
 | Accelerate | W |
 | Brake | S |
@@ -30,7 +30,7 @@ Isometric vehicular combat racing game. Drive a futuristic interceptor down an e
 
 ## Directory Structure
 
-```
+```text
 res://
 ├── assets/          # Sprites, audio, tilesets
 ├── addons/          # External plugins
