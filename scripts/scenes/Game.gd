@@ -190,7 +190,7 @@ func _hide_pause_menu() -> void:
 
 func _show_pause_options() -> void:
 	_hide_pause_menu()
-	get_tree().paused = false
+	get_tree().paused = true
 	_options_menu = preload("res://scenes/ui/Options.tscn").instantiate()
 	add_child(_options_menu)
 	_options_menu.back_to_menu_requested.connect(func():

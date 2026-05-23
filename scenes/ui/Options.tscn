@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/scenes/ui/InputRemap.gd" id="2_input"]
 
 [node name="Options" type="CanvasLayer"]
+process_mode = 3
 script = ExtResource("1_opts")
 
 [node name="Panel" type="ColorRect" parent="."]
