@@ -352,12 +352,14 @@ func test_build_tiles_into_construction_creates_tiles():
 			break
 	assert_true(has_shoulder, "CONSTRUCTION tiles should contain MultiMeshInstance2D children")
 
-func test_get_cached_or_build_returns_duplicate():
+func test_reserve_tiles_returns_two_buffers():
 	var h = Highway.new()
-	var first = h._get_cached_or_build(h.ChunkType.STANDARD)
-	var second = h._get_cached_or_build(h.ChunkType.STANDARD)
-	assert_true(first != second, "Second call should return a different instance (duplicate of cached)")
-	assert_eq(first.get_child_count(), second.get_child_count(), "Duplicate should have same child count as original")
+	var first = h._reserve_tiles(h.ChunkType.STANDARD)
+	var second = h._reserve_tiles(h.ChunkType.STANDARD)
+	assert_true(first != second, "Two calls should return different instances (dual buffers)")
+	assert_eq(first.get_child_count(), second.get_child_count(), "Both buffers should have same child count")
+	assert_eq(first.name, "Tiles", "Buffer should be named Tiles")
+	assert_eq(second.name, "Tiles", "Buffer should be named Tiles")
 
 func test_reconnect_chunk_signals_connects_ice_areas():
 	var h = Highway.new()

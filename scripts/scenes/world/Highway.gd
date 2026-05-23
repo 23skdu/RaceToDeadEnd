@@ -33,8 +33,8 @@ var current_segment: int = 0
 var player: Node = null
 var white_texture: Texture2D
 
-var _chunk_template_cache: Dictionary = {}
-var _chunk_recycle_pool: Dictionary = {}
+var _chunk_dual_buffers: Dictionary = {}
+var _buffer_in_use: Dictionary = {}
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -66,7 +66,7 @@ func _spawn_chunk(offset: int) -> void:
 	chunk.set_meta("chunk_type", chunk_type)
 	chunk.set_meta("segment", current_segment)
 	
-	var tiles = _get_cached_or_build(chunk_type)
+	var tiles = _reserve_tiles(chunk_type)
 	chunk.add_child(tiles)
 	
 	active_chunks.append(chunk)
@@ -83,70 +83,53 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	chunk.set_meta("chunk_type", new_type)
 	chunk.set_meta("segment", current_segment)
 	
-	# Detach old tiles and return to recycle pool before adding new ones
 	var old_tiles = _get_tiles_node(chunk)
 	if old_tiles:
 		chunk.remove_child(old_tiles)
-		_put_tiles_in_recycle_pool(old_tiles)
+		_mark_buffer_free(old_tiles)
 	
-	var new_tiles = _get_cached_or_build(new_type)
+	var new_tiles = _reserve_tiles(new_type)
 	chunk.add_child(new_tiles)
 	
 	current_segment += 1
 	segment_completed.emit(current_segment)
 
-func _put_tiles_in_recycle_pool(tiles_node: Node2D) -> void:
-	var chunk_type = _detect_chunk_type(tiles_node)
-	if chunk_type != null:
-		if not _chunk_recycle_pool.has(chunk_type):
-			_chunk_recycle_pool[chunk_type] = []
-		_chunk_recycle_pool[chunk_type].append(tiles_node)
+func _reserve_tiles(chunk_type: ChunkType) -> Node2D:
+	if not _chunk_dual_buffers.has(chunk_type):
+		_chunk_dual_buffers[chunk_type] = [null, null]
+		_buffer_in_use[chunk_type] = [false, false]
+	
+	var buffers = _chunk_dual_buffers[chunk_type]
+	var in_use = _buffer_in_use[chunk_type]
+	
+	for i in 2:
+		if buffers[i] != null and not in_use[i]:
+			in_use[i] = true
+			_reconnect_chunk_signals(buffers[i], chunk_type)
+			return buffers[i]
+	
+	for i in 2:
+		if buffers[i] == null:
+			var tiles = Node2D.new()
+			tiles.name = "Tiles"
+			tiles.set_y_sort_enabled(true)
+			_build_tiles_into(tiles, chunk_type)
+			buffers[i] = tiles
+			in_use[i] = true
+			_reconnect_chunk_signals(tiles, chunk_type)
+			return tiles
+	
+	var clone = buffers[0].duplicate()
+	_reconnect_chunk_signals(clone, chunk_type)
+	return clone
 
-func _detect_chunk_type(tiles_node: Node2D) -> Variant:
-	for child in tiles_node.get_children():
-		if child is Area2D:
-			if child.body_entered.is_connected(_on_ice_entered):
-				return ChunkType.ICE
-			if child.body_entered.is_connected(_on_bridge_fall):
-				return ChunkType.BRIDGE
-	for child in tiles_node.get_children():
-		if child is Line2D:
-			if child.default_color == Color(0.0, 0.8, 1.0):
-				return ChunkType.BRIDGE
-			return ChunkType.STANDARD
-	return ChunkType.STANDARD
-
-func _get_cached_or_build(chunk_type: ChunkType) -> Node2D:
-	var pool: Array = _chunk_recycle_pool.get(chunk_type, [])
-	if pool.size() > 0:
-		var recycled = pool.pop_back() as Node2D
-		if recycled and is_instance_valid(recycled):
-			_reconnect_chunk_signals(recycled, chunk_type)
-			_reapply_tile_variant(recycled, chunk_type)
-			return recycled
-	
-	if _chunk_template_cache.has(chunk_type):
-		var cached = _chunk_template_cache[chunk_type]
-		var clone = cached.duplicate()
-		_reconnect_chunk_signals(clone, chunk_type)
-		return clone
-	
-	var tiles = Node2D.new()
-	tiles.name = "Tiles"
-	tiles.set_y_sort_enabled(true)
-	_build_tiles_into(tiles, chunk_type)
-	
-	_chunk_template_cache[chunk_type] = tiles
-	
-	_reconnect_chunk_signals(tiles, chunk_type)
-	return tiles
-
-func _reapply_tile_variant(tiles_node: Node2D, chunk_type: ChunkType) -> void:
-	# For recycled tiles, we need to clear obsolete obstacles and rebuild
-	# Since variants are embedded in _build_tiles_into, recycled tiles retain their original
-	# variant colors. For non-standard types, the visual differences are inherent in the
-	# MultiMesh colors which don't change per recycle cycle, so no reapplication is needed.
-	pass
+func _mark_buffer_free(tiles_node: Node2D) -> void:
+	for chunk_type in _chunk_dual_buffers:
+		var buffers = _chunk_dual_buffers[chunk_type]
+		var in_use = _buffer_in_use.get(chunk_type, [false, false])
+		for i in 2:
+			if buffers[i] == tiles_node:
+				in_use[i] = false
 
 func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
 	if chunk_type == ChunkType.ICE:
