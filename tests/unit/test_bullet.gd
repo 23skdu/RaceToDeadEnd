@@ -261,3 +261,11 @@ func test_find_nearest_returns_null_when_all_out_of_range():
 	add_child_autofree(distant)
 	var result = b._find_nearest([distant])
 	assert_null(result, "Should return null when all enemies out of range")
+
+func test_max_homing_range_constant():
+	var bullet = _create_bullet()
+	assert_eq(bullet.MAX_HOMING_RANGE, 400.0, "MAX_HOMING_RANGE should be 400")
+
+func test_early_out_dist_sq_constant():
+	var bullet = _create_bullet()
+	assert_eq(bullet.EARLY_OUT_DIST_SQ, 4000.0, "EARLY_OUT_DIST_SQ should be 4000")

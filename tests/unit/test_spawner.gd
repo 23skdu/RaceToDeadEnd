@@ -547,3 +547,7 @@ func test_cleanup_timer_throttles_iteration():
 	assert_true(GameManager.enemy_list.has(far_enemy), "Enemy should not be cleaned up before timer expires")
 	s._process(0.2)
 	assert_false(GameManager.enemy_list.has(far_enemy), "Enemy should be cleaned up after timer expires")
+
+func test_spawner_uses_game_manager_enemy_list_only():
+	var s = Spawner.new()
+	assert_false("active_enemies" in s, "Spawner should not have its own active_enemies list")
