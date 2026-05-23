@@ -250,3 +250,32 @@ func test_all_color_constants_are_color_type():
 	assert_true(Constants.ACID_OVERLAY_CLEAR is Color)
 	assert_true(Constants.ACID_OVERLAY_COLOR_LIGHT is Color)
 	assert_true(Constants.ACID_OVERLAY_COLOR_HEAVY is Color)
+
+func test_fire_rate_constants():
+	assert_eq(Constants.FIRE_RATE_STEP, 0.01, "Fire rate step should be 0.01")
+	assert_eq(Constants.FIRE_RATE_MIN, 0.05, "Fire rate min should be 0.05")
+	assert_eq(Constants.FIRE_RATE_MAX, 0.1, "Fire rate max should be 0.1")
+
+func test_scav_constants():
+	assert_eq(Constants.SCAV_RAM_DIST_Y, 120.0, "Scav ram Y distance")
+	assert_eq(Constants.SCAV_RAM_DIST_X, 80.0, "Scav ram X distance")
+	assert_eq(Constants.SCAV_LATERAL_RAM_SPEED, 300.0, "Scav lateral ram speed")
+	assert_eq(Constants.SCAV_LATERAL_NORMAL_SPEED, 150.0, "Scav lateral normal speed")
+
+func test_boss_constants():
+	assert_eq(Constants.BOSS_RAM_FORCE, 200.0, "Boss ram force")
+	assert_eq(Constants.BOSS_RAM_SPEED, 500.0, "Boss ram speed")
+
+func test_highway_chunk_weight_constants():
+	assert_eq(Constants.CHUNK_WEIGHT_STANDARD_BASE, 40.0, "Standard chunk base weight")
+	assert_eq(Constants.CHUNK_WEIGHT_DEBRIS_BASE, 20.0, "Debris chunk base weight")
+	assert_eq(Constants.CHUNK_WEIGHT_ICE_BASE, 10.0, "Ice chunk base weight")
+	assert_eq(Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE, 15.0, "Construction chunk base weight")
+	assert_eq(Constants.CHUNK_WEIGHT_BRIDGE_BASE, 15.0, "Bridge chunk base weight")
+	assert_eq(Constants.CHUNK_HAZARD_CAP, 10, "Hazard tier cap")
+	assert_eq(Constants.CHUNK_HAZARD_STEP, 2, "Hazard step per tier")
+	assert_eq(Constants.CHUNK_WEIGHT_STANDARD_MIN, 15.0, "Standard min weight")
+	assert_eq(Constants.CHUNK_WEIGHT_DEBRIS_MAX, 35.0, "Debris max weight")
+	assert_eq(Constants.CHUNK_WEIGHT_ICE_MAX, 25.0, "Ice max weight")
+	assert_eq(Constants.CHUNK_WEIGHT_CONSTRUCTION_MAX, 30.0, "Construction max weight")
+	assert_eq(Constants.CHUNK_WEIGHT_BRIDGE_MAX, 30.0, "Bridge max weight")

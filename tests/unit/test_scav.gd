@@ -115,3 +115,9 @@ func test_scav_speed_matches_init():
 	var player = MockPlayer.new()
 	scav.init(scav.EnemyType.SCAV, 0, player, 200.0)
 	assert_eq(scav.speed, 140.0, "Scav speed should be 70% of base")
+
+func test_scav_weapon_mount_onready_cached():
+	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
+	add_child_autofree(scav)
+	assert_not_null(scav._weapon_mount, "_weapon_mount should be cached via @onready")
+	assert_eq(scav._weapon_mount.name, "WeaponMount", "Cached node should be WeaponMount")

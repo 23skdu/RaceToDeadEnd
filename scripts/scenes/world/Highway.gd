@@ -21,11 +21,11 @@ const HALF_CHUNK: float = (CHUNK_WIDTH - 1) / 2.0
 enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
 
 var chunk_weights: Dictionary = {
-	ChunkType.STANDARD: 40,
-	ChunkType.DEBRIS: 20,
-	ChunkType.ICE: 10,
-	ChunkType.CONSTRUCTION: 15,
-	ChunkType.BRIDGE: 15,
+	ChunkType.STANDARD: Constants.CHUNK_WEIGHT_STANDARD_BASE,
+	ChunkType.DEBRIS: Constants.CHUNK_WEIGHT_DEBRIS_BASE,
+	ChunkType.ICE: Constants.CHUNK_WEIGHT_ICE_BASE,
+	ChunkType.CONSTRUCTION: Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE,
+	ChunkType.BRIDGE: Constants.CHUNK_WEIGHT_BRIDGE_BASE,
 }
 
 var active_chunks: Array[Node2D] = []
@@ -164,12 +164,12 @@ func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void
 
 func _pick_chunk_type() -> ChunkType:
 	var tier = GameManager.difficulty_tier
-	var hazard_increase = mini(tier - 1, 10) * 2
-	var w_standard = maxi(40 - hazard_increase * 2, 15)
-	var w_debris = mini(20 + hazard_increase, 35)
-	var w_ice = mini(10 + hazard_increase, 25)
-	var w_construction = mini(15 + hazard_increase, 30)
-	var w_bridge = mini(15 + hazard_increase, 30)
+	var hazard_increase = mini(tier - 1, Constants.CHUNK_HAZARD_CAP) * Constants.CHUNK_HAZARD_STEP
+	var w_standard = maxi(Constants.CHUNK_WEIGHT_STANDARD_BASE - hazard_increase * Constants.CHUNK_HAZARD_STEP, Constants.CHUNK_WEIGHT_STANDARD_MIN)
+	var w_debris = mini(Constants.CHUNK_WEIGHT_DEBRIS_BASE + hazard_increase, Constants.CHUNK_WEIGHT_DEBRIS_MAX)
+	var w_ice = mini(Constants.CHUNK_WEIGHT_ICE_BASE + hazard_increase, Constants.CHUNK_WEIGHT_ICE_MAX)
+	var w_construction = mini(Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE + hazard_increase, Constants.CHUNK_WEIGHT_CONSTRUCTION_MAX)
+	var w_bridge = mini(Constants.CHUNK_WEIGHT_BRIDGE_BASE + hazard_increase, Constants.CHUNK_WEIGHT_BRIDGE_MAX)
 	var total = w_standard + w_debris + w_ice + w_construction + w_bridge
 	var roll = _rng.randi() % total
 	if roll < w_standard:

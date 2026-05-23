@@ -96,6 +96,35 @@ const SCAV_FLANK_OFFSET: float = 64.0
 const MULTIPLIER_BAR_WIDTH: float = 120.0
 const MULTIPLIER_BAR_HEIGHT: float = 8.0
 
+# Fire Rate Upgrade
+const FIRE_RATE_STEP: float = 0.01
+const FIRE_RATE_MIN: float = 0.05
+const FIRE_RATE_MAX: float = 0.1
+
+# Scav
+const SCAV_RAM_DIST_Y: float = 120.0
+const SCAV_RAM_DIST_X: float = 80.0
+const SCAV_LATERAL_RAM_SPEED: float = 300.0
+const SCAV_LATERAL_NORMAL_SPEED: float = 150.0
+
+# Boss
+const BOSS_RAM_FORCE: float = 200.0
+const BOSS_RAM_SPEED: float = 500.0
+
+# Highway chunk weights
+const CHUNK_WEIGHT_STANDARD_BASE: float = 40.0
+const CHUNK_WEIGHT_DEBRIS_BASE: float = 20.0
+const CHUNK_WEIGHT_ICE_BASE: float = 10.0
+const CHUNK_WEIGHT_CONSTRUCTION_BASE: float = 15.0
+const CHUNK_WEIGHT_BRIDGE_BASE: float = 15.0
+const CHUNK_HAZARD_CAP: int = 10
+const CHUNK_HAZARD_STEP: int = 2
+const CHUNK_WEIGHT_STANDARD_MIN: float = 15.0
+const CHUNK_WEIGHT_DEBRIS_MAX: float = 35.0
+const CHUNK_WEIGHT_ICE_MAX: float = 25.0
+const CHUNK_WEIGHT_CONSTRUCTION_MAX: float = 30.0
+const CHUNK_WEIGHT_BRIDGE_MAX: float = 30.0
+
 # Weapon Data (shared between Interceptor and HUD)
 const WEAPON_DATA: Array[Dictionary] = [
 	{type_name = "missile", display_name = "Homing Missile", color = Color.RED, base_ammo = 30},

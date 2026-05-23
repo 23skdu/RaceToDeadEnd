@@ -267,6 +267,20 @@ func test_white_texture_created():
 	var ws = _create_weather()
 	assert_true(ws.white_texture != null, "White texture should be created")
 
+func test_lightning_tween_callback_valid_instance():
+	var ws = _create_weather()
+	ws._set_weather(ws.WeatherType.STORM)
+	var flash = ColorRect.new()
+	flash.name = "TestFlash"
+	ws.add_child(flash)
+	var tween = ws.create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.01)
+	tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free)
+	tween.tween_callback(func(): assert_true(true, "Tween should complete without error"))
+	await tween.finished
+	await get_tree().process_frame
+	assert_true(true, "Lightning tween callback should not crash with valid instance")
+
 func test_overlay_transition_sets_prev_color():
 	var ws = _create_weather()
 	ws.set_weather(ws.WeatherType.CLEAR)

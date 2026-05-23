@@ -24,6 +24,7 @@ var wave_interval: float = 5.0
 var current_wave: int = 0
 
 var _bosses_spawned: int = 0
+var _cleanup_timer: float = 0.0
 
 func _ready() -> void:
 	enemy_scenes["rotor"] = preload("res://scenes/enemies/Rotor.tscn") if ResourceLoader.exists("res://scenes/enemies/Rotor.tscn") else null
@@ -47,7 +48,12 @@ func _process(delta: float) -> void:
 
 	if randf() < Constants.CIVILIAN_SPAWN_CHANCE * delta:
 		_spawn_civilian()
-		
+	
+	_cleanup_timer -= delta
+	if _cleanup_timer > 0.0:
+		return
+	_cleanup_timer = 0.25
+	
 	var player_y = player.global_position.y
 	var i = GameManager.enemy_list.size() - 1
 	while i >= 0:
@@ -56,6 +62,8 @@ func _process(delta: float) -> void:
 			GameManager.enemy_list.remove_at(i)
 		elif e.global_position.y - player_y > Constants.CLEANUP_DISTANCE:
 			GameManager.enemy_list.remove_at(i)
+			if e.has_signal("destroyed") and e.destroyed.is_connected(_on_enemy_destroyed):
+				e.destroyed.disconnect(_on_enemy_destroyed)
 			if e.has_method("on_pool_release"):
 				ObjectPool.release(e)
 			else:

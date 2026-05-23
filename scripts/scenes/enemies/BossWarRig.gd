@@ -75,7 +75,7 @@ func _execute_attack() -> void:
 	_ram_player()
 
 func _ram_player() -> void:
-	velocity.x = move_toward(velocity.x, 200.0 * (1 if player and player.global_position.x > global_position.x else -1), 500.0 * get_process_delta_time())
+	velocity.x = move_toward(velocity.x, Constants.BOSS_RAM_FORCE * (1 if player and player.global_position.x > global_position.x else -1), Constants.BOSS_RAM_SPEED * get_process_delta_time())
 	CameraShake.shake(0.4, 0.2, 6.0)
 	CameraShake.rumble(0.5, 0.2)
 

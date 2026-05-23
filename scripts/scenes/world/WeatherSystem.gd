@@ -178,7 +178,7 @@ func _spawn_lightning_strike() -> void:
 	
 	var tween = create_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(flash.queue_free)
+	tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free)
 	
 	lightning_strike.emit(strike_pos)
 	AudioManager.play_lightning_strike(strike_pos)
@@ -208,7 +208,7 @@ func _create_lightning_bolt(start_pos: Vector2) -> void:
 	
 	var tween = create_tween()
 	tween.tween_property(bolt, "modulate:a", 0.0, 0.2)
-	tween.tween_callback(bolt.queue_free)
+	tween.tween_callback(func(): if is_instance_valid(bolt): bolt.queue_free)
 
 func _create_lightning_flash(pos: Vector2) -> Node:
 	var flash = ColorRect.new()

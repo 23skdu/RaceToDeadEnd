@@ -33,7 +33,7 @@ func _on_health_updated(health: int) -> void:
 	health_bar.value = health
 
 func _on_multiplier_updated(multiplier: int) -> void:
-	multiplier_label.text = "x" + str(multiplier)
+	multiplier_label.text = "x%d" % multiplier
 
 func _on_multiplier_timer_updated(time_left: float) -> void:
 	var active = time_left > 0.0
@@ -46,7 +46,7 @@ func _on_multiplier_timer_updated(time_left: float) -> void:
 			multiplier_timer_bar.modulate = Color(1.0, pulse, 0.0)
 
 func _on_tier_changed(tier: int) -> void:
-	tier_label.text = "TIER " + str(tier)
+	tier_label.text = "TIER %d" % tier
 
 func update_boost_charges(charges: int) -> void:
 	for i in boost_indicators.size():

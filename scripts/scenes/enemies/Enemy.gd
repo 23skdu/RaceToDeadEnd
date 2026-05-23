@@ -88,6 +88,8 @@ func on_pool_release() -> void:
 	speed = 200.0
 	sprite.modulate = Color.WHITE
 	velocity = Vector2.ZERO
+	if _spawner and destroyed.is_connected(_spawner._on_enemy_destroyed):
+		destroyed.disconnect(_spawner._on_enemy_destroyed)
 
 func _play_hit_sound() -> void:
 	match enemy_type:

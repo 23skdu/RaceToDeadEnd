@@ -581,3 +581,160 @@ if time_left < 3.0:
 | 77 | HUD Multiplier Timer Per-Frame sin() | Low | Low | P3 |
 
 **Previously deferred (unchanged):** Part 22 (TileMapLayer Highway, P3), Part 35 (class_name EnemyBase, P3), Part 40 (Integration Tests, P1).
+
+---
+
+## Phase 7: Deep Codebase Audit — 10 Improvement Suggestions (COMPLETED)
+
+10 additional improvement suggestions identified via systematic codebase analysis. Focus: signal leak prevention, pool lifecycle correctness, null safety, node path optimization, magic number centralization, and string formatting consistency.
+
+### Suggestion 81: Spawner Cleanup Signal Disconnect
+
+**Problem:** When `Spawner._process()` cleans up an enemy that has scrolled past `CLEANUP_DISTANCE`, it calls `ObjectPool.release(e)` but does not disconnect the `destroyed` signal that was connected during spawning. This leaves a stale signal connection pointing at `Spawner._on_enemy_destroyed`. When the enemy is re-acquired from the pool and re-enters play, `_spawn_enemy()` connects the signal again — creating a duplicate connection that fires twice on death.
+
+**Current code:** Cleanup loop calls `ObjectPool.release(e)` without any signal management. `_spawn_enemy()` always calls `enemy.destroyed.connect(_on_enemy_destroyed)` unconditionally.
+
+**Fix:** Before `ObjectPool.release()` in the cleanup loop, check `e.destroyed.is_connected(_on_enemy_destroyed)` and disconnect if true.
+
+**Tests:** `test_cleanup_disconnects_destroyed_signal` — spawn enemy, verify signal connected, run cleanup, verify signal disconnected.
+
+---
+
+### Suggestion 82: ObjectPool Fallback Pool Name Leak
+
+**Problem:** `ObjectPool.acquire()` has a fallback path that instantiates a new instance from the scene path when the pool is empty. The fallback path was setting `fallback.set_meta("_pool_name", pool_name)`, which causes the fallback instance to be returned to the pool on `release()`. This means:
+- Fallback instances that should be `queue_free()`'d after a single use (like EMPBlast, which has no `on_pool_release()` cycle) are instead re-added to the pool.
+- The pool grows without bound via fallback instances.
+- The `_pool_name` metadata is the only discriminator between "poolable" and "non-poolable" instances.
+
+**Current code:** `acquire()` fallback sets `_pool_name` meta, causing the fallback instance to be poolable.
+
+**Fix:** Remove `fallback.set_meta("_pool_name", pool_name)` from the fallback path. Fallback instances will not have `_pool_name` set, so `ObjectPool.release()` will fall through to `queue_free()`.
+
+**Tests:** `test_emp_fallback_does_not_set_pool_name` — instantiate EMP, verify no `_pool_name` meta exists.
+
+---
+
+### Suggestion 83: Spawner Cleanup Loop Unthrottled
+
+**Problem:** `Spawner._process()` runs the full enemy cleanup loop (iterating `GameManager.enemy_list`) every frame. With 30+ enemies, this means 30+ `is_instance_valid` checks and potentially 30+ `global_position.y` comparisons every frame (60 times per second = 1800 checks/s). The cleanup only needs to run at most 4 times per second (the rate at which an enemy can scroll past `CLEANUP_DISTANCE` at max speed).
+
+**Current code:** Cleanup runs unconditionally inside `_process()` with no rate limiting.
+
+**Fix:** Add `_cleanup_timer: float` that decrements by `delta` each frame, defaulting to 0. When `_cleanup_timer > 0.0`, skip cleanup. Reset to 0.25s after running.
+
+**Tests:** `test_cleanup_timer_throttles_iteration` — set timer to 0.25, add enemy, run 0.1s delta (should skip), run 0.2s more (should process).
+
+---
+
+### Suggestion 84: WeatherSystem Lightning Tween Null Safety
+
+**Problem:** In `WeatherSystem._spawn_lightning_strike()` and `_create_lightning_bolt()`, tween callbacks call `flash.queue_free` and `bolt.queue_free` directly. If the lightning flash or bolt node is freed before the tween completes (e.g., scene transition, weather reset), the callback throws an error: `"Attempt to call method 'queue_free' on a null instance."`. This occurs silently but generates error spam in debug builds.
+
+**Current code:** `tween.tween_callback(flash.queue_free)` — passes the method directly, no null guard.
+
+**Fix:** Wrap in lambda: `tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free)`.
+
+**Tests:** `test_lightning_tween_callback_valid_instance` — create flash, tween, wait for completion, verify no crash.
+
+---
+
+### Suggestion 85: Enemy Pool Release Signal Disconnect
+
+**Problem:** `Enemy.on_pool_release()` resets all state (HP, speed, stun, etc.) but does not disconnect the `destroyed` signal from `_spawner._on_enemy_destroyed`. When the enemy is re-acquired from pool and re-initialized, `_spawn_enemy()` re-connects the signal, creating a duplicate connection. On death, `_on_enemy_destroyed` fires twice, awarding double score and double SFX.
+
+**Current code:** `on_pool_release()` resets HP, speed, stun. No signal management.
+
+**Fix:** In `on_pool_release()`, if `_spawner` is valid and `destroyed` is connected to `_spawner._on_enemy_destroyed`, disconnect it.
+
+**Tests:** `test_on_pool_release_disconnects_destroyed_signal` — connect signal to mock spawner, release, verify disconnected.
+
+---
+
+### Suggestion 86: Scav WeaponMount Node Path Redundancy
+
+**Problem:** `Scav._fire_bullet()` calls `$WeaponMount` every time it fires a bullet. With Scavs firing every ~2.5 seconds at tiers 6+, this is a node path resolution per shot. Node path resolution (`$WeaponMount`) is slower than accessing a cached reference because it walks the scene tree.
+
+**Current code:** `$WeaponMount.global_position` in `_fire_bullet()` resolves the path every frame.
+
+**Fix:** Add `@onready var _weapon_mount: Node2D = $WeaponMount` and reference `_weapon_mount.global_position` instead.
+
+**Tests:** `test_scav_weapon_mount_onready_cached` — instantiate Scav, verify `_weapon_mount` is non-null and named "WeaponMount".
+
+---
+
+### Suggestion 87: Interceptor Lane-to-X Out-of-Bounds Crash
+
+**Problem:** `Interceptor._lane_to_x()` accesses `Constants.LANE_POSITIONS[lane]` with no bounds check. If a negative lane index or an index ≥ `LANE_POSITIONS.size()` is passed (e.g., from a code path calling `_lane_to_x(-1)` or `_lane_to_x(10)`), this produces a subscript error: `"Index out of bounds."`. The lane index is always valid in normal gameplay (clamped by InputRemap), but future features or boss attacks that manipulate the player lane could trigger this.
+
+**Current code:** `return Constants.LANE_POSITIONS[lane] if lane < LANE_POSITIONS.size() else 0.0` — only guards against one direction, returns 0.0 (center) for invalid values.
+
+**Fix:** Use `clampi(lane, 0, LANE_POSITIONS.size() - 1)` to clamp to valid range before indexing.
+
+**Tests:** `test_lane_to_x_clamps_negative` and `test_lane_to_x_clamps_above_max` — verify clamping returns valid lane positions.
+
+---
+
+### Suggestion 88: Constants Centralization
+
+**Problem:** Multiple scripts use magic numbers that should be centralized in `Constants.gd`:
+- `Interceptor.gd:91`: `0.01`, `0.05`, `0.1` for fire rate calculation (already uses `Constants.PRIMARY_FIRE_COOLDOWN` for the base)
+- `Scav.gd:53-63`: `120.0`, `80.0`, `300.0`, `150.0` for ram distance and lateral speed thresholds
+- `BossWarRig.gd:78`: `200.0`, `500.0` for ram force and speed
+- Various other scattered magic numbers
+
+**Current code:** Magic numbers embedded inline.
+
+**Fix:** Added the following constants to `Constants.gd`:
+- `FIRE_RATE_STEP`, `FIRE_RATE_MIN`, `FIRE_RATE_MAX` — fire rate upgrade scaling
+- `SCAV_RAM_DIST_Y`, `SCAV_RAM_DIST_X` — scav ram detection thresholds
+- `SCAV_LATERAL_RAM_SPEED`, `SCAV_LATERAL_NORMAL_SPEED` — scav lateral movement
+- `BOSS_RAM_FORCE`, `BOSS_RAM_SPEED` — boss ram physics
+- `CHUNK_WEIGHT_*`, `CHUNK_HAZARD_*` — highway chunk weight parameters
+
+Updated all references to use the new constants.
+
+**Tests:** `test_fire_rate_constants`, `test_scav_constants`, `test_boss_constants`, `test_highway_chunk_weight_constants` — verify constant values.
+
+---
+
+### Suggestion 89: HUD String Concatenation
+
+**Problem:** `HUD.gd` uses `+` string concatenation for label text: `"x" + str(multiplier)` and `"TIER " + str(tier)`. String concatenation in GDScript allocates intermediate strings and is slower than format strings. With labels updating every frame during multiplier decay or tier transitions, this generates unnecessary garbage.
+
+**Current code:** `multiplier_label.text = "x" + str(multiplier)` and `tier_label.text = "TIER " + str(tier)`.
+
+**Fix:** Replace with `"x%d" % multiplier` and `"TIER %d" % tier` — the `%` format operator is faster and allocates fewer intermediate strings.
+
+**Tests:** Existing `test_hud_multiplier_update` and `test_hud_tier_update` verify the output text remains identical.
+
+---
+
+### Suggestion 90: Highway Chunk Weight Constants Centralization
+
+**Problem:** `Highway.gd` defines chunk weights as literal Dictionary values (40, 20, 10, 15, 15) and dynamic weight adjustments with magic numbers `40`, `20`, `10`, `15`, `15` and max/min caps `15`, `35`, `25`, `30`, `30` inside `_pick_chunk_type()`. These weights should be defined in `Constants.gd` along with max/min cap constants.
+
+**Current code:** `var chunk_weights` dictionary with inline values. `_pick_chunk_type()` uses inline magic numbers.
+
+**Fix:** Move base weights to `Constants.gd` as `CHUNK_WEIGHT_STANDARD_BASE = 40.0`, etc., plus `CHUNK_HAZARD_CAP`, `CHUNK_HAZARD_STEP`, and per-type max/min constants. Reference from `Constants.gd` in both `chunk_weights` initialization and `_pick_chunk_type()`.
+
+**Tests:** `test_chunk_weights_use_constants` — verify chunk_weights match `Constants.CHUNK_WEIGHT_*_BASE`.
+
+---
+
+## Priority Matrix (Phase 7)
+
+| Suggestion | Title | Effort | Impact | Priority |
+|------------|-------|--------|--------|----------|
+| 81 | Spawner Cleanup Signal Disconnect | Low | High | P1 |
+| 82 | ObjectPool Fallback Pool Name Leak | Low | High | P1 |
+| 83 | Spawner Cleanup Loop Unthrottled | Low | Medium | P2 |
+| 84 | WeatherSystem Lightning Tween Null Safety | Low | Medium | P2 |
+| 85 | Enemy Pool Release Signal Disconnect | Low | High | P1 |
+| 86 | Scav WeaponMount Node Path Redundancy | Low | Low | P3 |
+| 87 | Interceptor Lane-to-X Out-of-Bounds Crash | Low | Medium | P2 |
+| 88 | Constants Centralization | Low | Low | P3 |
+| 89 | HUD String Concatenation | Low | Low | P3 |
+| 90 | Highway Chunk Weight Constants Centralization | Low | Low | P3 |
+
+**Previously deferred (unchanged):** Part 22 (TileMapLayer Highway, P3), Part 35 (class_name EnemyBase, P3), Part 40 (Integration Tests, P1).

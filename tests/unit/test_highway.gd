@@ -33,6 +33,14 @@ func test_chunk_weights_sum():
 		total += w
 	assert_eq(total, 100, "Total weight should be 100")
 
+func test_chunk_weights_use_constants():
+	var h = Highway.new()
+	assert_eq(h.chunk_weights[h.ChunkType.STANDARD], Constants.CHUNK_WEIGHT_STANDARD_BASE, "Standard weight should use constant")
+	assert_eq(h.chunk_weights[h.ChunkType.DEBRIS], Constants.CHUNK_WEIGHT_DEBRIS_BASE, "Debris weight should use constant")
+	assert_eq(h.chunk_weights[h.ChunkType.ICE], Constants.CHUNK_WEIGHT_ICE_BASE, "Ice weight should use constant")
+	assert_eq(h.chunk_weights[h.ChunkType.CONSTRUCTION], Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE, "Construction weight should use constant")
+	assert_eq(h.chunk_weights[h.ChunkType.BRIDGE], Constants.CHUNK_WEIGHT_BRIDGE_BASE, "Bridge weight should use constant")
+
 func test_chunk_weights_scale_with_difficulty():
 	var h = Highway.new()
 	var gm = load("res://scripts/autoload/GameManager.gd").new()

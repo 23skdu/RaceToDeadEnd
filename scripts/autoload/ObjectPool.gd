@@ -141,7 +141,6 @@ func acquire(pool_name: String) -> Node:
 			item.get_parent().remove_child(item)
 		return item
 	var fallback = load(_scene_paths[pool_name]).instantiate()
-	fallback.set_meta("_pool_name", pool_name)
 	fallback.set_meta("_in_pool", false)
 	add_child(fallback)
 	return fallback

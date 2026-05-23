@@ -8,6 +8,8 @@ var target_player_x: float = 0.0
 var ramming: bool = false
 var world_node: Node = null
 
+@onready var _weapon_mount: Node2D = $WeaponMount
+
 func _ready() -> void:
 	super._ready()
 	shoot_timer = shoot_interval * randf_range(0.5, 1.5)
@@ -27,13 +29,13 @@ func _physics_process(delta: float) -> void:
 		var diff_x = target_x - position.x
 		
 		var dist_y = abs(player.global_position.y - global_position.y)
-		if dist_y < 120.0 and abs(diff_x) < 80.0:
+		if dist_y < Constants.SCAV_RAM_DIST_Y and abs(diff_x) < Constants.SCAV_RAM_DIST_X:
 			ramming = true
 			target_x = player.global_position.x
 		else:
 			ramming = false
 			
-		var lateral_speed = 300.0 if ramming else 150.0
+		var lateral_speed = Constants.SCAV_LATERAL_RAM_SPEED if ramming else Constants.SCAV_LATERAL_NORMAL_SPEED
 		velocity.x = move_toward(velocity.x, (target_x - position.x) * 4.0, lateral_speed * delta)
 		
 		var target_y = player.global_position.y - 120.0
@@ -64,8 +66,6 @@ func _fire_bullet() -> void:
 		else:
 			ObjectPool.release(bullet)
 		return
-	var mount_pos = global_position
-	if has_node("WeaponMount"):
-		mount_pos = $WeaponMount.global_position
+	var mount_pos = _weapon_mount.global_position if _weapon_mount else global_position
 	bullet.init(mount_pos, Vector2.DOWN, false)
 	AudioManager.play_synth_laser(mount_pos)

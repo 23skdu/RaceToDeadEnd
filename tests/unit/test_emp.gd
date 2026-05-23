@@ -92,3 +92,7 @@ func test_emp_ready_sets_collision():
 	assert_eq(e.collision_layer, 0, "EMP should be on layer 0")
 	assert_eq(e.collision_mask, 2, "EMP should mask layer 2")
 	assert_true(e.is_in_group("emp"), "EMP should be in emp group")
+
+func test_emp_fallback_does_not_set_pool_name():
+	var e = _create_emp()
+	assert_false(e.has_meta("_pool_name"), "EMP from fallback should not have _pool_name meta")

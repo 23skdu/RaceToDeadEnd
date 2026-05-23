@@ -180,3 +180,20 @@ func test_drone_hit_plays_sound():
 		if p.playing:
 			playing += 1
 	assert_gt(playing, 0, "Drone hit sound should play")
+
+class MockSpawnerWithDestroyedHandler:
+	extends Node
+	var destroyed_called = false
+	func _on_enemy_destroyed(_pos, _type, _enemy):
+		destroyed_called = true
+
+func test_on_pool_release_disconnects_destroyed_signal():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
+	var mock_spawner = MockSpawnerWithDestroyedHandler.new()
+	e._spawner = mock_spawner
+	e.destroyed.connect(mock_spawner._on_enemy_destroyed)
+	assert_true(e.destroyed.is_connected(mock_spawner._on_enemy_destroyed), "Signal should be connected before release")
+	e.on_pool_release()
+	assert_false(e.destroyed.is_connected(mock_spawner._on_enemy_destroyed), "Signal should be disconnected after release")

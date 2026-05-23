@@ -515,3 +515,35 @@ func test_enemy_spawned_emitted_when_enemy_spawns():
 	watch_signals(s)
 	s._spawn_enemy("rotor")
 	assert_signal_emitted(s, "enemy_spawned", "enemy_spawned should emit when enemy spawns")
+
+func test_cleanup_disconnects_destroyed_signal():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	var mock_enemy = Node2D.new()
+	mock_enemy.set_script(Enemy)
+	mock_enemy.global_position = Vector2(0, 1000)
+	mock_enemy._spawner = s
+	GameManager.enemy_list.append(mock_enemy)
+	s.add_child(mock_enemy)
+	s._ready()
+	GameManager.state = GameManager.GameState.PLAYING
+	assert_true(mock_enemy.destroyed.is_connected(s._on_enemy_destroyed), "destroyed should be connected before cleanup")
+	s._process(0.5)
+	assert_false(mock_enemy.destroyed.is_connected(s._on_enemy_destroyed), "destroyed should be disconnected after cleanup")
+
+func test_cleanup_timer_throttles_iteration():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	GameManager.state = GameManager.GameState.PLAYING
+	s._process(0.1)
+	s._cleanup_timer = 0.25
+	var far_enemy = Node2D.new()
+	far_enemy.global_position = Vector2(0, 1000)
+	GameManager.enemy_list.append(far_enemy)
+	s.add_child(far_enemy)
+	s._process(0.1)
+	assert_true(GameManager.enemy_list.has(far_enemy), "Enemy should not be cleaned up before timer expires")
+	s._process(0.2)
+	assert_false(GameManager.enemy_list.has(far_enemy), "Enemy should be cleaned up after timer expires")

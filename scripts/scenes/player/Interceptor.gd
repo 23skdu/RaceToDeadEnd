@@ -165,7 +165,8 @@ func _handle_input(_delta: float) -> void:
 		_fire_specific_weapon("mine")
 
 func _lane_to_x(lane: int) -> float:
-	return Constants.LANE_POSITIONS[lane] if lane < Constants.LANE_POSITIONS.size() else 0.0
+	var clamped = clampi(lane, 0, Constants.LANE_POSITIONS.size() - 1)
+	return Constants.LANE_POSITIONS[clamped]
 
 func set_slippery(val: bool) -> void:
 	slippery = val
@@ -197,7 +198,7 @@ func _fire_primary() -> void:
 	if primary_fire_timer > 0.0:
 		return
 	var fr_level = GameManager.upgrade_levels.get("fire_rate", 1)
-	var cooldown = clampf(Constants.PRIMARY_FIRE_COOLDOWN - (fr_level - 1) * 0.01, 0.05, 0.1)
+	var cooldown = clampf(Constants.PRIMARY_FIRE_COOLDOWN - (fr_level - 1) * Constants.FIRE_RATE_STEP, Constants.FIRE_RATE_MIN, Constants.FIRE_RATE_MAX)
 	primary_fire_timer = cooldown
 	weapon_fired.emit("machine_gun", weapon_mount.global_position, Vector2.UP)
 

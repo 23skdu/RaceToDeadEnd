@@ -54,6 +54,14 @@ func test_lane_to_x():
 	assert_eq(Constants.LANE_POSITIONS[0], -120.0, "Constants lane 0")
 	assert_eq(Constants.LANE_POSITIONS[5], 120.0, "Constants lane 5")
 
+func test_lane_to_x_clamps_negative():
+	var player = _create_player()
+	assert_eq(player._lane_to_x(-1), -120.0, "Negative lane should clamp to 0")
+
+func test_lane_to_x_clamps_above_max():
+	var player = _create_player()
+	assert_eq(player._lane_to_x(10), 120.0, "Oversized lane should clamp to max")
+
 func test_initial_state():
 	var player = _create_player()
 	assert_eq(player.current_lane, 1, "Initial lane")
