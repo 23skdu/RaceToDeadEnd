@@ -19,7 +19,8 @@ func before_each():
 	GameManager.health = 5
 	GameManager.max_health = 5
 	GameManager.multiplier = 1
-	GameManager._score_timer = 0.0
+	if GameManager._score_ticker:
+		GameManager._score_ticker.stop()
 	GameManager._difficulty_progress = 0.0
 	GameManager._multiplier_timer = 0.0
 	GameManager._base_multiplier = 1
@@ -128,3 +129,65 @@ func test_register_pickup_ammo_no_player():
 	GameManager.start_game()
 	ScoreManager.register_pickup("ammo", Vector2(100, 200))
 	assert_true(true, "Should not crash when no player in group")
+
+class LabelCapture:
+	var label = ""
+	func capture(_pos, _pts, l):
+		label = l
+
+func test_register_civilian_damaged_emits_civilian_hit():
+	var sm = ScoreManagerScript.new()
+	add_child_autofree(sm)
+	var capture = LabelCapture.new()
+	sm.score_popped.connect(capture.capture)
+	sm.register_civilian_damaged()
+	assert_eq(capture.label, "CIVILIAN HIT!", "Label should be CIVILIAN HIT!")
+
+func test_on_game_started_caches_player():
+	var sm = ScoreManagerScript.new()
+	add_child_autofree(sm)
+	var player = Node2D.new()
+	player.add_to_group("player")
+	add_child_autofree(player)
+	sm._on_game_started()
+	assert_eq(sm._cached_player, player, "Should cache player from group")
+
+func test_on_game_over_clears_player():
+	var sm = ScoreManagerScript.new()
+	add_child_autofree(sm)
+	var player = Node2D.new()
+	player.add_to_group("player")
+	add_child_autofree(player)
+	sm._on_game_started()
+	assert_not_null(sm._cached_player, "Player should be cached")
+	sm._on_game_over(0)
+	assert_null(sm._cached_player, "Player should be cleared on game over")
+
+func test_on_game_started_no_player_graceful():
+	var sm = ScoreManagerScript.new()
+	add_child_autofree(sm)
+	sm._on_game_started()
+	assert_null(sm._cached_player, "Should handle no player gracefully")
+
+func test_score_values_has_all_keys():
+	assert_true(ScoreManagerScript.SCORE_VALUES.has("rotor_kill"), "Should have rotor_kill")
+	assert_true(ScoreManagerScript.SCORE_VALUES.has("scav_kill"), "Should have scav_kill")
+	assert_true(ScoreManagerScript.SCORE_VALUES.has("drone_kill"), "Should have drone_kill")
+	assert_true(ScoreManagerScript.SCORE_VALUES.has("civilian_protected"), "Should have civilian_protected")
+	assert_true(ScoreManagerScript.SCORE_VALUES.has("pickup_collected"), "Should have pickup_collected")
+	assert_true(ScoreManagerScript.SCORE_VALUES.has("segment_bonus"), "Should have segment_bonus")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.size(), 6, "Should have exactly 6 entries")
+
+func test_register_kill_with_bonus_multiplier():
+	GameManager.start_game()
+	GameManager.set_multiplier(3)
+	ScoreManager.register_kill("rotor", Vector2.ZERO)
+	assert_eq(GameManager.score, 150, "Rotor kill with 3x should give 150 points")
+	ScoreManager.register_kill("scav", Vector2.ZERO)
+	assert_eq(GameManager.score, 450, "Scav kill with 3x should give 300 additional (450 total)")
+
+func test_register_kill_with_max_multiplier():
+	GameManager.start_game()
+	GameManager.set_multiplier(8)
+	ScoreManager.register_kill("drone", Vector2.ZERO)
+	assert_eq(GameManager.score, 1600, "Drone kill with 8x should give 1600 points")

@@ -411,3 +411,60 @@ func test_ready_with_default_ammo_upgrades():
 	assert_eq(player.secondary_ammo[0], 3, "Default missile ammo should be 2 + 1")
 	assert_eq(player.secondary_ammo[1], 2, "Default mine ammo should be 1 + 1")
 	assert_eq(player.secondary_ammo[2], 1, "Default EMP ammo should be 1")
+
+func test_on_bridge_fall_reduces_health():
+	var player = _create_player()
+	GameManager.start_game()
+	var initial_health = GameManager.health
+	player.on_bridge_fall(player)
+	assert_eq(GameManager.health, initial_health - 2, "Health should reduce by 2 on bridge fall")
+
+func test_on_bridge_fall_emits_damage_taken():
+	var player = _create_player()
+	GameManager.start_game()
+	watch_signals(player)
+	player.on_bridge_fall(player)
+	assert_signal_emitted(player, "damage_taken", "Should emit damage_taken on bridge fall")
+
+func test_on_speed_changed_updates_speed():
+	var player = _create_player()
+	player.speed = 10.0
+	player._on_speed_changed(777.0)
+	assert_eq(player.speed, 777.0, "Speed should update to new value")
+
+func test_fire_specific_weapon_mine():
+	var player = _create_player()
+	player.secondary_ammo[1] = 2
+	watch_signals(player)
+	player._fire_specific_weapon("mine")
+	assert_eq(player.secondary_ammo[1], 1, "Mine ammo should decrement")
+	assert_signal_emitted(player, "weapon_fired", "Should emit weapon_fired signal for mine")
+
+func test_fire_specific_weapon_emp():
+	var player = _create_player()
+	player.secondary_ammo[2] = 1
+	watch_signals(player)
+	player._fire_specific_weapon("emp")
+	assert_eq(player.secondary_ammo[2], 0, "EMP ammo should decrement")
+	assert_signal_emitted(player, "weapon_fired", "Should emit weapon_fired signal for emp")
+
+func test_collision_with_enemy_calls_take_damage():
+	var player = _create_player()
+	GameManager.start_game()
+	watch_signals(player)
+	var health_before = GameManager.health
+	player.take_damage(1)
+	assert_eq(GameManager.health, health_before - 1, "Health should decrease by 1 on damage")
+	assert_signal_emitted(player, "damage_taken", "Should emit damage_taken on collision")
+
+func test_set_slippery_changes_steering():
+	var player = _create_player()
+	player.target_x = 96.0
+	player.slippery = true
+	player._physics_process(0.1)
+	var slippery_vx = player.velocity.x
+	player.velocity.x = 0.0
+	player.slippery = false
+	player._physics_process(0.1)
+	var normal_vx = player.velocity.x
+	assert_lt(abs(slippery_vx), abs(normal_vx), "Slippery steering should produce slower lateral velocity")

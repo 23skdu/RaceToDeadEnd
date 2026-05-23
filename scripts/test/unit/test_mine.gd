@@ -6,6 +6,11 @@ class MockEnemy:
 	func take_damage(amount = 1):
 		damage_taken = amount
 
+class MockAreaWithDamage extends Area2D:
+	var damage_taken = 0
+	func take_damage(amount = 1):
+		damage_taken = amount
+
 var Mine
 
 func before_all():
@@ -114,3 +119,73 @@ func test_mine_aoe_ignores_invalid_enemies():
 	
 	m._explode()
 	assert_true(m.is_queued_for_deletion(), "Mine should explode without errors")
+
+func test_ready_creates_blast_collision_shape():
+	var m = Mine.new()
+	add_child_autofree(m)
+	assert_not_null(m._blast_col, "_blast_col should be set after _ready")
+	assert_true(m._blast_col is CollisionShape2D, "_blast_col should be CollisionShape2D")
+	assert_true(m._blast_col.shape is CircleShape2D, "Blast shape should be CircleShape2D")
+
+func test_init_sets_blast_radius():
+	var m = Mine.new()
+	add_child_autofree(m)
+	m.init(Vector2(10, 20))
+	assert_eq(m.global_position, Vector2(10, 20), "Position should be set by init")
+	assert_eq(m._blast_col.shape.radius, m.explosion_radius, "Blast radius should match explosion_radius")
+	assert_true(m._blast_col.disabled, "Blast collision should be disabled after init")
+
+func test_on_body_entered_calls_take_damage():
+	var m = Mine.new()
+	add_child_autofree(m)
+	m.armed = true
+	var body = MockEnemy.new()
+	m._on_body_entered(body)
+	assert_eq(body.damage_taken, 2, "Body should take mine damage")
+
+func test_on_body_entered_no_explode_when_not_armed():
+	var m = Mine.new()
+	add_child_autofree(m)
+	m.armed = false
+	var body = MockEnemy.new()
+	m._on_body_entered(body)
+	assert_eq(body.damage_taken, 0, "Should not damage when not armed")
+	assert_false(m.is_queued_for_deletion(), "Should not explode when not armed")
+
+func test_on_area_entered_calls_take_damage():
+	var m = Mine.new()
+	add_child_autofree(m)
+	m.armed = true
+	var area = MockAreaWithDamage.new()
+	m._on_area_entered(area)
+	assert_eq(area.damage_taken, 2, "Area should take mine damage")
+
+func test_explode_creates_polygon_flash():
+	var parent = Node2D.new()
+	add_child_autofree(parent)
+	var m = Mine.new()
+	parent.add_child(m)
+	m._explode()
+	var flash_found = false
+	for child in parent.get_children():
+		if child is Polygon2D:
+			flash_found = true
+			break
+	assert_true(flash_found, "Explosion should create Polygon2D flash")
+
+func test_explode_calls_object_pool_release():
+	var m = Mine.new()
+	add_child_autofree(m)
+	m._explode()
+	assert_true(m.is_queued_for_deletion(), "Mine should be released after explosion")
+
+func test_armed_false_after_instantiation():
+	var m = Mine.new()
+	assert_false(m.armed, "Mine should not be armed when first created")
+
+func test_armed_becomes_true_after_arm_time():
+	var m = Mine.new()
+	add_child_autofree(m)
+	assert_false(m.armed, "Should not be armed immediately after add_child")
+	await get_tree().create_timer(m.arm_time + 0.2).timeout
+	assert_true(m.armed, "Should be armed after arm_time elapses")

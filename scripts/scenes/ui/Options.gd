@@ -28,8 +28,9 @@ func _ready() -> void:
 
 func _load_volume_settings() -> void:
 	master_slider.value = SettingsManager.get_volume("Master", db_to_linear(AudioServer.get_bus_volume_db(0)))
-	music_slider.value = SettingsManager.get_volume("Music", db_to_linear(AudioServer.get_bus_volume_db(1)))
-	sfx_slider.value = SettingsManager.get_volume("SFX", db_to_linear(AudioServer.get_bus_volume_db(2)))
+	if AudioServer.get_bus_count() > 1:
+		music_slider.value = SettingsManager.get_volume("Music", db_to_linear(AudioServer.get_bus_volume_db(1)))
+		sfx_slider.value = SettingsManager.get_volume("SFX", db_to_linear(AudioServer.get_bus_volume_db(2)))
 
 func _load_fullscreen_setting() -> void:
 	var mode = DisplayServer.window_get_mode()

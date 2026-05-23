@@ -300,3 +300,218 @@ func test_wave_spawned_signal_contains_wave_number():
 func test_spawner_has_spawn_minion_requested_signal():
 	var s = Spawner.new()
 	assert_true(s.has_signal("spawn_minion_requested"), "Spawner should have spawn_minion_requested signal")
+
+class MockBossNode extends Node2D:
+	signal destroyed(pos: Vector2, enemy_type: String, enemy: Node)
+	var player = null
+	var _spawner = null
+
+class MockCivilianNode extends Node2D:
+	signal exited_safely
+	signal hit_by_player
+	var _init_called = false
+	func init(_lane, _speed, _dir, _player):
+		_init_called = true
+
+func _make_boss_scene() -> PackedScene:
+	var n = MockBossNode.new()
+	var ps = PackedScene.new()
+	ps.pack(n)
+	return ps
+
+func _make_civilian_scene() -> PackedScene:
+	var n = MockCivilianNode.new()
+	var ps = PackedScene.new()
+	ps.pack(n)
+	return ps
+
+func test_spawn_boss_creates_node():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	s._spawn_boss()
+	var found = false
+	for child in s.get_children():
+		if child is MockBossNode:
+			found = true
+			break
+	assert_true(found, "Boss node should be added as child")
+
+func test_spawn_boss_emits_signal():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	watch_signals(s)
+	s._spawn_boss()
+	assert_signal_emitted(s, "boss_spawned", "Should emit boss_spawned signal")
+
+func test_spawn_boss_sets_lane_position():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	s._spawn_boss()
+	for child in s.get_children():
+		if child is MockBossNode:
+			var expected_y = s.player.global_position.y - Constants.SPAWN_DISTANCE
+			assert_eq(child.global_position.y, expected_y, "Boss Y should be SPAWN_DISTANCE above player")
+			assert_true(child.global_position.x in Constants.LANE_POSITIONS, "Boss X should be a valid lane position")
+			break
+
+func test_spawn_boss_sets_player_ref():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	s._spawn_boss()
+	for child in s.get_children():
+		if child is MockBossNode:
+			assert_eq(child.player, s.player, "Boss should have player reference")
+			break
+
+func test_spawn_boss_sets_spawner_ref():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	s._spawn_boss()
+	for child in s.get_children():
+		if child is MockBossNode:
+			assert_eq(child._spawner, s, "Boss should have spawner reference")
+			break
+
+func test_spawn_boss_increments_counter():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	var before = s._bosses_spawned
+	s._spawn_boss()
+	assert_eq(s._bosses_spawned, before + 1, "_bosses_spawned should increment")
+
+func test_spawn_civilian_creates_child():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["civilian"] = _make_civilian_scene()
+	s._spawn_civilian()
+	var found = false
+	for child in s.get_children():
+		if child is MockCivilianNode:
+			found = true
+			break
+	assert_true(found, "Civilian node should be added as child")
+
+func test_spawn_civilian_connects_exited_safely():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["civilian"] = _make_civilian_scene()
+	s._spawn_civilian()
+	for child in s.get_children():
+		if child is MockCivilianNode:
+			assert_true(child.exited_safely.is_connected(s._on_civilian_safe_exit.bind(child)), "exited_safely should be connected")
+			break
+
+func test_spawn_civilian_connects_hit_by_player():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["civilian"] = _make_civilian_scene()
+	s._spawn_civilian()
+	for child in s.get_children():
+		if child is MockCivilianNode:
+			assert_true(child.hit_by_player.is_connected(s._on_civilian_hit.bind(child)), "hit_by_player should be connected")
+			break
+
+func test_spawn_civilian_sets_position_offset():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["civilian"] = _make_civilian_scene()
+	s._spawn_civilian()
+	for child in s.get_children():
+		if child is MockCivilianNode:
+			var expected_y = s.player.global_position.y - Constants.SPAWN_DISTANCE * 0.5
+			assert_eq(child.global_position.y, expected_y, "Civilian Y should be 0.5 * SPAWN_DISTANCE above player")
+			break
+
+func test_should_spawn_boss_returns_true_at_threshold():
+	var s = Spawner.new()
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	GameManager.score = Constants.BOSS_SCORE_INTERVAL
+	assert_true(s._should_spawn_boss(), "Should return true when score crosses threshold")
+
+func test_should_spawn_boss_returns_false_below_threshold():
+	var s = Spawner.new()
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	GameManager.score = Constants.BOSS_SCORE_INTERVAL - 1
+	assert_false(s._should_spawn_boss(), "Should return false below threshold")
+
+func test_on_civilian_safe_exit_calls_register():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	GameManager.start_game()
+	var civilian = Node2D.new()
+	s._on_civilian_safe_exit(civilian)
+	assert_eq(GameManager.score, 500, "Should register civilian protected for 500 points")
+
+class PlayerWithDamage extends Node2D:
+	func take_damage(amount):
+		GameManager.take_damage(amount)
+
+func test_on_civilian_hit_calls_register():
+	var s = Spawner.new()
+	var mock_player = PlayerWithDamage.new()
+	mock_player.global_position = Vector2.ZERO
+	s.player = mock_player
+	add_child_autofree(mock_player)
+	add_child_autofree(s)
+	s._ready()
+	GameManager.start_game()
+	var health_before = GameManager.health
+	s._on_civilian_hit(MockCivilianNode.new())
+	assert_eq(GameManager.health, health_before - Constants.CIVILIAN_PENALTY, "Player should take civilian penalty damage")
+
+func test_on_civilian_hit():
+	var s = Spawner.new()
+	s.player = PlayerWithDamage.new()
+	add_child_autofree(s)
+	s._ready()
+	GameManager.start_game()
+	s._on_civilian_hit(MockCivilianNode.new())
+	assert_true(true, "Should not crash when calling _on_civilian_hit")
+
+func test_enemy_spawned_emitted_when_boss_spawns():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	s.enemy_scenes["boss"] = _make_boss_scene()
+	watch_signals(s)
+	s._spawn_boss()
+	assert_signal_emitted(s, "enemy_spawned", "enemy_spawned should emit when boss spawns")
+
+func test_enemy_spawned_emitted_when_enemy_spawns():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s._ready()
+	watch_signals(s)
+	s._spawn_enemy("rotor")
+	assert_signal_emitted(s, "enemy_spawned", "enemy_spawned should emit when enemy spawns")

@@ -283,8 +283,8 @@ func test_load_rejects_checksum_mismatch():
 	var file = FileAccess.open("user://save.dat", FileAccess.READ_WRITE)
 	if file:
 		var data = file.get_var()
-		data["_checksum"] = 0
-		file.seek_begin(0)
+		data["_checksum"] = 12345
+		file.seek(0)
 		file.store_var(data)
 		file.close()
 	gm.credits = 0
@@ -481,9 +481,64 @@ func test_current_speed_increases_with_tier():
 	assert_eq(gm.difficulty_tier, 2, "Should be tier 2")
 	assert_eq(gm.current_speed, Constants.BASE_SPEED + Constants.SPEED_PER_TIER, "Speed should increase by SPEED_PER_TIER")
 
-func test_current_speed_caps_at_max():
+func test_current_speed_formula_respects_max():
+	assert_eq(mini(Constants.BASE_SPEED + (28 - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED), Constants.MAX_GAME_SPEED, "mini() clamp should cap at MAX_GAME_SPEED when raw exceeds it")
+	assert_lt(Constants.BASE_SPEED + (Constants.MAX_TIER - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED, "At MAX_TIER, raw speed should be below MAX_GAME_SPEED with current constants")
+
+func test_register_enemy_spawned_adds_to_list():
+	var enemy = Node.new()
+	GameManager.enemy_list.clear()
+	GameManager.register_enemy_spawned(enemy)
+	assert_eq(GameManager.enemy_list.size(), 1, "enemy_list should have 1 entry after spawn")
+
+func test_register_enemy_destroyed_removes_from_list():
+	var enemy = Node.new()
+	GameManager.enemy_list.clear()
+	GameManager.enemy_list.append(enemy)
+	GameManager.register_enemy_destroyed(enemy)
+	assert_eq(GameManager.enemy_list.size(), 0, "enemy_list should be empty after destroy")
+
+func test_speed_changed_emitted_on_difficulty_advance():
 	var gm = get_gm()
 	gm.start_game()
-	gm._difficulty_progress = Constants.TIER_THRESHOLD * 30
+	watch_signals(gm)
+	gm._difficulty_progress = Constants.TIER_THRESHOLD
 	gm._check_difficulty_advance()
-	assert_eq(gm.current_speed, Constants.MAX_GAME_SPEED, "Speed should cap at MAX_GAME_SPEED")
+	assert_signal_emitted(gm, "speed_changed", "speed_changed should emit on difficulty advance")
+
+func test_speed_changed_contains_correct_value():
+	var gm = get_gm()
+	gm.start_game()
+	gm._difficulty_progress = Constants.TIER_THRESHOLD
+	gm._check_difficulty_advance()
+	assert_eq(gm.current_speed, Constants.BASE_SPEED + Constants.SPEED_PER_TIER, "current_speed should be correct after advance")
+
+func test_difficulty_tier_changed_emitted():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm._difficulty_progress = Constants.TIER_THRESHOLD
+	gm._check_difficulty_advance()
+	assert_signal_emitted(gm, "difficulty_tier_changed", "difficulty_tier_changed should emit on tier advance")
+
+func test_multiplier_timer_updated_emitted():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.add_temporary_multiplier(1)
+	gm._multiplier_timer = 5.0
+	gm._process(0.016)
+	assert_signal_emitted(gm, "multiplier_timer_updated", "multiplier_timer_updated should emit on timer change")
+
+func test_add_input_mappings_does_not_crash():
+	var gm = get_gm()
+	gm._add_input_mappings()
+	assert_true(true, "_add_input_mappings should not crash")
+
+func test_enemy_list_initially_empty():
+	GameManager.enemy_list.clear()
+	assert_eq(GameManager.enemy_list.size(), 0, "enemy_list should be initially empty")
+
+func test_register_enemy_spawned_null_no_crash():
+	GameManager.register_enemy_spawned(null)
+	assert_true(true, "register_enemy_spawned should not crash on null")

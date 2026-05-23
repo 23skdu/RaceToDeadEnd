@@ -307,3 +307,116 @@ func test_chunk_weights_adjusted_at_high_tier():
 	var hazard_increase = mini(20 - 1, 10) * 2
 	weights[h.ChunkType.STANDARD] = maxi(40 - hazard_increase * 2, 15)
 	assert_eq(weights[h.ChunkType.STANDARD], 15, "Standard weight should decrease at high tier")
+
+func test_build_tiles_into_standard_creates_tiles():
+	var h = Highway.new()
+	var standard_tiles = Node2D.new()
+	h._build_tiles_into(standard_tiles, h.ChunkType.STANDARD)
+	assert_gt(standard_tiles.get_child_count(), 0, "STANDARD type should create tile nodes")
+	var has_mesh = false
+	for child in standard_tiles.get_children():
+		if child is MultiMeshInstance2D:
+			has_mesh = true
+			break
+	assert_true(has_mesh, "STANDARD tiles should contain MultiMeshInstance2D children")
+
+func test_build_tiles_into_bridge_creates_fewer_tiles():
+	var h = Highway.new()
+	var bridge_tiles = Node2D.new()
+	h._build_tiles_into(bridge_tiles, h.ChunkType.BRIDGE)
+	assert_gt(bridge_tiles.get_child_count(), 0, "BRIDGE type should create some tiles")
+	var has_mesh = false
+	for child in bridge_tiles.get_children():
+		if child is MultiMeshInstance2D:
+			has_mesh = true
+			break
+	assert_true(has_mesh, "BRIDGE tiles should contain MultiMeshInstance2D children")
+
+func test_build_tiles_into_construction_creates_tiles():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.CONSTRUCTION)
+	assert_gt(tiles.get_child_count(), 0, "CONSTRUCTION type should create tile nodes")
+	var has_shoulder = false
+	for child in tiles.get_children():
+		if child is MultiMeshInstance2D:
+			has_shoulder = true
+			break
+	assert_true(has_shoulder, "CONSTRUCTION tiles should contain MultiMeshInstance2D children")
+
+func test_get_cached_or_build_returns_duplicate():
+	var h = Highway.new()
+	var first = h._get_cached_or_build(h.ChunkType.STANDARD)
+	var second = h._get_cached_or_build(h.ChunkType.STANDARD)
+	assert_true(first != second, "Second call should return a different instance (duplicate of cached)")
+	assert_eq(first.get_child_count(), second.get_child_count(), "Duplicate should have same child count as original")
+
+func test_reconnect_chunk_signals_connects_ice_areas():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.ICE)
+	var clone = tiles.duplicate()
+	h._reconnect_chunk_signals(clone, h.ChunkType.ICE)
+	var found_connected = false
+	for child in clone.get_children():
+		if child is Area2D:
+			if child.body_entered.is_connected(h._on_ice_entered):
+				found_connected = true
+				break
+	assert_true(found_connected, "ICE clone Area2D should have body_entered connected to _on_ice_entered")
+
+func test_guardrail_color_varies_by_chunk_type():
+	var h = Highway.new()
+	var standard_tiles = Node2D.new()
+	var bridge_tiles = Node2D.new()
+	h._build_tiles_into(standard_tiles, h.ChunkType.STANDARD)
+	h._build_tiles_into(bridge_tiles, h.ChunkType.BRIDGE)
+	var standard_color = Color(1.0, 1.0, 0.8)
+	var bridge_color = Color(0.0, 0.8, 1.0)
+	var standard_ok = false
+	var bridge_ok = false
+	for child in standard_tiles.get_children():
+		if child is Line2D:
+			assert_eq(child.default_color, standard_color, "STANDARD guardrail should be yellow-white")
+			standard_ok = true
+	for child in bridge_tiles.get_children():
+		if child is Line2D:
+			assert_eq(child.default_color, bridge_color, "BRIDGE guardrail should be cyan")
+			bridge_ok = true
+	assert_true(standard_ok, "STANDARD should have guardrail Line2D children")
+	assert_true(bridge_ok, "BRIDGE should have guardrail Line2D children")
+
+func test_create_desert_decoration_creates_child_nodes():
+	var h = Highway.new()
+	for decor_type in range(4):
+		var decor = h._create_desert_decoration(decor_type)
+		assert_gt(decor.get_child_count(), 0, "Decoration type " + str(decor_type) + " should have child Polygon2D nodes")
+
+func test_ice_chunk_area_signals_connected():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	add_child_autofree(chunk)
+	h._generate_chunk_tiles(chunk, h.ChunkType.ICE)
+	var tiles_node = chunk.get_node_or_null("Tiles")
+	assert_true(tiles_node != null, "Should have Tiles node")
+	var area_found = false
+	for child in tiles_node.get_children():
+		if child is Area2D:
+			area_found = true
+			assert_gt(child.body_entered.get_connections().size(), 0, "ICE Area2D should have body_entered connections")
+			assert_gt(child.body_exited.get_connections().size(), 0, "ICE Area2D should have body_exited connections")
+	assert_true(area_found, "ICE chunk should contain an Area2D")
+
+func test_bridge_chunk_area_has_bridge_fall_connections():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	add_child_autofree(chunk)
+	h._generate_chunk_tiles(chunk, h.ChunkType.BRIDGE)
+	var tiles_node = chunk.get_node_or_null("Tiles")
+	assert_true(tiles_node != null, "Should have Tiles node")
+	var area_count = 0
+	for child in tiles_node.get_children():
+		if child is Area2D:
+			area_count += 1
+			assert_gt(child.body_entered.get_connections().size(), 0, "BRIDGE Area2D should have body_entered connections")
+	assert_gte(area_count, 2, "BRIDGE chunk should have at least 2 danger area triggers")
