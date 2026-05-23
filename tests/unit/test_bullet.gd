@@ -191,10 +191,21 @@ func test_on_pool_release_resets_properties():
 	assert_eq(b._cached_enemies.size(), 0, "Cache should clear")
 	assert_eq(b._cache_timer, 0.0, "Cache timer should reset")
 
-func test_on_pool_get_is_noop():
+func test_on_pool_acquire_resets_properties():
 	var b = _create_bullet()
-	b.on_pool_get()
-	assert_true(true, "on_pool_get should not crash")
+	b.homing_strength = 6.0
+	b.damage = 3
+	b.scale = Vector2(2.0, 2.0)
+	b.modulate = Color.RED
+	b._cached_enemies = [Node2D.new()]
+	b._cache_timer = 0.5
+	b.on_pool_acquire()
+	assert_eq(b.homing_strength, 0.0, "Homing should reset")
+	assert_eq(b.damage, 1, "Damage should reset")
+	assert_eq(b.scale, Vector2.ONE, "Scale should reset")
+	assert_eq(b.modulate, Color.WHITE, "Modulate should reset")
+	assert_eq(b._cached_enemies.size(), 0, "Cache should clear")
+	assert_eq(b._cache_timer, 0.0, "Cache timer should reset")
 
 func test_on_visible_on_screen_notifier_screen_exited_releases_to_pool():
 	var b = _create_bullet()

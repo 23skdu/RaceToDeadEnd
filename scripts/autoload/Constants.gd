@@ -125,6 +125,10 @@ const CHUNK_WEIGHT_ICE_MAX: float = 25.0
 const CHUNK_WEIGHT_CONSTRUCTION_MAX: float = 30.0
 const CHUNK_WEIGHT_BRIDGE_MAX: float = 30.0
 
+# Highway
+const GUARDRAIL_COLOR: Color = Color(1.0, 1.0, 0.8)
+const BRIDGE_GUARDRAIL_COLOR: Color = Color(0.0, 0.8, 1.0)
+
 # Weapon Data (shared between Interceptor and HUD)
 const WEAPON_DATA: Array[Dictionary] = [
 	{type_name = "missile", display_name = "Homing Missile", color = Color.RED, base_ammo = 30},

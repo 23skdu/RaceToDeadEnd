@@ -15,13 +15,6 @@ signal lightning_strike(position: Vector2)
 
 enum WeatherType { CLEAR, LIGHT_RAIN, ACID_RAIN, STORM }
 
-const RAIN_DROP_COUNT: int = Constants.RAIN_DROP_COUNT
-const LIGHTNING_DAMAGE: int = Constants.LIGHTNING_DAMAGE
-const ACID_RAIN_DAMAGE_INTERVAL: float = Constants.ACID_RAIN_DAMAGE_INTERVAL
-const ACID_RAIN_DAMAGE: int = Constants.ACID_RAIN_DAMAGE
-const CLOUD_COUNT: int = Constants.CLOUD_COUNT
-const LIGHTNING_CHANCE_PER_SECOND: float = Constants.LIGHTNING_CHANCE_PER_SECOND
-
 var current_weather: WeatherType = WeatherType.CLEAR
 var target_weather: WeatherType = WeatherType.CLEAR
 var weather_transition: float = 0.0
@@ -52,7 +45,7 @@ func _init_gpu_particles() -> void:
 	_rain_particles = GPUParticles2D.new()
 	_rain_particles.name = "RainParticles"
 	_rain_particles.z_index = 10
-	_rain_particles.amount = RAIN_DROP_COUNT
+	_rain_particles.amount = Constants.RAIN_DROP_COUNT
 	_rain_particles.lifetime = 1.5
 	_rain_particles.one_shot = false
 	_rain_particles.emitting = false
@@ -115,22 +108,22 @@ func _update_rain_particles(_delta: float) -> void:
 			_rain_particles.emitting = false
 			return
 		WeatherType.LIGHT_RAIN:
-			_rain_particles.amount = int(RAIN_DROP_COUNT * 0.5 * weather_intensity)
+			_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * 0.5 * weather_intensity)
 			var c = Constants.RAIN_PARTICLE_CLEAR
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 		WeatherType.ACID_RAIN:
-			_rain_particles.amount = int(RAIN_DROP_COUNT * weather_intensity)
+			_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * weather_intensity)
 			var c = Constants.RAIN_PARTICLE_ACID
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 		WeatherType.STORM:
-			_rain_particles.amount = int(RAIN_DROP_COUNT * weather_intensity)
+			_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * weather_intensity)
 			var c = Constants.RAIN_PARTICLE_STORM
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 	_rain_particles.emitting = _rain_particles.amount > 0
 
 func _update_clouds(delta: float) -> void:
 	if current_weather == WeatherType.ACID_RAIN or current_weather == WeatherType.STORM:
-		var target_clouds = CLOUD_COUNT if current_weather == WeatherType.STORM else 3
+		var target_clouds = Constants.CLOUD_COUNT if current_weather == WeatherType.STORM else 3
 		while active_clouds.size() < target_clouds:
 			_spawn_cloud()
 		
@@ -148,10 +141,10 @@ func _update_acid_rain_damage(delta: float) -> void:
 	if current_weather == WeatherType.ACID_RAIN or current_weather == WeatherType.STORM:
 		acid_rain_timer -= delta
 		if acid_rain_timer <= 0.0:
-			acid_rain_timer = ACID_RAIN_DAMAGE_INTERVAL
+			acid_rain_timer = Constants.ACID_RAIN_DAMAGE_INTERVAL
 			if player_ref and is_instance_valid(player_ref):
 				if player_ref.has_method("take_damage"):
-					player_ref.take_damage(ACID_RAIN_DAMAGE)
+					player_ref.take_damage(Constants.ACID_RAIN_DAMAGE)
 
 func _try_spawn_lightning(delta: float) -> void:
 	if current_weather != WeatherType.STORM:
@@ -160,7 +153,7 @@ func _try_spawn_lightning(delta: float) -> void:
 	lightning_timer -= delta
 	if lightning_timer <= 0.0:
 		lightning_timer = randf_range(1.0, 3.0)
-		if randf() < LIGHTNING_CHANCE_PER_SECOND * 10.0:
+		if randf() < Constants.LIGHTNING_CHANCE_PER_SECOND * 10.0:
 			_spawn_lightning_strike()
 
 func _spawn_lightning_strike() -> void:
@@ -187,7 +180,7 @@ func _spawn_lightning_strike() -> void:
 		var dist = strike_pos.distance_to(player_ref.global_position)
 		if dist < 80.0:
 			if player_ref.has_method("take_damage"):
-				player_ref.take_damage(LIGHTNING_DAMAGE)
+				player_ref.take_damage(Constants.LIGHTNING_DAMAGE)
 
 func _create_lightning_bolt(start_pos: Vector2) -> void:
 	var bolt = Line2D.new()

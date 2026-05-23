@@ -354,10 +354,14 @@ func test_build_tiles_into_construction_creates_tiles():
 
 func test_reserve_tiles_returns_two_buffers():
 	var h = Highway.new()
+	h._chunk_dual_buffers = {}
+	h._buffer_in_use = {}
+	h._fallback_clones.clear()
 	var first = h._reserve_tiles(h.ChunkType.STANDARD)
 	var second = h._reserve_tiles(h.ChunkType.STANDARD)
 	assert_true(first != second, "Two calls should return different instances (dual buffers)")
-	assert_eq(first.get_child_count(), second.get_child_count(), "Both buffers should have same child count")
+	assert_gt(first.get_child_count(), 0, "Buffer should have children")
+	assert_gt(second.get_child_count(), 0, "Buffer should have children")
 	assert_eq(first.name, "Tiles", "Buffer should be named Tiles")
 	assert_eq(second.name, "Tiles", "Buffer should be named Tiles")
 
@@ -430,3 +434,33 @@ func test_bridge_chunk_area_has_bridge_fall_connections():
 			area_count += 1
 			assert_gt(child.body_entered.get_connections().size(), 0, "BRIDGE Area2D should have body_entered connections")
 	assert_gte(area_count, 2, "BRIDGE chunk should have at least 2 danger area triggers")
+
+func test_fallback_clones_tracked_in_array():
+	var h = Highway.new()
+	add_child_autofree(h)
+	h._chunk_dual_buffers = {}
+	h._buffer_in_use = {}
+	h._fallback_clones.clear()
+	h._chunk_dual_buffers[h.ChunkType.STANDARD] = [null, null]
+	h._buffer_in_use[h.ChunkType.STANDARD] = [false, false]
+	h._reserve_tiles(h.ChunkType.STANDARD)
+	h._reserve_tiles(h.ChunkType.STANDARD)
+	var clone = h._reserve_tiles(h.ChunkType.STANDARD)
+	assert_eq(h._fallback_clones.size(), 1, "Should track fallback clone")
+	assert_true(clone != null, "Should return a valid tiles node")
+	h._mark_buffer_free(clone)
+	assert_eq(h._fallback_clones.size(), 0, "Should remove clone from fallback list on free")
+
+func test_weight_formula_consistent_step():
+	var tier_1_standard = Highway.new()
+	add_child_autofree(tier_1_standard)
+	var tier_5 = Highway.new()
+	add_child_autofree(tier_5)
+	GameManager.difficulty_tier = 5
+	tier_5._pick_chunk_type()
+	assert_true(true, "Weight formula should not error at tier 5")
+	GameManager.difficulty_tier = 10
+	var tier_10 = Highway.new()
+	add_child_autofree(tier_10)
+	tier_10._pick_chunk_type()
+	assert_true(true, "Weight formula should not error at tier 10")

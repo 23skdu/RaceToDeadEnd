@@ -7,7 +7,7 @@ var warning_visual: Polygon2D
 var explosion_visual: Polygon2D
 
 func _ready() -> void:
-	collision_layer = 4
+	collision_layer = 2
 	collision_mask = 1 | 3 # player layer + player bullets
 	area_entered.connect(_on_area_entered)
 	
@@ -66,7 +66,7 @@ func _on_area_entered(area: Area2D) -> void:
 
 func _detonate() -> void:
 	exploded = true
-	warning_visual.queue_free()
+	warning_visual.visible = false
 	CameraShake.shake(0.8, 0.4, 10.0)
 	CameraShake.rumble(1.0, 0.5)
 	

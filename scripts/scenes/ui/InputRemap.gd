@@ -91,6 +91,11 @@ func _input(event: InputEvent) -> void:
 		_listening_action = ""
 		_listening_idx = -1
 		get_viewport().set_input_as_handled()
+	elif event is InputEventJoypadMotion and abs(event.axis_value) > 0.5:
+		_apply_binding(_listening_action, _listening_idx, event)
+		_listening_action = ""
+		_listening_idx = -1
+		get_viewport().set_input_as_handled()
 
 func _apply_binding(action: String, idx: int, event: InputEvent) -> void:
 	var events = InputMap.action_get_events(action)
@@ -150,11 +155,13 @@ func _serialize_event(event: InputEvent) -> String:
 		return "key:" + str(event.physical_keycode)
 	if event is InputEventJoypadButton:
 		return "jbtn:" + str(event.button_index)
+	if event is InputEventJoypadMotion:
+		return "jaxis:" + str(event.axis) + ":" + str(event.axis_value)
 	return ""
 
 func _deserialize_event(s: String) -> InputEvent:
 	var parts = s.split(":")
-	if parts.size() != 2:
+	if parts.size() < 2:
 		return null
 	if parts[0] == "key":
 		var e = InputEventKey.new()
@@ -163,5 +170,10 @@ func _deserialize_event(s: String) -> InputEvent:
 	if parts[0] == "jbtn":
 		var e = InputEventJoypadButton.new()
 		e.button_index = int(parts[1])
+		return e
+	if parts[0] == "jaxis":
+		var e = InputEventJoypadMotion.new()
+		e.axis = int(parts[1])
+		e.axis_value = float(parts[2]) if parts.size() >= 3 and parts[2] != "" else 1.0
 		return e
 	return null

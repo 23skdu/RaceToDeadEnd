@@ -17,16 +17,23 @@ func _ready() -> void:
 	_blast_col.shape = CircleShape2D.new()
 	add_child(_blast_col)
 	_blast_col.disabled = true
+	_start_arm_tween()
 
-func on_pool_acquire() -> void:
-	armed = false
+func _start_arm_tween() -> void:
 	if _arm_tween:
 		_arm_tween.kill()
 	_arm_tween = create_tween()
 	_arm_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	_arm_tween.tween_interval(arm_time)
-	_arm_tween.tween_callback(func(): armed = true)
+	_arm_tween.tween_callback(func():
+		armed = true
+		_blast_col.disabled = false
+	)
 	_blast_col.disabled = true
+
+func on_pool_acquire() -> void:
+	armed = false
+	_start_arm_tween()
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	if not area_entered.is_connected(_on_area_entered):

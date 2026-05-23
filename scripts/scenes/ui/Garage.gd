@@ -88,23 +88,26 @@ func _refresh_customize() -> void:
 		hb.add_child(lbl)
 		
 		for ctype in info.get("content_types", []):
-			var is_active = PackManager.get_active_pack_id(ctype) == pack_id
-			var btn = Button.new()
-			if is_active:
-				btn.text = "Disable " + ctype
-				var cb = func():
-					PackManager.deactivate_pack(ctype)
-					_refresh_customize()
-				btn.pressed.connect(cb)
-			else:
-				btn.text = "Enable " + ctype
-				var cb = func():
-					PackManager.activate_pack(pack_id, ctype)
-					_refresh_customize()
-				btn.pressed.connect(cb)
-			hb.add_child(btn)
+			_add_toggle_button(hb, pack_id, ctype)
 			
 		customize_container.add_child(hb)
+
+func _add_toggle_button(hb: HBoxContainer, pack_id: String, ctype: String) -> void:
+	var is_active = PackManager.get_active_pack_id(ctype) == pack_id
+	var btn = Button.new()
+	if is_active:
+		btn.text = "Disable " + ctype
+		btn.pressed.connect(func():
+			PackManager.deactivate_pack(ctype)
+			_refresh_customize()
+		)
+	else:
+		btn.text = "Enable " + ctype
+		btn.pressed.connect(func():
+			PackManager.activate_pack(pack_id, ctype)
+			_refresh_customize()
+		)
+	hb.add_child(btn)
 
 func _on_back_pressed() -> void:
 	back_to_menu_requested.emit()

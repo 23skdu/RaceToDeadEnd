@@ -80,6 +80,7 @@ func test_mine_aoe_damages_nearby_enemies():
 	enemy2.add_to_group("enemy")
 	add_child_autofree(enemy2)
 	
+	GameManager.enemy_list.append_array([enemy1, enemy2])
 	m._explode()
 	assert_eq(enemy1.damage_taken, 2, "Nearby enemy should take damage")
 	assert_eq(enemy2.damage_taken, 0, "Far enemy should not take damage")
@@ -101,6 +102,7 @@ func test_mine_aoe_respects_radius():
 	enemy_outside.add_to_group("enemy")
 	add_child_autofree(enemy_outside)
 	
+	GameManager.enemy_list.append_array([enemy_at_edge, enemy_outside])
 	m._explode()
 	assert_eq(enemy_at_edge.damage_taken, 2, "Enemy within radius should take damage")
 	assert_eq(enemy_outside.damage_taken, 0, "Enemy outside radius should not take damage")
@@ -189,3 +191,11 @@ func test_armed_becomes_true_after_arm_time():
 	assert_false(m.armed, "Should not be armed immediately after add_child")
 	await get_tree().create_timer(m.arm_time + 0.2).timeout
 	assert_true(m.armed, "Should be armed after arm_time elapses")
+
+func test_blast_col_enabled_on_arm():
+	var m = Mine.new()
+	add_child_autofree(m)
+	assert_true(m._blast_col.disabled, "Blast collision should be disabled initially")
+	await get_tree().create_timer(m.arm_time + 0.2).timeout
+	assert_true(m.armed, "Should be armed after arm_time")
+	assert_false(m._blast_col.disabled, "Blast collision should be enabled when armed")

@@ -132,3 +132,25 @@ func test_init_out_of_bounds_lane_defaults_to_zero():
 	var c = _create_civilian()
 	c.init(99, 200.0, 1.0)
 	assert_eq(c.global_position.x, 0.0)
+
+func test_civilian_caches_player_ref():
+	var c = _create_civilian()
+	assert_null(c._player, "Player should be null initially")
+	var p = Node2D.new()
+	add_child_autofree(p)
+	c._player = p
+	assert_eq(c._player, p, "Player ref should be cached")
+
+func test_on_pool_acquire_does_not_regenerate_texture():
+	var c = _create_civilian()
+	c._ready()
+	var texture = c.sprite.texture
+	c.on_pool_acquire()
+	assert_eq(c.sprite.texture, texture, "Texture should be preserved across pool acquire")
+
+func test_on_pool_acquire_regenerates_texture_when_missing():
+	var c = _create_civilian()
+	c._ready()
+	c.sprite.texture = null
+	c.on_pool_acquire()
+	assert_not_null(c.sprite.texture, "Texture should be regenerated when missing")

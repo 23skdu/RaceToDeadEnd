@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" path="res://scripts/scenes/weapons/EMPBlast.gd" id="1_jv2gt"]
 
-[sub_resource type="RectangleShape2D" id="2_emp"]
-size = Vector2(32, 16)
+[sub_resource type="CircleShape2D" id="2_emp"]
+radius = 1.0
 
 [node name="EMPBlast" type="Area2D"]
 collision_layer = 4

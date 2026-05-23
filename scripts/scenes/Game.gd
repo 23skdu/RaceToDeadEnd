@@ -62,6 +62,8 @@ func _ready() -> void:
 		player.weapon_fired.connect(_on_player_weapon_fired)
 		player.weapon_switched.connect(func(idx): hud.update_weapon_display(idx, player.secondary_ammo[idx]))
 		player.boost_charge_updated.connect(hud.update_boost_charges)
+		player.boost_activated.connect(func(): hud.set_boost_active(true))
+		player.boost_depleted.connect(func(): hud.set_boost_active(false))
 		player.damage_taken.connect(func(amount): _show_floating_text(player.global_position, "-" + str(amount), Color.RED, 18))
 		
 		highway.ice_entered.connect(player.set_slippery.bind(true))

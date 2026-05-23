@@ -45,9 +45,10 @@ func _generate_sprite_texture() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not _protect_bonus_awarded:
-		var p = _player if is_instance_valid(_player) else get_tree().get_first_node_in_group("player")
-		if p and is_instance_valid(p):
-			var diff = global_position.y - p.global_position.y
+		if not is_instance_valid(_player):
+			_player = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(_player):
+			var diff = global_position.y - _player.global_position.y
 			if diff > Constants.CLEANUP_DISTANCE:
 				_protect_bonus_awarded = true
 				exited_safely.emit()
@@ -60,7 +61,8 @@ func take_damage(_amount: int = 1) -> void:
 	hit_by_player.emit()
 
 func on_pool_acquire() -> void:
-	_generate_sprite_texture()
+	if not sprite.texture:
+		_generate_sprite_texture()
 	_protect_bonus_awarded = false
 	_player = null
 	velocity = Vector2.ZERO

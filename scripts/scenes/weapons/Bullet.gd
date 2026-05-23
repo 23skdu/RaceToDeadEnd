@@ -83,8 +83,13 @@ func _on_area_entered(area: Area2D) -> void:
 func _die() -> void:
 	ObjectPool.release(self)
 
-func on_pool_get() -> void:
-	pass
+func on_pool_acquire() -> void:
+	homing_strength = 0.0
+	damage = 1
+	scale = Vector2.ONE
+	modulate = Color.WHITE
+	_cached_enemies.clear()
+	_cache_timer = 0.0
 
 func on_pool_release() -> void:
 	homing_strength = 0.0

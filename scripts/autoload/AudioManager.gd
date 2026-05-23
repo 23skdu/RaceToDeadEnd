@@ -127,14 +127,18 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 		return
 	var best_idx = -1
 	var lowest_priority = 999
+	var all_busy = true
 	for i in sfx_players.size():
 		var p = sfx_players[i]
 		if not p.playing:
 			best_idx = i
+			all_busy = false
 			break
 		if _player_priorities[i] < lowest_priority:
 			lowest_priority = _player_priorities[i]
 			best_idx = i
+	if all_busy and best_idx >= 0 and priority < lowest_priority:
+		return
 	if best_idx == -1:
 		best_idx = 0
 	var player = sfx_players[best_idx]

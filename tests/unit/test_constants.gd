@@ -279,3 +279,7 @@ func test_highway_chunk_weight_constants():
 	assert_eq(Constants.CHUNK_WEIGHT_ICE_MAX, 25.0, "Ice max weight")
 	assert_eq(Constants.CHUNK_WEIGHT_CONSTRUCTION_MAX, 30.0, "Construction max weight")
 	assert_eq(Constants.CHUNK_WEIGHT_BRIDGE_MAX, 30.0, "Bridge max weight")
+
+func test_guardrail_color_constants():
+	assert_eq(Constants.GUARDRAIL_COLOR, Color(1.0, 1.0, 0.8), "Guardrail color should match")
+	assert_eq(Constants.BRIDGE_GUARDRAIL_COLOR, Color(0.0, 0.8, 1.0), "Bridge guardrail color should match")

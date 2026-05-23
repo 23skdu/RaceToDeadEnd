@@ -107,16 +107,16 @@ func test_game_over_restart_delay_allows_after_cooldown():
 
 func test_ready_creates_pools():
 	var game = _create_game()
-	assert_true(ObjectPool._pools.has("bullet"), "Bullet pool should exist")
-	assert_true(ObjectPool._pools.has("mine"), "Mine pool should exist")
-	assert_true(ObjectPool._pools.has("emp"), "EMP pool should exist")
-	assert_true(ObjectPool._pools.has("rotor"), "Rotor pool should exist")
-	assert_true(ObjectPool._pools.has("scav"), "Scav pool should exist")
-	assert_true(ObjectPool._pools.has("drone"), "Drone pool should exist")
-	assert_true(ObjectPool._pools.has("drone_bomb"), "Drone bomb pool should exist")
-	assert_true(ObjectPool._pools.has("boss"), "Boss pool should exist")
-	assert_true(ObjectPool._pools.has("civilian"), "Civilian pool should exist")
-	assert_true(ObjectPool._pools.has("pickup"), "Pickup pool should exist")
+	assert_true(ObjectPool.has_pool("bullet"), "Bullet pool should exist")
+	assert_true(ObjectPool.has_pool("mine"), "Mine pool should exist")
+	assert_true(ObjectPool.has_pool("emp"), "EMP pool should exist")
+	assert_true(ObjectPool.has_pool("rotor"), "Rotor pool should exist")
+	assert_true(ObjectPool.has_pool("scav"), "Scav pool should exist")
+	assert_true(ObjectPool.has_pool("drone"), "Drone pool should exist")
+	assert_true(ObjectPool.has_pool("drone_bomb"), "Drone bomb pool should exist")
+	assert_true(ObjectPool.has_pool("boss"), "Boss pool should exist")
+	assert_true(ObjectPool.has_pool("civilian"), "Civilian pool should exist")
+	assert_true(ObjectPool.has_pool("pickup"), "Pickup pool should exist")
 
 func test_ready_starts_game():
 	var game = _create_game()

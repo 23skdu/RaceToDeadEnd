@@ -20,7 +20,6 @@ func _ready() -> void:
 
 	_load_volume_settings()
 	_load_fullscreen_setting()
-	input_remap.load_bindings()
 
 	if not input_remap.is_inside_tree():
 		await input_remap.ready

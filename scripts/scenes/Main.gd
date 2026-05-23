@@ -16,7 +16,10 @@ func _ready() -> void:
 	_add_controls_label()
 
 func _add_controls_label() -> void:
+	if $CanvasLayer.has_node("ControlsLabel"):
+		return
 	var label = Label.new()
+	label.name = "ControlsLabel"
 	label.text = "CONTROLS\nKeyboard: WASD/Arrows to Move, Space/Shift to Fire\nWeapons: E for EMP, M for Mines, Q to Cycle\nController: D-Pad/Left Stick to Move, A/B to Fire, Y to Cycle"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)

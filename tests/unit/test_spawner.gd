@@ -551,3 +551,14 @@ func test_cleanup_timer_throttles_iteration():
 func test_spawner_uses_game_manager_enemy_list_only():
 	var s = Spawner.new()
 	assert_false("active_enemies" in s, "Spawner should not have its own active_enemies list")
+
+func test_spawner_connects_game_started_signal():
+	var s = Spawner.new()
+	assert_true(GameManager.game_started.is_connected(s._on_game_started), "Spawner should connect to game_started signal")
+
+func test_spawner_resets_wave_timer_on_game_start():
+	var s = Spawner.new()
+	s.wave_timer = 0.0
+	GameManager.start_game()
+	assert_gt(s.wave_timer, 0.0, "Wave timer should be reset on game start")
+	assert_eq(s.current_wave, 0, "Current wave should reset to 0")

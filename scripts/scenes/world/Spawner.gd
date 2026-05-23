@@ -32,6 +32,18 @@ func _ready() -> void:
 	enemy_scenes["drone"] = preload("res://scenes/enemies/Drone.tscn") if ResourceLoader.exists("res://scenes/enemies/Drone.tscn") else null
 	enemy_scenes["civilian"] = preload("res://scenes/enemies/Civilian.tscn") if ResourceLoader.exists("res://scenes/enemies/Civilian.tscn") else null
 	enemy_scenes["boss"] = preload("res://scenes/enemies/BossWarRig.tscn") if ResourceLoader.exists("res://scenes/enemies/BossWarRig.tscn") else null
+	if not GameManager.game_started.is_connected(_on_game_started):
+		GameManager.game_started.connect(_on_game_started)
+	spawn_minion_requested.connect(_on_spawn_minion_requested)
+
+func _on_game_started() -> void:
+	wave_timer = wave_interval
+	current_wave = 0
+	_bosses_spawned = 0
+
+func _on_spawn_minion_requested(enemy_type: String, count: int) -> void:
+	for _i in count:
+		_spawn_enemy(enemy_type)
 
 func _process(delta: float) -> void:
 	if GameManager.state != GameManager.GameState.PLAYING:

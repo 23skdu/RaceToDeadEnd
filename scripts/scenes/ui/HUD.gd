@@ -13,6 +13,7 @@ extends CanvasLayer
 
 var boost_indicators: Array[Control] = []
 var _multiplier_pulse_timer: float = 0.0
+var _boost_active: bool = false
 
 func _ready() -> void:
 	GameManager.score_updated.connect(_on_score_updated)
@@ -25,6 +26,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if multiplier_timer_bar.visible:
 		_multiplier_pulse_timer += delta
+	if _boost_active:
+		var pulse = 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.005)
+		for i in boost_indicators.size():
+			if i < boost_indicators.size():
+				boost_indicators[i].modulate = Color(1.0, pulse, 0.2) if i < boost_indicators.size() else Color.WHITE
 
 func _on_score_updated(score: int) -> void:
 	score_label.text = str(score)
@@ -47,6 +53,12 @@ func _on_multiplier_timer_updated(time_left: float) -> void:
 
 func _on_tier_changed(tier: int) -> void:
 	tier_label.text = "TIER %d" % tier
+
+func set_boost_active(active: bool) -> void:
+	_boost_active = active
+	if not active:
+		for indicator in boost_indicators:
+			indicator.modulate = Color.WHITE
 
 func update_boost_charges(charges: int) -> void:
 	for i in boost_indicators.size():

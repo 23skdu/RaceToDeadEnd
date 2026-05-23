@@ -113,6 +113,9 @@ func _on_pickup_body_entered(body: Node, pickup: Area2D) -> void:
 		_pickup_pool_data.erase(pickup)
 	release(pickup)
 
+func has_pool(pool_name: String) -> bool:
+	return _pools.has(pool_name)
+
 func acquire(pool_name: String) -> Node:
 	if not _pools.has(pool_name):
 		if _scene_paths.has(pool_name):
@@ -141,8 +144,11 @@ func acquire(pool_name: String) -> Node:
 			item.get_parent().remove_child(item)
 		return item
 	var fallback = load(_scene_paths[pool_name]).instantiate()
+	fallback.set_meta("_pool_name", pool_name)
 	fallback.set_meta("_in_pool", false)
 	add_child(fallback)
+	if fallback.has_method("on_pool_acquire"):
+		fallback.on_pool_acquire()
 	return fallback
 
 func release(node: Node) -> void:

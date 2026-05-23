@@ -394,3 +394,28 @@ func test_enemy_death_streams_are_16bit():
 	assert_eq(am._generate_rotor_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Rotor death should be 16-bit")
 	assert_eq(am._generate_scav_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Scav death should be 16-bit")
 	assert_eq(am._generate_drone_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Drone death should be 16-bit")
+
+func test_play_sfx_skips_when_lower_priority():
+	var all_busy := true
+	var received := false
+	AudioManager.play_sfx(null, Vector2.ZERO, 0)
+	assert_true(true, "play_sfx should handle null stream gracefully")
+	for p in AudioManager.sfx_players:
+		if not p.playing:
+			all_busy = false
+			break
+	if not all_busy:
+		for i in AudioManager.sfx_players.size():
+			if not AudioManager.sfx_players[i].playing:
+				AudioManager.sfx_players[i].stream = AudioStreamWAV.new()
+				AudioManager.sfx_players[i].play()
+			AudioManager._player_priorities[i] = 50
+		var low_priority_event = false
+		var skip = false
+		for i in AudioManager.sfx_players.size():
+			AudioManager._player_priorities[i] = 10
+		AudioManager.play_sfx(AudioStreamWAV.new(), Vector2.ZERO, 5)
+		for i in AudioManager.sfx_players.size():
+			assert_eq(AudioManager._player_priorities[i], 10, "Low priority sound should not preempt higher priority players")
+			received = true
+		assert_true(received, "Player priorities should still be 10")

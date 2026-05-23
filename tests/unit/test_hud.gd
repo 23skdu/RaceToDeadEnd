@@ -100,3 +100,14 @@ func test_hud_weapon_colors_from_constants():
 	assert_eq(Constants.WEAPON_DATA[0].type_name, "missile", "First weapon should be missile")
 	assert_eq(Constants.WEAPON_DATA[1].type_name, "mine", "Second weapon should be mine")
 	assert_eq(Constants.WEAPON_DATA[2].type_name, "emp", "Third weapon should be emp")
+
+func test_hud_set_boost_active_changes_modulate():
+	var hud = _create_hud()
+	for indicator in hud.boost_indicators:
+		indicator.modulate = Color.WHITE
+	hud.set_boost_active(true)
+	assert_true(hud._boost_active, "Boost active flag should be set")
+	hud.set_boost_active(false)
+	assert_false(hud._boost_active, "Boost active flag should be cleared")
+	for indicator in hud.boost_indicators:
+		assert_eq(indicator.modulate, Color.WHITE, "Indicators should return to white after boost deactivates")

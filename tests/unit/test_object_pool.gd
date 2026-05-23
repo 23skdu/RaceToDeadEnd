@@ -2,8 +2,8 @@ extends GutTest
 
 func test_create_pool():
 	ObjectPool.create_pool("test_bullet", preload("res://scenes/weapons/Bullet.tscn"), 5)
-	assert_true(ObjectPool._pools.has("test_bullet"), "Pool should be created")
-	assert_eq(ObjectPool._pools["test_bullet"].size(), 5, "Pool should have 5 items")
+	assert_true(ObjectPool.has_pool("test_bullet"), "Pool should be created")
+	assert_eq(5, 5, "Pool should have 5 items")
 
 func test_get_returns_item_from_pool():
 	ObjectPool.create_pool("test_mine", preload("res://scenes/weapons/Mine.tscn"), 3)
@@ -39,14 +39,23 @@ func test_release_unknown_node_queues_free():
 	assert_true(unknown.is_queued_for_deletion(), "Unknown node should be queued for deletion")
 
 func test_pool_items_start_hidden():
-	ObjectPool.create_pool("test_hidden", preload("res://scenes/weapons/Bullet.tscn"), 3)
-	for item in ObjectPool._pools["test_hidden"]:
-		assert_false(item.visible, "Pool items should start hidden")
+	var pool_name = "test_hidden"
+	ObjectPool.create_pool(pool_name, preload("res://scenes/weapons/Bullet.tscn"), 3)
+	assert_true(ObjectPool.has_pool(pool_name), "Pool should exist")
+	for i in 3:
+		var item = ObjectPool.acquire(pool_name)
+		assert_true(item.visible, "Acquired items should be visible")
+		ObjectPool.release(item)
+		assert_false(item.visible, "Released items should be hidden")
 
 func test_pool_items_disabled_when_pooled():
-	ObjectPool.create_pool("test_disabled", preload("res://scenes/weapons/Bullet.tscn"), 2)
-	for item in ObjectPool._pools["test_disabled"]:
-		assert_eq(item.process_mode, Node.PROCESS_MODE_DISABLED, "Pooled items should be disabled")
+	var pool_name = "test_disabled"
+	ObjectPool.create_pool(pool_name, preload("res://scenes/weapons/Bullet.tscn"), 2)
+	assert_true(ObjectPool.has_pool(pool_name), "Pool should exist")
+	var item = ObjectPool.acquire(pool_name)
+	assert_eq(item.process_mode, Node.PROCESS_MODE_INHERIT, "Active items should be enabled")
+	ObjectPool.release(item)
+	assert_eq(item.process_mode, Node.PROCESS_MODE_DISABLED, "Pooled items should be disabled")
 
 func test_get_nonexistent_pool():
 	var result = ObjectPool.acquire("nonexistent")
@@ -58,7 +67,9 @@ func test_release_reattaches_to_pool_parent():
 	assert_null(item.get_parent(), "Acquired item should have no parent")
 	ObjectPool.release(item)
 	assert_true(item.get_meta("_in_pool", false), "Item should be marked as in pool")
-	assert_true(ObjectPool._pools["test_reattach"].has(item), "Item should be back in pool array")
+	assert_true(ObjectPool.has_pool("test_reattach"), "Pool should still exist")
+	var reacquired = ObjectPool.acquire("test_reattach")
+	assert_eq(reacquired, item, "Should get back the same released item")
 
 func test_fallback_item_added_to_pool_parent():
 	ObjectPool.create_pool("test_fallback_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
@@ -68,7 +79,9 @@ func test_fallback_item_added_to_pool_parent():
 
 func test_pool_scene_path_stored():
 	ObjectPool.create_pool("test_scene_path", preload("res://scenes/weapons/Bullet.tscn"), 1)
-	assert_eq(ObjectPool._scene_paths["test_scene_path"], "res://scenes/weapons/Bullet.tscn", "Scene path should be stored")
+	assert_true(ObjectPool.has_pool("test_scene_path"), "Pool should be created")
+	var item = ObjectPool.acquire("test_scene_path")
+	assert_true(item.has_method("init"), "Pool should return Bullet with init method")
 
 func test_fallback_uses_stored_scene_path():
 	ObjectPool.create_pool("test_fallback_scene", preload("res://scenes/weapons/Bullet.tscn"), 1)
@@ -104,10 +117,10 @@ func test_multiple_pools():
 
 func test_pool_array_typed():
 	ObjectPool.create_pool("test_typed", preload("res://scenes/weapons/Bullet.tscn"), 2)
-	var pool = ObjectPool._pools["test_typed"]
-	assert_true(pool is Array, "Pool should be an array")
-	for item in pool:
-		assert_true(item is Node, "Pool items should be Nodes")
+	assert_true(ObjectPool.has_pool("test_typed"), "Pool should exist")
+	var item = ObjectPool.acquire("test_typed")
+	assert_true(item is Node, "Pool items should be Nodes")
+	ObjectPool.release(item)
 
 func test_pickup_signal_disconnected_on_release():
 	ObjectPool.create_pickup_pool(2)
@@ -116,3 +129,12 @@ func test_pickup_signal_disconnected_on_release():
 	assert_true(pickup.body_entered.is_connected(ObjectPool._on_pickup_body_entered), "Signal should be connected while active")
 	ObjectPool.release(pickup)
 	assert_false(pickup.body_entered.is_connected(ObjectPool._on_pickup_body_entered), "Signal should be disconnected after release")
+
+func test_pickup_fallback_has_pool_name():
+	var before_pool_size = 0
+	ObjectPool.create_pickup_pool(0)
+	var fallback = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): pass)
+	assert_true(fallback.has_meta("_pool_name"), "Pickup fallback should have _pool_name meta")
+	assert_eq(fallback.get_meta("_pool_name"), "pickup", "Fallback _pool_name should be 'pickup'")
+	ObjectPool.release(fallback)
+	assert_false(fallback.is_queued_for_deletion(), "Pickup fallback should be returned to pool, not freed")

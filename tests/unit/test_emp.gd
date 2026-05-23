@@ -7,11 +7,13 @@ class MockEnemy:
 	var was_stunned = false
 	var stun_dur = 0.0
 	var damage_taken = 0
+	var stun_count = 0
 	func take_damage(amount = 1):
 		damage_taken = amount
 	func apply_stun(duration):
 		was_stunned = true
 		stun_dur = duration
+		stun_count += 1
 
 func before_all():
 	EMPScene = load("res://scenes/weapons/EMPBlast.tscn")
@@ -72,8 +74,7 @@ func test_emp_updates_collision_shape_radius():
 	e._update_collision_radius()
 	assert_not_null(e._col_shape, "Collision shape should exist after ready")
 	assert_not_null(e._col_shape.shape, "Collision shape should have a shape resource")
-	if e._col_shape.shape is CircleShape2D:
-		assert_eq(e._col_shape.shape.radius, 200.0, "Collision shape radius should match current_radius")
+	assert_eq(e._col_shape.shape.radius, 200.0, "Collision shape radius should match current_radius")
 
 func test_emp_starts_with_zero_radius():
 	var e = _create_emp()
@@ -96,3 +97,21 @@ func test_emp_ready_sets_collision():
 func test_emp_fallback_does_not_set_pool_name():
 	var e = _create_emp()
 	assert_false(e.has_meta("_pool_name"), "EMP from fallback should not have _pool_name meta")
+
+func test_emp_does_not_re_stun_same_body():
+	var e = _create_emp()
+	e.init(Vector2.ZERO)
+	var mock = MockEnemy.new()
+	mock.stun_count = 0
+	add_child_autofree(mock)
+	e._on_body_entered(mock)
+	assert_eq(mock.stun_count, 1, "Body should be stunned on first entry")
+	e._on_body_entered(mock)
+	assert_eq(mock.stun_count, 1, "Body should NOT be re-stunned on second entry")
+
+func test_emp_init_resets_collision():
+	var e = _create_emp()
+	e.init(Vector2.ZERO)
+	assert_eq(e.current_radius, 0.0, "Current radius should be 0 after init")
+	assert_true(e._stunned_bodies.is_empty(), "Stunned bodies should be cleared after init")
+	assert_not_null(e._col_shape, "Collision shape should exist")

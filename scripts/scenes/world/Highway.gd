@@ -35,6 +35,7 @@ var white_texture: Texture2D
 
 var _chunk_dual_buffers: Dictionary = {}
 var _buffer_in_use: Dictionary = {}
+var _fallback_clones: Array[Node2D] = []
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -120,6 +121,7 @@ func _reserve_tiles(chunk_type: ChunkType) -> Node2D:
 			return tiles
 	
 	var clone = buffers[0].duplicate()
+	_fallback_clones.append(clone)
 	_reconnect_chunk_signals(clone, chunk_type)
 	return clone
 
@@ -130,6 +132,9 @@ func _mark_buffer_free(tiles_node: Node2D) -> void:
 		for i in 2:
 			if buffers[i] == tiles_node:
 				in_use[i] = false
+	var idx = _fallback_clones.find(tiles_node)
+	if idx >= 0:
+		_fallback_clones.remove_at(idx)
 
 func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
 	if chunk_type == ChunkType.ICE:
@@ -148,7 +153,7 @@ func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void
 func _pick_chunk_type() -> ChunkType:
 	var tier = GameManager.difficulty_tier
 	var hazard_increase = mini(tier - 1, Constants.CHUNK_HAZARD_CAP) * Constants.CHUNK_HAZARD_STEP
-	var w_standard = maxi(Constants.CHUNK_WEIGHT_STANDARD_BASE - hazard_increase * Constants.CHUNK_HAZARD_STEP, Constants.CHUNK_WEIGHT_STANDARD_MIN)
+	var w_standard = maxi(Constants.CHUNK_WEIGHT_STANDARD_BASE - hazard_increase, Constants.CHUNK_WEIGHT_STANDARD_MIN)
 	var w_debris = mini(Constants.CHUNK_WEIGHT_DEBRIS_BASE + hazard_increase, Constants.CHUNK_WEIGHT_DEBRIS_MAX)
 	var w_ice = mini(Constants.CHUNK_WEIGHT_ICE_BASE + hazard_increase, Constants.CHUNK_WEIGHT_ICE_MAX)
 	var w_construction = mini(Constants.CHUNK_WEIGHT_CONSTRUCTION_BASE + hazard_increase, Constants.CHUNK_WEIGHT_CONSTRUCTION_MAX)
@@ -318,7 +323,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var left_rail = Line2D.new()
 	left_rail.name = "LeftRail"
 	left_rail.width = Constants.GUARDRAIL_WIDTH
-	left_rail.default_color = Color(1.0, 1.0, 0.8) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
+	left_rail.default_color = Constants.GUARDRAIL_COLOR if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var left_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
 		var y_pos = row * TILE_SIZE.y
@@ -329,7 +334,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var right_rail = Line2D.new()
 	right_rail.name = "RightRail"
 	right_rail.width = Constants.GUARDRAIL_WIDTH
-	right_rail.default_color = Color(1.0, 1.0, 0.8) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
+	right_rail.default_color = Constants.GUARDRAIL_COLOR if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var right_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
 		var y_pos = row * TILE_SIZE.y

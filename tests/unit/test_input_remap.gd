@@ -56,10 +56,10 @@ func test_serialize_event_joypad_button():
 	assert_eq(result, "jbtn:0")
 
 func test_serialize_event_unknown():
-	var event = InputEventJoypadMotion.new()
-	event.axis = 0
+	var event = InputEventKey.new()
+	event.physical_keycode = 0
 	var result = _remap._serialize_event(event)
-	assert_eq(result, "")
+	assert_eq(result, "key:0")
 
 func test_deserialize_event_key():
 	var result = _remap._deserialize_event("key:65")
@@ -117,3 +117,41 @@ func test_on_rebind_pressed_sets_listening():
 	assert_eq(_remap._listening_action, "move_left")
 	assert_eq(_remap._listening_idx, 0)
 	assert_true(btn.disabled)
+
+func test_serialize_event_joypad_axis():
+	var event = InputEventJoypadMotion.new()
+	event.axis = 0
+	event.axis_value = 1.0
+	var result = _remap._serialize_event(event)
+	assert_eq(result, "jaxis:0:1.0", "Joypad axis should serialize with axis_value")
+
+func test_serialize_event_joypad_axis_negative():
+	var event = InputEventJoypadMotion.new()
+	event.axis = 0
+	event.axis_value = -1.0
+	var result = _remap._serialize_event(event)
+	assert_eq(result, "jaxis:0:-1.0", "Joypad axis should serialize negative axis_value")
+
+func test_deserialize_event_joypad_axis():
+	var result = _remap._deserialize_event("jaxis:1:1.0")
+	assert_true(result is InputEventJoypadMotion, "Should deserialize to JoypadMotion")
+	assert_eq(result.axis, 1, "Axis should be 1")
+	assert_eq(result.axis_value, 1.0, "Axis value should be 1.0")
+
+func test_deserialize_event_joypad_axis_negative():
+	var result = _remap._deserialize_event("jaxis:0:-1.0")
+	assert_true(result is InputEventJoypadMotion, "Should deserialize to JoypadMotion")
+	assert_eq(result.axis, 0, "Axis should be 0")
+	assert_eq(result.axis_value, -1.0, "Axis value should be -1.0")
+
+func test_deserialize_event_joypad_axis_backward_compat():
+	var result = _remap._deserialize_event("jaxis:1")
+	assert_true(result is InputEventJoypadMotion, "Should deserialize old format to JoypadMotion")
+	assert_eq(result.axis, 1, "Old format axis should be 1")
+	assert_eq(result.axis_value, 1.0, "Old format axis value should default to 1.0")
+
+func test_event_to_string_joypad_axis():
+	var event = InputEventJoypadMotion.new()
+	event.axis = 0
+	var result = _remap._event_to_string(event)
+	assert_eq(result, "Axis0", "Event to string should return Axis0")

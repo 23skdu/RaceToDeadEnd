@@ -23,12 +23,11 @@ func test_weather_type_enum():
 	assert_eq(ws.WeatherType.STORM, 3, "STORM = 3")
 
 func test_constants():
-	var ws = load("res://scripts/scenes/world/WeatherSystem.gd")
-	assert_eq(ws.RAIN_DROP_COUNT, 200, "Rain drop count")
-	assert_eq(ws.LIGHTNING_DAMAGE, 1, "Lightning damage")
-	assert_eq(ws.ACID_RAIN_DAMAGE_INTERVAL, 2.0, "Acid rain damage interval")
-	assert_eq(ws.ACID_RAIN_DAMAGE, 1, "Acid rain damage")
-	assert_eq(ws.CLOUD_COUNT, 5, "Cloud count")
+	assert_eq(Constants.RAIN_DROP_COUNT, 200, "Rain drop count")
+	assert_eq(Constants.LIGHTNING_DAMAGE, 1, "Lightning damage")
+	assert_eq(Constants.ACID_RAIN_DAMAGE_INTERVAL, 2.0, "Acid rain damage interval")
+	assert_eq(Constants.ACID_RAIN_DAMAGE, 1, "Acid rain damage")
+	assert_eq(Constants.CLOUD_COUNT, 5, "Cloud count")
 
 func test_initial_state():
 	var ws = _create_weather()

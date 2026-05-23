@@ -114,7 +114,7 @@ func test_drone_bomb_detonate_clears_warning():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
 	db._detonate()
-	assert_true(db.warning_visual.is_queued_for_deletion(), "Warning visual should be queued for deletion")
+	assert_false(db.warning_visual.visible, "Warning visual should be hidden after detonate")
 
 func test_drone_bomb_constants():
 	assert_eq(Constants.DETONATION_TIME, 1.5, "Detonation time should be 1.5")
@@ -180,3 +180,11 @@ func test_drone_bomb_fade_duration():
 	db._detonate()
 	db._process(0.3)
 	assert_true(db.is_queued_for_deletion(), "Should queue free after 0.3s fade")
+
+func test_warning_visual_retained_after_detonate():
+	var db = DroneBomb.new()
+	add_child_autofree(db)
+	assert_true(is_instance_valid(db.warning_visual), "Warning visual should exist before detonate")
+	db._detonate()
+	assert_true(is_instance_valid(db.warning_visual), "Warning visual should still be valid after detonate (not queue_freed)")
+	assert_false(db.warning_visual.visible, "Warning visual should be hidden after detonate")

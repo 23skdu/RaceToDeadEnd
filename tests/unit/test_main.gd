@@ -101,3 +101,18 @@ func test_main_options_back_callback_queues_free():
 	assert_true(options != null, "Options should exist")
 	options.back_to_menu_requested.emit()
 	assert_true(options.is_queued_for_deletion(), "Options should queue free on back")
+
+func test_controls_label_not_duplicated():
+	var main = _create_main()
+	main._add_controls_label()
+	var label_count = 0
+	for child in main.get_node("CanvasLayer").get_children():
+		if child.name == "ControlsLabel":
+			label_count += 1
+	assert_eq(label_count, 1, "Should have exactly one controls label")
+	main._add_controls_label()
+	label_count = 0
+	for child in main.get_node("CanvasLayer").get_children():
+		if child.name == "ControlsLabel":
+			label_count += 1
+	assert_eq(label_count, 1, "Should still have exactly one controls label after second call")
