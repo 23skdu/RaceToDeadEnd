@@ -2134,3 +2134,377 @@ Following completion of Phase 3, a comprehensive re-audit of all 36+ game script
 **P0 (do now):** Part 42 — Eliminates periodic tree traversal and fixes latent null-pointer crash in homing logic.
 **P1 (do next):** Parts 45, 46, 47, 50, 51 — Boss encounters, combat text, screen transitions, timer indicator, constants consolidation.
 **P2 (do later):** Parts 43, 44, 48, 49 — Parallax backgrounds, civilian vehicles, gamepad rumble, shared utility.
+
+---
+
+## Phase 5: Production Hardening — 10 Targeted Improvements
+
+Following completion of Phase 4 (Parts 42-51), a comprehensive re-audit of all 38+ game scripts, 9 autoloads, 20 TSCN scenes, and the 363-test suite identified these 10 remaining issues. Each has a concrete fix with measurable impact.
+
+---
+
+### Part 52: Persist Options Volume Settings to Disk
+
+**Problem:** `Options.gd` modifies audio bus volumes via `AudioServer.set_bus_volume_db()` but never saves them. Every restart resets volumes to defaults.
+
+**Files:** `scripts/scenes/ui/Options.gd:38-45`
+
+**Findings:**
+- `Options.gd:38-45` — `_on_master_changed()`, `_on_music_changed()`, `_on_sfx_changed()` call `AudioServer.set_bus_volume_db()` but never write to disk
+- `Options.gd:29-32` — `_load_volume_settings()` reads from `AudioServer` which defaults to project settings (1.0 linear = 0 dB)
+- Volume, fullscreen toggle, and any future settings are ephemeral
+- `GameManager.gd:196-225` — `save_progress()` saves credits/high_score/upgrades but not audio settings
+- `ConfigFile` class is never used anywhere in the project — the entire settings persistence API is unused
+
+**Plan:**
+1. Create `SettingsManager.gd` autoload that wraps `ConfigFile` for all user settings (audio, video, input, accessibility)
+2. Add methods: `get_volume(bus_name)`, `set_volume(bus_name, value)`, `save()`, `load()`
+3. In `Options.gd:_on_master_changed()` etc.: call `SettingsManager.set_volume()` instead of directly setting AudioServer
+4. `SettingsManager.load()` runs in `_ready()` to restore saved volumes at startup
+5. Add fullscreen toggle save/restore: `SettingsManager.get_bool("video/fullscreen", false)`
+6. Move `input_remap.load_bindings()` / `save_bindings()` to use the same `ConfigFile`
+7. Write tests: verify save → restart → load restores volumes, fullscreen, and input bindings
+
+**Subtasks:**
+```
+52.1 — Create SettingsManager.gd autoload wrapping ConfigFile (volume, video, input)
+52.2 — Add get_volume/set_volume methods with AudioServer integration
+52.3 — Update Options.gd to delegate to SettingsManager for all bus changes
+52.4 — Add SettingsManager.load() call in Options.gd _ready()
+52.5 — Save fullscreen toggle state to SettingsManager
+52.6 — Migrate input_remap save/load to SettingsManager ConfigFile
+52.7 — Test: save → restart → load restores all options correctly
+52.8 — Test: missing ConfigFile falls back to project defaults gracefully
+```
+
+**Expected impact:** Player settings persist across sessions. Audio tuning is no longer lost on restart. Unified settings API replaces ad-hoc save patterns.
+
+---
+
+### Part 53: Replace BossWarRig Private Method Access with Public Signal
+
+**Problem:** `BossWarRig.gd:35-37` calls `_spawner._spawn_enemy("scav")` — accessing a private (underscore-prefixed) method of `Spawner.gd`. This is tight coupling that breaks if `_spawn_enemy` is renamed, refactored, or made truly private.
+
+**Files:** `scripts/scenes/enemies/BossWarRig.gd:34-37`, `scripts/scenes/world/Spawner.gd`
+
+**Findings:**
+- `BossWarRig.gd:34-37` — `_spawn_minions()` calls `_spawner._spawn_enemy("scav")` — underscore-prefixed private method
+- `Spawner.gd` has a `boss_spawned` signal (line 16) but no `spawn_minion_requested` signal
+- No `public` method equivalent exists — `_spawn_enemy()` is the only spawn entry point
+- `BossWarRig` stores `_spawner` as a weak reference set during `init()` — reasonable, but the API is wrong
+- This pattern prevents `Spawner` from ever making `_spawn_enemy` truly private without breaking boss AI
+
+**Plan:**
+1. Add `signal spawn_minion_requested(enemy_type: String, count: int)` to `Spawner.gd`
+2. In `BossWarRig.gd:_spawn_minions()`: emit the signal instead of calling `_spawner._spawn_enemy()`
+3. In `Spawner.gd: _ready()` or boss registration step: connect minion spawn signal to `_spawn_enemy`
+4. Remove the `_spawner` reference from `BossWarRig` if no other private methods are accessed
+5. Update tests: verify minion spawn signal is emitted and handled correctly
+6. Verify no other scripts access underscore-prefixed methods on other singletons
+
+**Subtasks:**
+```
+53.1 — Add spawn_minion_requested signal to Spawner.gd
+53.2 — Replace BossWarRig._spawn_minions() direct call with signal emit
+53.3 — Wire Spawner signal handler to call _spawn_enemy (the only consumer)
+53.4 — Remove BossWarRig._spawner reference if no remaining usages
+53.5 — Audit all other scripts for underscore-prefixed method access (e.g. _spawn_enemy, _on_*)
+53.6 — Run full test suite, verify boss minion spawn works identically
+```
+
+**Expected impact:** Clean API boundary. `_spawn_enemy` can be renamed or refactored without breaking boss behavior. Eliminates fragile cross-script coupling.
+
+---
+
+### Part 54: Fix DroneBomb Collision Mask — Enable Counterplay
+
+**Problem:** `DroneBomb.gd:10` sets `collision_mask = 1` (player layer only). Player bullets are on layer 3. Drone bombs can never be shot down by the player — they are guaranteed to detonate.
+
+**Files:** `scripts/scenes/weapons/DroneBomb.gd:8-10`
+
+**Findings:**
+- `DroneBomb.gd:10` — `collision_mask = 1` — detects only player body (layer 1). Player bullets are layer 3.
+- `Bullet.gd:9-10` — Collision layer = 3 (player weapons), mask = 2 (enemies)
+- No collision path exists from bullet → drone bomb
+- `DroneBomb.gd:67-70` — `_detonate()` only checks bodies overlapping the blast, cannot pre-detonate from bullet hit
+- Gameplay impact: drone bombs are always a guaranteed hit — no skill expression or counterplay
+
+**Plan:**
+1. Change `DroneBomb.gd:10` to use `collision_mask = 1 | 3` (player + player bullets)
+2. Add `_on_body_entered()` / `_on_area_entered()` handler to DroneBomb that detects bullet hits
+3. On bullet hit: trigger immediate detonation (early explosion damages player less predictably)
+4. Add `hit_by_bullet` flag to distinguish bullet-triggered detonation from timer detonation
+5. Optionally give drone bomb a small amount of HP (2 hits) so it doesn't die to a single MG bullet
+6. Verify player bullets can collide with drone bombs in test scene
+
+**Subtasks:**
+```
+54.1 — Update DroneBomb.gd collision_mask to include player bullet layer (3)
+54.2 — Add _on_body_entered / _on_area_entered handlers for bullet detection
+54.3 — Implement early detonation on bullet hit with visual difference
+54.4 — Optionally add 2-HP system so drone bomb survives one bullet
+54.5 — Test: fire bullet at drone bomb, verify detonation/hit response
+54.6 — Test: drone bomb still detonates on timer if not shot down
+```
+
+**Expected impact:** Skilled players can shoot down drone bombs for counterplay. Rookie players still take damage from undetected bombs. Better skill expression without removing the threat entirely.
+
+---
+
+### Part 55: Cache Civilian Player Reference Instead of Tree Traversal
+
+**Problem:** `Civilian.gd:46` calls `get_tree().get_first_node_in_group("player")` every physics frame. This is an O(depth) tree traversal on every `_physics_process` tick.
+
+**Files:** `scripts/scenes/enemies/Civilian.gd:44-51`
+
+**Findings:**
+- `Civilian.gd:46` — `get_tree().get_first_node_in_group("player")` called every physics process (~60fps)
+- `Civilian.gd:22-29` — `init()` method already exists with start_lane, speed, direction parameters — but no player reference parameter
+- `Spawner.gd:108-115` — `_spawn_civilian()` calls `civilian.init(...)` but player is available as `player` member
+- `Spawner.gd:46` — `player` member variable already exists
+- Similar pattern in other enemies but they cache in `init()` via `_player = p_player`
+
+**Plan:**
+1. Add `var _player: Node = null` member to `Civilian.gd`
+2. Add `player_ref` parameter to `Civilian.gd:init()`
+3. In `Civilian.gd:_physics_process()`: use `_player` instead of `get_tree().get_first_node_in_group("player")`
+4. In `Spawner.gd:_spawn_civilian()`: pass `player` to `civilian.init()`
+5. Add `is_instance_valid(_player)` guard before `_player.global_position` access
+6. Verify civilian still correctly detects safe exit (player Y position comparison)
+
+**Subtasks:**
+```
+55.1 — Add _player member variable to Civilian.gd
+55.2 — Add player_ref parameter to Civilian.init()
+55.3 — Replace get_tree().get_first_node_in_group("player") with _player reference
+55.4 — Pass player reference from Spawner._spawn_civilian()
+55.5 — Add is_instance_valid guard before _player access
+55.6 — Test: civilian spawns, moves, exits safely without tree traversal errors
+```
+
+**Expected impact:** Eliminates tree traversal in every physics frame per civilian. Pattern consistency with other enemies. Marginal perf improvement that compounds with multiple civilians on screen.
+
+---
+
+### Part 56: Add @export Variables Across All Tunable Scripts
+
+**Problem:** Zero `@export` variables exist in the entire project. Every gameplay value — speed, HP, cooldowns, spawn rates — requires editing GDScript to change. This makes game balance tuning, prototyping, and designer iteration impossible without a programmer.
+
+**Files:** All `.gd` files with gameplay values
+
+**Findings:**
+- `Constants.gd` centralizes 99 lines of values but none are exposed to the inspector
+- `Interceptor.gd` — `BASE_SPEED`, `BOOST_SPEED_MULTIPLIER`, `BOOST_DURATION`, `WEAVE_COOLDOWN` all hardcoded
+- `Enemy.gd` — `hp`, `speed`, `score_value` instance vars set in subclasses but not `@export`
+- `Spawner.gd` — `MIN_WAVE_INTERVAL`, `WAVE_INTERVAL_TIER_REDUCTION` used but not editable
+- `Highway.gd` — `CHUNK_HEIGHT`, `CHUNK_WIDTH`, `NUM_LANES`, chunk weights all hardcoded
+- `Bullet.gd` — `speed`, `damage`, `homing_strength` set at runtime but not exposed
+- `WeatherSystem.gd` — `WEATHER_TRANSITION_TIME`, `RAIN_AMOUNT`, lightning parameters hardcoded
+- Zero `@export_group` annotations — no organizational structure for inspector
+
+**Plan:**
+1. Add `@export var` declarations to all gameplay-critical scripts, grouped by purpose:
+   - `Constants.gd`: mark all static values with `@export` where appropriate
+   - `Interceptor.gd`: export `BASE_SPEED`, `BOOST_DURATION`, `WEAVE_COOLDOWN`, `MAX_HEALTH`
+   - `Spawner.gd`: export wave intervals, spawn distances, composition scaling
+   - `Highway.gd`: export chunk dimensions, type weights, scroll speed
+   - `Bullet.gd`: export base damage, speed, homing strength
+   - `WeatherSystem.gd`: export transition times, particle amounts, damage values
+2. Add `@export_group("Combat")`, `@export_group("Movement")`, etc. for organization
+3. Add `@export_range(min, max, step)` constraints where applicable
+4. Add `@export_tooltip("Description of what this value controls")` for documentation
+5. Create a `game_params.tres` resource (or keep in Constants.gd with `@export`) for single-file tuning
+6. Verify no gameplay values remain as bare literals after export conversion
+
+**Subtasks:**
+```
+56.1 — Add @export vars to Interceptor.gd (speed, boost, weave, HP)
+56.2 — Add @export vars to Spawner.gd (wave intervals, spawn distances)
+56.3 — Add @export vars to Highway.gd (chunk dims, weights, scroll)
+56.4 — Add @export vars to Bullet.gd (damage, speed, homing)
+56.5 — Add @export_group annotations for inspector organization
+56.6 — Add @export_range and @export_tooltip for documentation
+56.7 — Convert Constants.gd static values to @export where appropriate
+56.8 — Test: verify exported values correctly override defaults
+56.9 — Test: verify inspector values load correctly on scene instantiation
+```
+
+**Expected impact:** First-class designer/developer workflow. Game balance can be tuned live in the editor without code changes. Lowers barrier for rapid iteration on difficulty, feel, and pacing.
+
+---
+
+### Part 57: Create PauseMenu TSCN Scene File
+
+**Problem:** `Game.gd:165` creates the pause menu via `preload("res://scripts/scenes/ui/PauseMenu.gd").new()` — script-only instantiation. There is no `.tscn` scene file, preventing visual layout editing, theme application, and preview.
+
+**Files:** `scripts/scenes/ui/PauseMenu.gd`, `scripts/scenes/Game.gd:148-193`
+
+**Findings:**
+- `PauseMenu.gd` exists at `scripts/scenes/ui/PauseMenu.gd` — a script that creates its entire UI programmatically in `_ready()`
+- `Game.gd:165` — loads the script directly: `preload("res://scripts/scenes/ui/PauseMenu.gd").new()`
+- No `scenes/ui/PauseMenu.tscn` file exists
+- Pause menu layout cannot be previewed, themed, or designed visually
+- `Options.tscn` exists — pause menu is the only menu without a scene file
+- `PauseMenu.gd` uses hardcoded positions, sizes, and colors — inconsistent with the visual design workflow used for other menus
+
+**Plan:**
+1. Create `scenes/ui/PauseMenu.tscn` with `CanvasLayer` root, containing:
+   - Full-screen `ColorRect` overlay (modulate dark, click barrier)
+   - `Panel` center container with "PAUSED" title label
+   - "Resume" button, "Options" button, "Quit to Menu" button
+   - VBoxContainer layout for button arrangement
+2. Move all layout/style from `PauseMenu.gd:_ready()` into the TSCN file
+3. Update `PauseMenu.gd` to reference child nodes via `@onready` instead of creating them
+4. Update `Game.gd:165` to use `load("res://scenes/ui/PauseMenu.tscn").instantiate()` instead of `.gd.new()`
+5. Apply same theme/style as other menu scenes (Main menu, GameOver, Options, Garage)
+6. Remove all programmatic node creation code from `PauseMenu.gd`
+7. Test: pause/unpause cycle works identically before and after
+
+**Subtasks:**
+```
+57.1 — Create scenes/ui/PauseMenu.tscn with Panel, ColorRect overlay, Resume/Options/Quit buttons
+57.2 — Update PauseMenu.gd: replace programmatic node creation with @onready references
+57.3 — Update Game.gd: _show_pause_menu to instantiate .tscn instead of .gd.new()
+57.4 — Apply consistent menu theming (colors, fonts, spacing)
+57.5 — Test: pause/unpause works, buttons functional, Options opens correctly
+57.6 — Run full test suite — ensure signals connect on instantiated scene
+```
+
+**Expected impact:** Pause menu is visually consistent with other menus, editable in the scene editor, and maintainable without code changes. Eliminates the only script-only UI in the project.
+
+---
+
+### Part 58: Create Shared WeaponData Resource to Eliminate Manual Array Sync
+
+**Problem:** `Interceptor.gd:10` defines `WEAPON_TYPES = ["missile", "mine", "emp"]` and `HUD.gd:3` defines `WEAPON_COLORS = [Color.RED, Color.YELLOW, Color.CYAN]`. These arrays must match by index manually — adding a new weapon requires updating both files in sync.
+
+**Files:** `scripts/scenes/player/Interceptor.gd:10`, `scripts/scenes/ui/HUD.gd:3`
+
+**Findings:**
+- `Interceptor.gd:10` — `const WEAPON_TYPES: Array[String] = ["missile", "mine", "emp"]`
+- `HUD.gd:3` — `const WEAPON_COLORS = [Color.RED, Color.YELLOW, Color.CYAN]`
+- Both are `const` at class level, must remain index-aligned manually
+- `Interceptor.gd:178-181` — `secondary_ammo` array size set in `_ready()` from `WEAPON_TYPES.size()`
+- `HUD.gd:40-50` — `update_weapon_display()` uses `WEAPON_COLORS[weapon_index]` — crashes or wrong color if indices drift
+- No single source of truth for weapon metadata (type name, color, icon, base ammo, description)
+
+**Plan:**
+1. Create `scripts/resources/WeaponData.gd` as a `Resource` with `class_name WeaponData`
+2. Fields: `type_name: String`, `display_name: String`, `color: Color`, `icon: Texture2D`, `base_ammo: int`, `description: String`
+3. Create `weapons_data.tres` resource file with all 3 weapon entries
+4. Replace `Interceptor.WEAPON_TYPES` with reference to the resource file
+5. Replace `HUD.WEAPON_COLORS` with same resource reference
+6. Both scripts load the same `preload("res://scripts/resources/weapons_data.tres")` — guaranteed sync
+7. Update `Interceptor._ready()`: allocate `secondary_ammo` from `weapon_data.size()`
+8. Update `HUD.update_weapon_display()`: read color from `weapon_data[weapon_index].color`
+9. All future weapons are added by editing one resource file
+
+**Subtasks:**
+```
+58.1 — Create WeaponData.gd resource class (type_name, color, icon, base_ammo)
+58.2 — Create weapons_data.tres with 3 entries (missile, mine, emp)
+58.3 — Update Interceptor.gd: replace WEAPON_TYPES const with resource reference
+58.4 — Update HUD.gd: replace WEAPON_COLORS const with resource reference
+58.5 — Verify secondary_ammo sizing, color display, and weapon switching still work
+58.6 — Test: add a 4th weapon to resource, verify both files pick it up automatically
+```
+
+**Expected impact:** Single source of truth for weapon metadata. Adding a weapon requires editing one resource file instead of 2+ scripts. Zero risk of index drift between Interceptor and HUD.
+
+---
+
+### Part 59: Refactor Scav/Drone Bullet Spawning to Avoid Parent Assumption
+
+**Problem:** `Scav.gd:57-60` and `Drone.gd:47-50` use `get_parent().add_child(bullet)` to add spawned projectiles to the scene tree. This assumes the parent node is the root world container — a fragile assumption that breaks if the spawner hierarchy changes.
+
+**Files:** `scripts/scenes/enemies/Scav.gd:54-71`, `scripts/scenes/enemies/Drone.gd:44-56`
+
+**Findings:**
+- `Scav.gd:57` — `get_parent().add_child(bullet)` — assumes parent is the world node
+- `Drone.gd:47` — `get_parent().add_child(bomb)` — same assumption
+- Both enemies are children of `Spawner` → children of `World` in `Game.tscn` — parent IS the world currently, but this is an implicit contract
+- `Bullet.gd:19` extends `Area2D` — works anywhere in the scene tree, but should be child of world for proper coordinate space
+- `Spawner.gd` already has `world_node` member (set in `Game.gd:47`) that could be used
+- Other enemies (`Rotor.gd`) don't spawn projectiles — only Scav and Drone have this pattern
+
+**Plan:**
+1. Store `world_node` reference in both `Scav.gd` and `Drone.gd` (passed from `Spawner` in `init()`)
+2. Replace `get_parent().add_child()` with `_world_node.add_child()`
+3. Add `world_node: Node2D` parameter to `Scav.gd:init()` and `Drone.gd:init()`
+4. Update `Spawner.gd:_spawn_enemy()` to pass `world_node` when calling `init()`
+5. Verify all projectile spawning works identically before and after
+6. Add explicit `is_instance_valid(_world_node)` guard before `add_child()`
+
+**Subtasks:**
+```
+59.1 — Add _world_node member to Scav.gd, pass in init() from Spawner
+59.2 — Add _world_node member to Drone.gd, pass in init() from Spawner
+59.3 — Replace get_parent().add_child() with _world_node.add_child() in both files
+59.4 — Update Spawner._spawn_enemy() to pass world_node to init()
+59.5 — Add is_instance_valid guard before add_child in both files
+59.6 — Test: Scav fires bullets, Drone drops bombs — projectiles exist in world space
+59.7 — Run full test suite — ensure no regression in enemy projectile spawning
+```
+
+**Expected impact:** No hidden coupling between enemy position in scene tree and world container. Safe to restructure Spawner or Enemy hierarchy without breaking projectile spawning.
+
+---
+
+### Part 60: Extract WeatherSystem Hardcoded Colors into Constants.gd
+
+**Problem:** `WeatherSystem.gd` contains hardcoded `Color` values for acid overlay, sky tint, lightning flash, and rain tint that should live in `Constants.gd` for unified tuning.
+
+**Files:** `scripts/scenes/world/WeatherSystem.gd`
+
+**Findings:**
+- `WeatherSystem.gd` — multiple `Color()` literals for weather visuals (acid overlay, rain tint, lightning flash)
+- `Constants.gd` already has `ACID_OVERLAY_ALPHA_LIGHT = 0.15` and `ACID_OVERLAY_ALPHA_HEAVY = 0.25` — but the Color constructors themselves have hardcoded RGB values
+- Example pattern: `Color(0.1, 0.3, 0.1, 0.15)` — RGB + alpha should be a named constant
+- No single weather color tuning point — changing acid rain color requires editing RGB values across multiple locations
+- `WeatherSystem.gd:126-133` — acid rain damage amounts also hardcoded
+
+**Plan:**
+1. Audit `WeatherSystem.gd` for all hardcoded `Color()` values
+2. Add constants to `Constants.gd:`
+   - `ACID_OVERLAY_COLOR_LIGHT: Color`
+   - `ACID_OVERLAY_COLOR_HEAVY: Color`
+   - `RAIN_TINT_COLOR: Color` (for each weather type)
+   - `LIGHTNING_FLASH_COLOR: Color`
+   - `SKY_TINT_CLEAR`, `SKY_TINT_RAIN`, `SKY_TINT_STORM: Color`
+   - `ACID_RAIN_DAMAGE_PER_SECOND: int`
+   - `WEATHER_TRANSITION_SPEED: float`
+3. Update `WeatherSystem.gd` to reference all constants instead of literals
+4. Verify all weather visuals and effects are identical after refactor
+5. Document each constant with its visual purpose and valid range
+
+**Subtasks:**
+```
+60.1 — Audit WeatherSystem.gd for all hardcoded Color and float values
+60.2 — Add weather color/effect constants to Constants.gd (organized section)
+60.3 — Replace all literals in WeatherSystem.gd with constant references
+60.4 — Verify weather visuals identical before/after refactor
+60.5 — Document each constant with purpose, range, and weather type
+60.6 — Run full test suite ensuring no gameplay regression
+```
+
+**Expected impact:** Complete weather tuning from `Constants.gd` only. Acid rain color, sky tint, lightning color, and damage rate all adjustable without touching WeatherSystem.gd.
+
+---
+
+### Priority Matrix
+
+| Part | Title | Effort | Impact | Priority |
+|------|-------|--------|--------|----------|
+| 52 | Persist Options Volume Settings | Low | Medium | P1 |
+| 53 | BossWarRig Private Method Access | Low | Medium | P1 |
+| 54 | DroneBomb Collision Mask Fix | Low | High | P0 |
+| 55 | Cache Civilian Player Reference | Low | Low | P2 |
+| 56 | @export Variables for Tuning | Medium | High | P1 |
+| 57 | PauseMenu TSCN Scene File | Medium | Medium | P1 |
+| 58 | Shared WeaponData Resource | Low | Medium | P2 |
+| 59 | Scav/Drone Parent Assumption Fix | Low | Medium | P1 |
+| 60 | WeatherSystem Color Constants | Low | Low | P2 |
+
+**P0 (do now):** Part 54 — DroneBomb can't be shot down, fundamental gameplay fairness issue.
+**P1 (do next):** Parts 52, 53, 56, 57, 59 — Settings persistence, coupling fixes, inspector tuning, pause menu scene, parent assumption fix.
+**P2 (do later):** Parts 55, 58, 60 — Civilian optimization, weapon data resource, weather color extraction.

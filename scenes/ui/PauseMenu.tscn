@@ -1,0 +1,43 @@
+[gd_scene load_steps=2 format=3 uid="uid://pausemenu123"]
+
+[ext_resource type="Script" path="res://scripts/scenes/ui/PauseMenu.gd" id="1_pause"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1_pause")
+
+[node name="Panel" type="Panel" parent="."]
+offset_left = 490.0
+offset_top = 235.0
+offset_right = 790.0
+offset_bottom = 485.0
+
+[node name="Title" type="Label" parent="Panel"]
+offset_right = 300.0
+offset_bottom = 40.0
+text = "PAUSED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+offset_left = 50.0
+offset_top = 60.0
+offset_right = 250.0
+offset_bottom = 200.0
+
+[node name="ResumeButton" type="Button" parent="Panel/VBox"]
+offset_right = 200.0
+offset_bottom = 40.0
+text = "Resume"
+
+[node name="OptionsButton" type="Button" parent="Panel/VBox"]
+offset_top = 50.0
+offset_right = 200.0
+offset_bottom = 90.0
+text = "Options"
+
+[node name="QuitButton" type="Button" parent="Panel/VBox"]
+offset_top = 100.0
+offset_right = 200.0
+offset_bottom = 140.0
+text = "Quit to Menu"

@@ -7,6 +7,8 @@ const ROTOR_SCENE = preload("res://scenes/enemies/Rotor.tscn")
 const SCAV_SCENE = preload("res://scenes/enemies/Scav.tscn")
 const DRONE_SCENE = preload("res://scenes/enemies/Drone.tscn")
 const DRONE_BOMB_SCENE = preload("res://scenes/weapons/DroneBomb.tscn")
+const BOSS_SCENE = preload("res://scenes/enemies/BossWarRig.tscn")
+const CIVILIAN_SCENE = preload("res://scenes/enemies/Civilian.tscn")
 
 const POPUP_POOL_SIZE: int = 10
 
@@ -38,6 +40,8 @@ func _ready() -> void:
 	ObjectPool.create_pool("scav", SCAV_SCENE, 6)
 	ObjectPool.create_pool("drone", DRONE_SCENE, 4)
 	ObjectPool.create_pool("drone_bomb", DRONE_BOMB_SCENE, 6)
+	ObjectPool.create_pool("boss", BOSS_SCENE, 2)
+	ObjectPool.create_pool("civilian", CIVILIAN_SCENE, 4)
 	ObjectPool.create_pickup_pool(20)
 	
 	GameManager.start_game()
@@ -162,7 +166,7 @@ func _show_pause_menu() -> void:
 		return
 	GameManager.state = GameManager.GameState.PAUSED
 	get_tree().paused = true
-	_pause_menu = preload("res://scripts/scenes/ui/PauseMenu.gd").new()
+	_pause_menu = preload("res://scenes/ui/PauseMenu.tscn").instantiate()
 	add_child(_pause_menu)
 	_pause_menu.resume_requested.connect(_hide_pause_menu)
 	_pause_menu.options_requested.connect(_show_pause_options)

@@ -56,8 +56,18 @@ func _physics_process(delta: float) -> void:
 
 func take_damage(_amount: int = 1) -> void:
 	hit_by_player.emit()
-	queue_free()
+
+func on_pool_acquire() -> void:
+	_generate_sprite_texture()
+	_protect_bonus_awarded = false
+	velocity = Vector2.ZERO
+	visible = true
+	process_mode = Node.PROCESS_MODE_INHERIT
 
 func on_pool_release() -> void:
 	_protect_bonus_awarded = false
 	velocity = Vector2.ZERO
+	for conn in exited_safely.get_connections():
+		exited_safely.disconnect(conn.callable)
+	for conn in hit_by_player.get_connections():
+		hit_by_player.disconnect(conn.callable)

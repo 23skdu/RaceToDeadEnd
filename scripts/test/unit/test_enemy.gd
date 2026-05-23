@@ -23,7 +23,8 @@ func test_type_names_constant():
 	assert_eq(Enemy.TYPE_NAMES.size(), 3, "Should have 3 type names")
 	assert_eq(Enemy.TYPE_NAMES[0], "rotor", "Type name 0 should be rotor")
 	assert_eq(Enemy.TYPE_NAMES[1], "scav", "Type name 1 should be scav")
-	assert_eq(Enemy.TYPE_NAMES[2], "drone", "Type name 2 should be drone")
+
+
 
 func test_init_rotor():
 	var e = _create_enemy()

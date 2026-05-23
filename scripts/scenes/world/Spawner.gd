@@ -46,7 +46,10 @@ func _process(delta: float) -> void:
 			active_enemies.remove_at(i)
 		elif e.global_position.y - player_y > Constants.CLEANUP_DISTANCE:
 			active_enemies.remove_at(i)
-			e.queue_free()
+			if e.has_method("on_pool_release"):
+				ObjectPool.release(e)
+			else:
+				e.queue_free()
 		i -= 1
 
 func _spawn_wave() -> void:
@@ -69,12 +72,18 @@ func _spawn_boss() -> void:
 	_bosses_spawned += 1
 	if not player:
 		return
-	var boss = enemy_scenes["boss"].instantiate()
+	var boss = ObjectPool.acquire("boss")
+	if not boss:
+		if enemy_scenes.has("boss") and enemy_scenes["boss"]:
+			boss = enemy_scenes["boss"].instantiate()
+		else:
+			return
 	var lane = randi_range(2, 3)
 	var lane_x = Constants.LANE_POSITIONS[lane]
 	boss.global_position = Vector2(lane_x, player.global_position.y - Constants.SPAWN_DISTANCE)
 	boss.player = player
 	boss._spawner = self
+	boss.destroyed.connect(_on_enemy_destroyed)
 	add_child(boss)
 	active_enemies.append(boss)
 	boss_spawned.emit(boss)
@@ -85,18 +94,30 @@ func _spawn_civilian() -> void:
 		return
 	if not enemy_scenes.has("civilian") or not enemy_scenes["civilian"]:
 		return
-	var civilian = enemy_scenes["civilian"].instantiate()
+	var civilian = ObjectPool.acquire("civilian")
+	if not civilian:
+		if enemy_scenes.has("civilian") and enemy_scenes["civilian"]:
+			civilian = enemy_scenes["civilian"].instantiate()
+		else:
+			return
 	var lane = randi_range(0, Constants.LANE_COUNT - 1)
 	var dir = 1.0 if randi() % 2 == 0 else -1.0
 	civilian.init(lane, Constants.BASE_SPEED, dir)
 	civilian.global_position = Vector2(Constants.LANE_POSITIONS[lane], player.global_position.y - Constants.SPAWN_DISTANCE * 0.5)
-	civilian.exited_safely.connect(func(): ScoreManager.register_civilian_protected(civilian.global_position))
-	civilian.hit_by_player.connect(func():
-		ScoreManager.register_civilian_damaged()
-		if is_instance_valid(player) and player.has_method("take_damage"):
-			player.take_damage(Constants.CIVILIAN_PENALTY)
-	)
+	civilian.exited_safely.connect(_on_civilian_safe_exit.bind(civilian), CONNECT_ONE_SHOT)
+	civilian.hit_by_player.connect(_on_civilian_hit.bind(civilian), CONNECT_ONE_SHOT)
 	add_child(civilian)
+	active_enemies.append(civilian)
+
+func _on_civilian_safe_exit(civilian: Node) -> void:
+	ScoreManager.register_civilian_protected(civilian.global_position)
+	if civilian.has_method("on_pool_release"):
+		ObjectPool.release(civilian)
+
+func _on_civilian_hit(civilian: Node) -> void:
+	ScoreManager.register_civilian_damaged()
+	if is_instance_valid(player) and player.has_method("take_damage"):
+		player.take_damage(Constants.CIVILIAN_PENALTY)
 
 func _get_wave_composition(tier: int) -> Dictionary:
 	var comp = {}

@@ -2,13 +2,13 @@ extends CanvasLayer
 
 signal back_to_menu_requested
 
-@onready var panel: Panel = $Panel
+@onready var panel: ColorRect = $Panel
 @onready var tab_container: TabContainer = $Panel/TabContainer
 @onready var master_slider: HSlider = $Panel/TabContainer/AudioTab/MasterSlider
 @onready var music_slider: HSlider = $Panel/TabContainer/AudioTab/MusicSlider
 @onready var sfx_slider: HSlider = $Panel/TabContainer/AudioTab/SFXSlider
 @onready var fullscreen_check: CheckButton = $Panel/TabContainer/AudioTab/FullscreenCheck
-@onready var input_remap: InputRemap = $Panel/TabContainer/InputTab/InputRemap
+@onready var input_remap = $Panel/TabContainer/InputTab/InputRemap
 @onready var back_button: Button = $Panel/BackButton
 
 func _ready() -> void:

@@ -1,81 +1,100 @@
-[gd_scene load_steps=2 format=3 uid="uid://options123"]
+[gd_scene load_steps=3 format=3 uid="uid://options123"]
 
 [ext_resource type="Script" path="res://scripts/scenes/ui/Options.gd" id="1_opts"]
+[ext_resource type="Script" path="res://scripts/scenes/ui/InputRemap.gd" id="2_input"]
 
 [node name="Options" type="CanvasLayer"]
 script = ExtResource("1_opts")
 
 [node name="Panel" type="ColorRect" parent="."]
 offset_left = 340.0
-offset_top = 160.0
+offset_top = 120.0
 offset_right = 940.0
-offset_bottom = 560.0
+offset_bottom = 600.0
 color = Color(0.1, 0.1, 0.15, 0.95)
 
-[node name="Title" type="Label" parent="."]
-offset_left = 540.0
-offset_top = 170.0
-offset_right = 740.0
-offset_bottom = 210.0
+[node name="Title" type="Label" parent="Panel"]
+offset_left = 160.0
+offset_top = 10.0
+offset_right = 440.0
+offset_bottom = 50.0
 text = "OPTIONS"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="MasterLabel" type="Label" parent="."]
-offset_left = 380.0
-offset_top = 230.0
-offset_right = 500.0
-offset_bottom = 260.0
+[node name="TabContainer" type="TabContainer" parent="Panel"]
+offset_left = 20.0
+offset_top = 60.0
+offset_right = 580.0
+offset_bottom = 400.0
+
+[node name="AudioTab" type="VBoxContainer" parent="Panel/TabContainer"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 570.0
+offset_bottom = 330.0
+
+[node name="MasterLabel" type="Label" parent="Panel/TabContainer/AudioTab"]
+offset_right = 100.0
+offset_bottom = 30.0
 text = "MASTER VOLUME"
 
-[node name="MasterSlider" type="HSlider" parent="Panel"]
-offset_left = 180.0
+[node name="MasterSlider" type="HSlider" parent="Panel/TabContainer/AudioTab"]
+offset_right = 400.0
+offset_bottom = 30.0
+value = 1.0
+max_value = 1.0
+
+[node name="MusicLabel" type="Label" parent="Panel/TabContainer/AudioTab"]
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 70.0
+text = "MUSIC VOLUME"
+
+[node name="MusicSlider" type="HSlider" parent="Panel/TabContainer/AudioTab"]
 offset_top = 70.0
-offset_right = 540.0
+offset_right = 400.0
 offset_bottom = 100.0
 value = 1.0
 max_value = 1.0
 
-[node name="MusicLabel" type="Label" parent="."]
-offset_left = 380.0
-offset_top = 280.0
-offset_right = 500.0
-offset_bottom = 310.0
-text = "MUSIC VOLUME"
-
-[node name="MusicSlider" type="HSlider" parent="Panel"]
-offset_left = 180.0
-offset_top = 120.0
-offset_right = 540.0
-offset_bottom = 150.0
-value = 1.0
-max_value = 1.0
-
-[node name="SFXLabel" type="Label" parent="."]
-offset_left = 380.0
-offset_top = 330.0
-offset_right = 500.0
-offset_bottom = 360.0
+[node name="SFXLabel" type="Label" parent="Panel/TabContainer/AudioTab"]
+offset_top = 110.0
+offset_right = 100.0
+offset_bottom = 140.0
 text = "SFX VOLUME"
 
-[node name="SFXSlider" type="HSlider" parent="Panel"]
-offset_left = 180.0
-offset_top = 170.0
-offset_right = 540.0
-offset_bottom = 200.0
+[node name="SFXSlider" type="HSlider" parent="Panel/TabContainer/AudioTab"]
+offset_top = 140.0
+offset_right = 400.0
+offset_bottom = 170.0
 value = 1.0
 max_value = 1.0
 
-[node name="FullscreenCheck" type="CheckButton" parent="Panel"]
-offset_left = 180.0
-offset_top = 240.0
-offset_right = 340.0
-offset_bottom = 270.0
+[node name="FullscreenCheck" type="CheckButton" parent="Panel/TabContainer/AudioTab"]
+offset_top = 190.0
+offset_right = 200.0
+offset_bottom = 220.0
 text = "FULLSCREEN"
 
+[node name="InputTab" type="VBoxContainer" parent="Panel/TabContainer"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 570.0
+offset_bottom = 330.0
+
+[node name="InputRemap" type="Control" parent="Panel/TabContainer/InputTab"]
+offset_right = 560.0
+offset_bottom = 310.0
+script = ExtResource("2_input")
+
+[node name="ActionList" type="VBoxContainer" parent="Panel/TabContainer/InputTab/InputRemap"]
+offset_right = 560.0
+offset_bottom = 310.0
+
 [node name="BackButton" type="Button" parent="Panel"]
-offset_left = 200.0
-offset_top = 310.0
-offset_right = 400.0
-offset_bottom = 360.0
+offset_left = 190.0
+offset_top = 420.0
+offset_right = 390.0
+offset_bottom = 470.0
 text = "BACK"

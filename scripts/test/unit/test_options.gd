@@ -125,3 +125,15 @@ func test_options_sliders_connected():
 func test_options_fullscreen_check_connected():
 	var options = _create_options()
 	assert_true(options.fullscreen_check.toggled.is_connected(options._on_fullscreen_toggled), "Fullscreen check should be connected")
+
+func test_options_has_tab_container():
+	var options = _create_options()
+	assert_not_null(options.tab_container, "Should have TabContainer")
+
+func test_options_has_input_remap():
+	var options = _create_options()
+	assert_not_null(options.input_remap, "Should have InputRemap node")
+
+func test_options_has_input_tab():
+	var options = _create_options()
+	assert_not_null(options.get_node("Panel/TabContainer/InputTab"), "Should have InputTab child")

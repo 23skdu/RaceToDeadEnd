@@ -6,9 +6,22 @@ var phase: int = 1
 
 func _ready() -> void:
 	super._ready()
+	_reset_state()
+
+func _reset_state() -> void:
 	hp = Constants.BOSS_WAR_RIG_HP
 	score_value = Constants.BOSS_SCORE
 	speed = 80.0
+	attack_timer = 0.0
+	minion_spawned = false
+	phase = 1
+
+func on_pool_acquire() -> void:
+	_reset_state()
+
+func on_pool_release() -> void:
+	_reset_state()
+	velocity = Vector2.ZERO
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
