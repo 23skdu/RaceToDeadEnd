@@ -7,7 +7,7 @@ var warning_visual: Polygon2D
 var explosion_visual: Polygon2D
 
 func _ready() -> void:
-	collision_layer = 2
+	collision_layer = 4
 	collision_mask = 1 | 3 # player layer + player bullets
 	area_entered.connect(_on_area_entered)
 	
