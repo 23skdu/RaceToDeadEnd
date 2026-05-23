@@ -6,7 +6,7 @@ class SignalCapture:
 	var pos = Vector2.ZERO
 	var type = ""
 	var count = 0
-	func capture(p, t):
+	func capture(p, t, _enemy = null):
 		pos = p
 		type = t
 		count += 1
@@ -78,7 +78,7 @@ func test_take_damage_does_not_kill_above_zero():
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
 	var destroy_count = 0
-	e.destroyed.connect(func(_pos, _type): destroy_count += 1)
+	e.destroyed.connect(func(_pos, _type, _enemy): destroy_count += 1)
 	e.take_damage(1)
 	assert_eq(destroy_count, 0, "Should not emit destroyed with remaining HP")
 

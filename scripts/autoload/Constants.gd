@@ -66,3 +66,34 @@ const EMP_MAX_RADIUS: float = 400.0
 # Drone Bomb
 const DETONATION_TIME: float = 1.5
 const BLAST_RADIUS: float = 80.0
+
+# World / Camera
+const WORLD_SCALE: Vector2 = Vector2(1.0, 0.5)
+const CAMERA_Y_OFFSET: float = -100.0
+
+# Civilian
+const CIVILIAN_SPEED: float = 150.0
+const CIVILIAN_SPAWN_CHANCE: float = 0.15
+const CIVILIAN_BONUS: int = 500
+const CIVILIAN_PENALTY: int = 1
+
+# Boss
+const BOSS_SCORE_INTERVAL: int = 3000
+const BOSS_WAR_RIG_HP: int = 20
+const BOSS_ALIEN_CARRIER_HP: int = 15
+const BOSS_SCORE: int = 1000
+const BOSS_ATTACK_INTERVAL: float = 2.0
+
+# Visual
+const SPRITE_BASE_SIZE: float = 64.0
+const SPRITE_BASE_VIEWPORT: float = 1280.0
+const GUARDRAIL_WIDTH: float = 3.0
+const SCAV_FLANK_OFFSET: float = 64.0
+
+# HUD Multiplier Bar
+const MULTIPLIER_BAR_WIDTH: float = 120.0
+const MULTIPLIER_BAR_HEIGHT: float = 8.0
+
+# Weather
+const ACID_OVERLAY_ALPHA_LIGHT: float = 0.15
+const ACID_OVERLAY_ALPHA_HEAVY: float = 0.25

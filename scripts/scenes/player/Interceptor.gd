@@ -5,6 +5,7 @@ signal boost_activated
 signal boost_depleted
 signal boost_charge_updated(charges: int)
 signal weapon_switched(weapon_index: int)
+signal damage_taken(amount: int)
 
 const WEAPON_TYPES: Array[String] = ["missile", "mine", "emp"]
 
@@ -33,16 +34,13 @@ var last_right_tap_time: float = 0.0
 @onready var weapon_mount: Marker2D = $WeaponMount
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
-const BASE_SPRITE_SIZE: float = 64.0
-const BASE_VIEWPORT_WIDTH: float = 1280.0
-
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1
 	z_index = 1
 	add_to_group("player")
 	_scale_sprite()
-	$Camera2D.position.y = -100
+	$Camera2D.position.y = Constants.CAMERA_Y_OFFSET
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
 	var missile_level = GameManager.upgrade_levels.get("missile_ammo", 1)
 	var mine_level = GameManager.upgrade_levels.get("mine_ammo", 1)
@@ -209,6 +207,7 @@ func _activate_boost() -> void:
 	boost_activated.emit()
 	AudioManager.play_synth_boost()
 	CameraShake.shake(0.2, 0.15, 3.0)
+	CameraShake.rumble(0.2, 0.15)
 
 func _deactivate_boost() -> void:
 	boost_active = false
@@ -219,26 +218,19 @@ func take_damage(amount: int = 1) -> void:
 	if invincible or boost_active:
 		return
 	GameManager.take_damage(amount)
+	damage_taken.emit(amount)
 	invincible = true
 	invincible_timer = 1.0
 	modulate = Color(1, 0.3, 0.3, 0.7)
 	AudioManager.play_synth_hurt()
 	CameraShake.shake(0.4, 0.2, 5.0)
+	CameraShake.rumble(0.5, 0.3)
 
 func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
 
 func _scale_sprite() -> void:
-	var viewport = get_viewport()
-	if not viewport:
-		return
-	var viewport_width = viewport.get_visible_rect().size.x
-	var scale_factor = viewport_width / BASE_VIEWPORT_WIDTH
-	var target_size = BASE_SPRITE_SIZE * scale_factor
-	if sprite.texture:
-		var tex_height = sprite.texture.get_height()
-		var current_scale = target_size / tex_height
-		sprite.scale = Vector2(current_scale, current_scale)
+	Helpers.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
 func add_boost() -> void:
 	if boost_charges < max_boost_charges:
@@ -255,10 +247,10 @@ func on_bridge_fall(_body: Node) -> void:
 		return
 	take_damage(2)
 	if position.x < 0:
-		position.x = -32
+		position.x = Constants.LANE_POSITIONS[1]
 		current_lane = 1
 		target_x = _lane_to_x(current_lane)
 	else:
-		position.x = 32
+		position.x = Constants.LANE_POSITIONS[2]
 		current_lane = 2
 		target_x = _lane_to_x(current_lane)

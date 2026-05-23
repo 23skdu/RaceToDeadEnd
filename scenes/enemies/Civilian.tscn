@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/scenes/enemies/Civilian.gd" id="1_0ok3b"]
+
+[sub_resource type="RectangleShape2D" id="2_qb02c"]
+size = Vector2(16, 20)
+
+[node name="Civilian" type="CharacterBody2D"]
+collision_mask = 3
+script = ExtResource("1_0ok3b")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("2_qb02c")

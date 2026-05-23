@@ -36,7 +36,7 @@ func _physics_process(delta: float) -> void:
 			_cache_timer = 0.0
 			_cached_enemies = GameManager.enemy_list
 		var nearest = _find_nearest(_cached_enemies)
-		if nearest:
+		if nearest and is_instance_valid(nearest):
 			var target_dir = (nearest.global_position - global_position).normalized()
 			direction = direction.lerp(target_dir, homing_strength * delta).normalized()
 	position += direction * speed * delta

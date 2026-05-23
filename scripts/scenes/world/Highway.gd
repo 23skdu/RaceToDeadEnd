@@ -295,7 +295,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	
 	var left_rail = Line2D.new()
 	left_rail.name = "LeftRail"
-	left_rail.width = 3.0
+	left_rail.width = Constants.GUARDRAIL_WIDTH
 	left_rail.default_color = Color(1.0, 1.0, 0.8) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
 	var left_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
@@ -306,7 +306,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	
 	var right_rail = Line2D.new()
 	right_rail.name = "RightRail"
-	right_rail.width = 3.0
+	right_rail.width = Constants.GUARDRAIL_WIDTH
 	right_rail.default_color = Color(1.0, 1.0, 0.8) if chunk_type != ChunkType.BRIDGE else Color(0.0, 0.8, 1.0)
 	var right_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:

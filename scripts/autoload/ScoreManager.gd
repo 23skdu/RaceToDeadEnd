@@ -34,6 +34,9 @@ func register_civilian_protected(position: Vector2) -> void:
 	GameManager.add_score(SCORE_VALUES.civilian_protected)
 	score_popped.emit(position, SCORE_VALUES.civilian_protected, "PROTECTED!")
 
+func register_civilian_damaged() -> void:
+	score_popped.emit(Vector2.ZERO, 0, "CIVILIAN HIT!")
+
 func register_pickup(pickup_type: String, _position: Vector2) -> void:
 	match pickup_type:
 		"repair":

@@ -1,6 +1,9 @@
 extends Node
 
 signal wave_spawned(wave_number: int)
+signal enemy_spawned(enemy: Node)
+signal enemy_destroyed(enemy: Node)
+signal boss_spawned(boss: Node)
 
 var player: Node = null
 var world_node: Node = null
@@ -10,10 +13,14 @@ var wave_timer: float = 0.0
 var wave_interval: float = 5.0
 var current_wave: int = 0
 
+var _bosses_spawned: int = 0
+
 func _ready() -> void:
 	enemy_scenes["rotor"] = preload("res://scenes/enemies/Rotor.tscn") if ResourceLoader.exists("res://scenes/enemies/Rotor.tscn") else null
 	enemy_scenes["scav"] = preload("res://scenes/enemies/Scav.tscn") if ResourceLoader.exists("res://scenes/enemies/Scav.tscn") else null
 	enemy_scenes["drone"] = preload("res://scenes/enemies/Drone.tscn") if ResourceLoader.exists("res://scenes/enemies/Drone.tscn") else null
+	enemy_scenes["civilian"] = preload("res://scenes/enemies/Civilian.tscn") if ResourceLoader.exists("res://scenes/enemies/Civilian.tscn") else null
+	enemy_scenes["boss"] = preload("res://scenes/enemies/BossWarRig.tscn") if ResourceLoader.exists("res://scenes/enemies/BossWarRig.tscn") else null
 
 func _process(delta: float) -> void:
 	if GameManager.state != GameManager.GameState.PLAYING:
@@ -27,6 +34,9 @@ func _process(delta: float) -> void:
 		_spawn_wave()
 		wave_interval = maxf(2.0, 5.0 - (GameManager.difficulty_tier - 1) * 0.3)
 		wave_timer = wave_interval
+
+	if randf() < Constants.CIVILIAN_SPAWN_CHANCE * delta:
+		_spawn_civilian()
 		
 	var player_y = player.global_position.y
 	var i = active_enemies.size() - 1
@@ -42,11 +52,51 @@ func _process(delta: float) -> void:
 func _spawn_wave() -> void:
 	current_wave += 1
 	var tier = GameManager.difficulty_tier
+	if _should_spawn_boss():
+		_spawn_boss()
+		return
 	var composition = _get_wave_composition(tier)
 	for enemy_type in composition:
 		for _i in composition[enemy_type]:
 			_spawn_enemy(enemy_type)
 	wave_spawned.emit(current_wave)
+
+func _should_spawn_boss() -> bool:
+	var next_threshold = (_bosses_spawned + 1) * Constants.BOSS_SCORE_INTERVAL
+	return GameManager.score >= next_threshold and enemy_scenes.has("boss") and enemy_scenes["boss"]
+
+func _spawn_boss() -> void:
+	_bosses_spawned += 1
+	if not player:
+		return
+	var boss = enemy_scenes["boss"].instantiate()
+	var lane = randi_range(2, 3)
+	var lane_x = Constants.LANE_POSITIONS[lane]
+	boss.global_position = Vector2(lane_x, player.global_position.y - Constants.SPAWN_DISTANCE)
+	boss.player = player
+	boss._spawner = self
+	add_child(boss)
+	active_enemies.append(boss)
+	boss_spawned.emit(boss)
+	enemy_spawned.emit(boss)
+
+func _spawn_civilian() -> void:
+	if not player or not is_instance_valid(player):
+		return
+	if not enemy_scenes.has("civilian") or not enemy_scenes["civilian"]:
+		return
+	var civilian = enemy_scenes["civilian"].instantiate()
+	var lane = randi_range(0, Constants.LANE_COUNT - 1)
+	var dir = 1.0 if randi() % 2 == 0 else -1.0
+	civilian.init(lane, Constants.BASE_SPEED, dir)
+	civilian.global_position = Vector2(Constants.LANE_POSITIONS[lane], player.global_position.y - Constants.SPAWN_DISTANCE * 0.5)
+	civilian.exited_safely.connect(func(): ScoreManager.register_civilian_protected(civilian.global_position))
+	civilian.hit_by_player.connect(func():
+		ScoreManager.register_civilian_damaged()
+		if is_instance_valid(player) and player.has_method("take_damage"):
+			player.take_damage(Constants.CIVILIAN_PENALTY)
+	)
+	add_child(civilian)
 
 func _get_wave_composition(tier: int) -> Dictionary:
 	var comp = {}
@@ -91,6 +141,7 @@ func _spawn_enemy(type: String) -> void:
 	enemy.destroyed.connect(_on_enemy_destroyed)
 	add_child(enemy)
 	active_enemies.append(enemy)
+	enemy_spawned.emit(enemy)
 
 	if enemy.has_method("init"):
 		enemy.init(et, lane, player, Constants.BASE_SPEED, self)
@@ -100,9 +151,11 @@ func _spawn_enemy(type: String) -> void:
 	if type == "drone" and "world_node" in enemy:
 		enemy.world_node = world_node
 
-func _on_enemy_destroyed(pos: Vector2, enemy_type: String) -> void:
+func _on_enemy_destroyed(pos: Vector2, enemy_type: String, enemy: Node) -> void:
 	ScoreManager.register_kill(enemy_type, pos)
 	_drop_pickup(pos)
+	active_enemies.erase(enemy)
+	enemy_destroyed.emit(enemy)
 
 func _drop_pickup(position: Vector2) -> void:
 	var roll = randf()

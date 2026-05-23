@@ -20,7 +20,8 @@ const POPUP_POOL_SIZE: int = 10
 @onready var score_popup_container: Node2D = $ScorePopups
 
 func _ready() -> void:
-	world.scale = Vector2(1.0, 0.5)
+	_setup_parallax()
+	world.scale = Constants.WORLD_SCALE
 	world.set_y_sort_enabled(true)
 
 	var env_res = load("res://assets/environments/game_env.tres")
@@ -44,6 +45,8 @@ func _ready() -> void:
 	
 	spawner.player = player
 	spawner.world_node = world
+	spawner.enemy_spawned.connect(GameManager.register_enemy_spawned)
+	spawner.enemy_destroyed.connect(GameManager.register_enemy_destroyed)
 	highway.player = player
 	
 	if weather:
@@ -55,6 +58,7 @@ func _ready() -> void:
 		player.weapon_fired.connect(_on_player_weapon_fired)
 		player.weapon_switched.connect(func(idx): hud.update_weapon_display(idx, player.secondary_ammo[idx]))
 		player.boost_charge_updated.connect(hud.update_boost_charges)
+		player.damage_taken.connect(func(amount): _show_floating_text(player.global_position, "-" + str(amount), Color.RED, 18))
 		
 		highway.ice_entered.connect(player.set_slippery.bind(true))
 		highway.ice_exited.connect(player.set_slippery.bind(false))
@@ -89,11 +93,45 @@ func _on_segment_completed(segment: int) -> void:
 	elif tier >= 12:
 		weather.set_weather(weather.WeatherType.STORM)
 
+func _setup_parallax() -> void:
+	_parallax = ParallaxBackground.new()
+	_parallax.name = "ParallaxBackground"
+	_parallax.scroll_offset = Vector2.ZERO
+	add_child(_parallax)
+	move_child(_parallax, 0)
+
+	var layers = [
+		{ "scale": Vector2(0.1, 0.0), "color": Color(0.08, 0.08, 0.15), "label": "far" },
+		{ "scale": Vector2(0.3, 0.0), "color": Color(0.12, 0.1, 0.18), "label": "mid" },
+		{ "scale": Vector2(0.6, 0.0), "color": Color(0.18, 0.14, 0.22), "label": "near" },
+	]
+	for l in layers:
+		var layer = ParallaxLayer.new()
+		layer.name = "Layer" + l.label.capitalize()
+		layer.motion_scale = l.scale
+		var sprite = Sprite2D.new()
+		var img = Image.create(4, 256, false, Image.FORMAT_RGBA8)
+		for y in 256:
+			var t = float(y) / 255.0
+			var c = l.color.lerp(Color(l.color.r * 0.5, l.color.g * 0.5, l.color.b * 0.5, 1.0), t)
+			img.set_pixel(0, y, c)
+			img.set_pixel(1, y, c)
+			img.set_pixel(2, y, c)
+			img.set_pixel(3, y, c)
+		var tex = ImageTexture.create_from_image(img)
+		sprite.texture = tex
+		sprite.centered = false
+		var vs = DisplayServer.window_get_size()
+		sprite.scale = Vector2(vs.x / 4.0, 3.0)
+		sprite.position = Vector2(0, -vs.y * 0.5)
+		layer.add_child(sprite)
+		_parallax.add_child(layer)
+
 func _restart_game() -> void:
-	get_tree().reload_current_scene()
+	TransitionLayer.reload_scene()
 
 func _go_to_menu() -> void:
-	get_tree().change_scene_to_file("res://scenes/Main.tscn")
+	TransitionLayer.change_scene("res://scenes/Main.tscn")
 
 func _go_to_garage() -> void:
 	var garage = preload("res://scenes/ui/Garage.tscn").instantiate()
@@ -107,6 +145,7 @@ func _go_to_garage() -> void:
 		_restart_game()
 	)
 
+var _parallax: ParallaxBackground = null
 var _pause_menu: CanvasLayer = null
 var _options_menu: CanvasLayer = null
 
@@ -159,6 +198,8 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			var bullet = ObjectPool.acquire("bullet")
 			world.add_child(bullet)
 			bullet.init(pos, dir, true)
+			if not bullet.hit_target.is_connected(_on_bullet_hit):
+				bullet.hit_target.connect(_on_bullet_hit)
 			AudioManager.play_synth_laser(pos)
 		"missile":
 			var bullet = ObjectPool.acquire("bullet")
@@ -168,6 +209,8 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			bullet.damage = 3
 			bullet.scale = Vector2(1.8, 1.8)
 			bullet.modulate = Color(1.0, 0.25, 0.25)
+			if not bullet.hit_target.is_connected(_on_bullet_hit):
+				bullet.hit_target.connect(_on_bullet_hit)
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_laser(pos)
 		"mine":
@@ -182,6 +225,22 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			emp.init(pos)
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_emp(pos)
+
+func _on_bullet_hit(body: Node) -> void:
+	if is_instance_valid(body):
+		var color = Color.YELLOW
+		var size = 18
+		var text = "HIT"
+		if body.has_method("take_damage"):
+			var dmg = 1
+			if body.has_method("get_damage"):
+				dmg = body.get_damage()
+			text = str(dmg)
+			if dmg >= 3:
+				color = Color.WHITE
+				size = 24
+				_show_floating_text(body.global_position, "CRIT!", Color(1.0, 0.5, 0.0), 24)
+		_show_floating_text(body.global_position, text, color, size)
 
 var _popup_pool: Array[Label] = []
 
@@ -200,6 +259,19 @@ func _return_popup_label(pop: Label) -> void:
 	if pop.get_parent():
 		pop.get_parent().remove_child(pop)
 	_popup_pool.append(pop)
+
+func _show_floating_text(pos: Vector2, text: String, color: Color, size: int = 18) -> void:
+	var popup = _get_popup_label()
+	popup.text = text
+	popup.add_theme_color_override("font_color", color)
+	popup.add_theme_font_size_override("font_size", size)
+	popup.position = pos
+	popup.visible = true
+	score_popup_container.add_child(popup)
+	var tween = create_tween()
+	tween.tween_property(popup, "position:y", pos.y - 40.0, 0.6)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(_return_popup_label.bind(popup))
 
 func _on_score_popped(pos: Vector2, points: int, label: String) -> void:
 	var popup = _get_popup_label()

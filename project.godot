@@ -42,6 +42,8 @@ Constants="*res://scripts/autoload/Constants.gd"
 ObjectPool="*res://scripts/autoload/ObjectPool.gd"
 PackManager="*res://scripts/autoload/PackManager.gd"
 CameraShake="*res://scripts/autoload/CameraShake.gd"
+TransitionLayer="*res://scripts/autoload/TransitionLayer.gd"
+Helpers="*res://scripts/autoload/Helpers.gd"
 
 [display]
 

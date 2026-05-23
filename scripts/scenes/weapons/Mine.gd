@@ -39,6 +39,7 @@ func _on_area_entered(area: Area2D) -> void:
 
 func _explode() -> void:
 	CameraShake.shake(0.6, 0.3, 8.0)
+	CameraShake.rumble(0.8, 0.4)
 	_blast_col.disabled = false
 	var hit = false
 	for body in get_overlapping_bodies():

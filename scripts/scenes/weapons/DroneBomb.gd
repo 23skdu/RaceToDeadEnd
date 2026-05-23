@@ -51,6 +51,7 @@ func _detonate() -> void:
 	exploded = true
 	warning_visual.queue_free()
 	CameraShake.shake(0.8, 0.4, 10.0)
+	CameraShake.rumble(1.0, 0.5)
 	
 	# Explosion visual circle
 	explosion_visual = Polygon2D.new()

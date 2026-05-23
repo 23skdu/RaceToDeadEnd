@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-signal destroyed(position: Vector2, enemy_type: String)
+signal destroyed(position: Vector2, enemy_type: String, enemy: Node)
 
 enum EnemyType { ROTOR, SCAV, DRONE }
 
@@ -24,14 +24,10 @@ var _spawner: Node = null
 @onready var collision: CollisionShape2D = $CollisionShape2D
 @onready var hit_flash_timer: Timer = $HitFlashTimer
 
-const BASE_SPRITE_SIZE: float = 64.0
-const BASE_VIEWPORT_WIDTH: float = 1280.0
-
 func _ready() -> void:
 	collision_layer = 2
 	z_index = 1
 	add_to_group("enemy")
-	_scale_sprite()
 
 func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float, spawner: Node = null) -> void:
 	enemy_type = type
@@ -64,16 +60,7 @@ func _update_sprite() -> void:
 	_scale_sprite()
 
 func _scale_sprite() -> void:
-	var viewport = get_viewport()
-	if not viewport:
-		return
-	var viewport_width = viewport.get_visible_rect().size.x
-	var scale_factor = viewport_width / BASE_VIEWPORT_WIDTH
-	var target_size = BASE_SPRITE_SIZE * scale_factor
-	if sprite.texture:
-		var tex_height = sprite.texture.get_height()
-		var current_scale = target_size / tex_height
-		sprite.scale = Vector2(current_scale, current_scale)
+	Helpers.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
 func _physics_process(delta: float) -> void:
 	if stunned:
@@ -123,7 +110,8 @@ func _on_hit_flash_timer_timeout() -> void:
 func _die() -> void:
 	_play_death_sound()
 	CameraShake.shake(0.3, 0.2, 4.0)
-	destroyed.emit(global_position, TYPE_NAMES[enemy_type])
+	CameraShake.rumble(0.3, 0.2)
+	destroyed.emit(global_position, TYPE_NAMES[enemy_type], self)
 	if _spawner and destroyed.is_connected(_spawner._on_enemy_destroyed):
 		destroyed.disconnect(_spawner._on_enemy_destroyed)
 	ObjectPool.release(self)

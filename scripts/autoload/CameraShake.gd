@@ -37,3 +37,10 @@ func _find_camera() -> void:
 	if not root:
 		return
 	_camera = root.find_child("Camera2D", true, false) as Camera2D
+
+func rumble(power: float, duration: float) -> void:
+	if Input.get_connected_joypads().is_empty():
+		return
+	Input.start_joy_vibration(0, power, power, duration)
+	await get_tree().create_timer(duration).timeout
+	Input.stop_joy_vibration(0)

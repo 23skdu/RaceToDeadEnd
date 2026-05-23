@@ -97,6 +97,7 @@ func test_move_process():
 	assert_eq(b.position.y, -500.0, "Should move upward at speed")
 
 func test_homing_adjusts_direction():
+	GameManager.enemy_list = []
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b.global_position = Vector2(0, 0)
@@ -105,6 +106,7 @@ func test_homing_adjusts_direction():
 	target.global_position = Vector2(100, -100)
 	target.add_to_group("enemy")
 	add_child_autofree(target)
+	GameManager.enemy_list.append(target)
 	b._cache_timer = Constants.ENEMY_CACHE_INTERVAL
 	var initial_dir = b.direction
 	b._physics_process(0.1)
@@ -117,6 +119,7 @@ func test_die_releases_to_pool():
 	assert_true(b.get_meta("_in_pool", true) or b.is_queued_for_deletion(), "Bullet should be released to pool or queued")
 
 func test_homing_caches_enemies():
+	GameManager.enemy_list = []
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b._cache_timer = 0.0
@@ -133,6 +136,7 @@ func test_homing_does_not_query_every_frame():
 	assert_lt(b._cache_timer, 0.25, "Should not refresh cache before interval")
 
 func test_homing_refreshes_cache_after_interval():
+	GameManager.enemy_list = []
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b._cache_timer = 0.2
@@ -215,6 +219,7 @@ func test_hit_target_signal_emits_with_area():
 	assert_signal_emitted(b, "hit_target", "Signal should emit on area enter")
 
 func test_bullet_direction_changes_with_homing():
+	GameManager.enemy_list = []
 	var b = _create_bullet()
 	b.homing_strength = 6.0
 	b.global_position = Vector2(0, 0)
@@ -223,6 +228,7 @@ func test_bullet_direction_changes_with_homing():
 	target.global_position = Vector2(200, -100)
 	target.add_to_group("enemy")
 	add_child_autofree(target)
+	GameManager.enemy_list.append(target)
 	b._cache_timer = Constants.ENEMY_CACHE_INTERVAL
 	b._physics_process(0.3)
 	assert_ne(b.direction.x, 0.0, "Direction X should change toward target")

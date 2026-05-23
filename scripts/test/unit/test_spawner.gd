@@ -247,7 +247,7 @@ func test_on_enemy_destroyed_registers_score():
 	add_child_autofree(s)
 	s._ready()
 	GameManager.start_game()
-	s._on_enemy_destroyed(Vector2.ZERO, "rotor")
+	s._on_enemy_destroyed(Vector2.ZERO, "rotor", Node2D.new())
 	assert_gt(GameManager.score, 0, "Should register score on enemy destroy")
 
 func test_on_pickup_collected_ignores_non_player():

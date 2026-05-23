@@ -73,6 +73,17 @@ func test_hud_ready_connects_signals():
 	assert_true(GameManager.health_updated.is_connected(hud._on_health_updated), "Should connect health signal")
 	assert_true(GameManager.multiplier_updated.is_connected(hud._on_multiplier_updated), "Should connect multiplier signal")
 	assert_true(GameManager.difficulty_tier_changed.is_connected(hud._on_tier_changed), "Should connect tier signal")
+	assert_true(GameManager.multiplier_timer_updated.is_connected(hud._on_multiplier_timer_updated), "Should connect multiplier timer signal")
+
+func test_hud_multiplier_timer_bar_hidden_by_default():
+	var hud = _create_hud()
+	assert_false(hud.multiplier_timer_bar.visible, "Multiplier timer bar should be hidden initially")
+
+func test_hud_multiplier_timer_updates_bar():
+	var hud = _create_hud()
+	hud._on_multiplier_timer_updated(5.0)
+	assert_true(hud.multiplier_timer_bar.visible, "Bar should be visible when timer active")
+	assert_eq(hud.multiplier_timer_bar.value, 50.0, "Bar should show 50% at 5s remaining")
 
 func test_hud_weapon_display_bounds_check():
 	var hud = _create_hud()

@@ -25,7 +25,7 @@ func _add_controls_label() -> void:
 	$CanvasLayer.add_child(label)
 
 func _on_start_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Game.tscn")
+	TransitionLayer.change_scene("res://scenes/Game.tscn")
 
 func _on_garage_pressed() -> void:
 	var garage = preload("res://scenes/ui/Garage.tscn").instantiate()
@@ -33,7 +33,7 @@ func _on_garage_pressed() -> void:
 	garage.back_to_menu_requested.connect(func(): garage.queue_free())
 	garage.start_run_requested.connect(func():
 		garage.queue_free()
-		get_tree().change_scene_to_file("res://scenes/Game.tscn")
+		TransitionLayer.change_scene("res://scenes/Game.tscn")
 	)
 
 func _on_options_pressed() -> void:

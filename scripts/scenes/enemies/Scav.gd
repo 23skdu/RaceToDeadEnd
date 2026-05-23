@@ -22,7 +22,7 @@ func _physics_process(delta: float) -> void:
 	if player and is_instance_valid(player):
 		target_player_x = player.global_position.x
 		
-		var flank_offset = 64.0 if lane > 1 else -64.0
+		var flank_offset = Constants.SCAV_FLANK_OFFSET if lane > 1 else -Constants.SCAV_FLANK_OFFSET
 		var target_x = player.global_position.x + flank_offset
 		var diff_x = target_x - position.x
 		

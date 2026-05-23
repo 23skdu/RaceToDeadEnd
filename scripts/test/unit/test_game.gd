@@ -81,6 +81,11 @@ func test_game_ready_enables_y_sort():
 	var game = _create_game()
 	assert_true(game.world.is_y_sort_enabled(), "World should have Y-sort enabled")
 
+func test_game_has_parallax():
+	var game = _create_game()
+	assert_true(game._parallax != null, "ParallaxBackground should exist")
+	assert_gt(game._parallax.get_child_count(), 0, "Parallax should have layers")
+
 func test_game_scene_constants():
 	var script = load("res://scripts/scenes/Game.gd")
 	assert_true(script.BULLET_SCENE != null, "Bullet scene should be preloaded")

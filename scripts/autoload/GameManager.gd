@@ -22,7 +22,6 @@ var credits: int = 0
 var high_score: int = 0
 
 var enemy_list: Array[Node] = []
-var _enemy_list_timer: float = 0.0
 
 var upgrade_levels: Dictionary = {
 	max_health = 1,
@@ -53,10 +52,7 @@ func _process(delta: float) -> void:
 		if _multiplier_timer <= 0.0:
 			_reset_multiplier()
 	
-	_enemy_list_timer += delta
-	if _enemy_list_timer >= 0.25:
-		_enemy_list_timer = 0.0
-		enemy_list = get_tree().get_nodes_in_group("enemy")
+
 
 func _ready() -> void:
 	_add_input_mappings()
@@ -79,6 +75,12 @@ func start_game() -> void:
 	multiplier_updated.emit(multiplier)
 	difficulty_tier_changed.emit(difficulty_tier)
 	game_started.emit()
+
+func register_enemy_spawned(enemy: Node) -> void:
+	enemy_list.append(enemy)
+
+func register_enemy_destroyed(enemy: Node) -> void:
+	enemy_list.erase(enemy)
 
 func add_score(points: int) -> void:
 	var multiplied_points = points * multiplier

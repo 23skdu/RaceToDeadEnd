@@ -42,6 +42,16 @@ value = 5
 max_value = 5
 modulate = Color(0.2, 1, 0.2, 1)
 
+[node name="MultiplierTimerBar" type="ProgressBar" parent="."]
+offset_left = 20.0
+offset_top = 110.0
+offset_right = 140.0
+offset_bottom = 118.0
+value = 100
+max_value = 100
+visible = false
+modulate = Color(1, 0.8, 0, 1)
+
 [node name="BoostContainer" type="HBoxContainer" parent="."]
 offset_left = 1100.0
 offset_top = 680.0
