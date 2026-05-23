@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var tier_label: Label = $TierLabel
 
 var boost_indicators: Array[Control] = []
+var _multiplier_pulse_timer: float = 0.0
 
 func _ready() -> void:
 	GameManager.score_updated.connect(_on_score_updated)
@@ -20,6 +21,10 @@ func _ready() -> void:
 	GameManager.multiplier_timer_updated.connect(_on_multiplier_timer_updated)
 	GameManager.difficulty_tier_changed.connect(_on_tier_changed)
 	boost_indicators.assign(boost_container.get_children())
+
+func _process(delta: float) -> void:
+	if multiplier_timer_bar.visible:
+		_multiplier_pulse_timer += delta
 
 func _on_score_updated(score: int) -> void:
 	score_label.text = str(score)
@@ -34,9 +39,10 @@ func _on_multiplier_timer_updated(time_left: float) -> void:
 	var active = time_left > 0.0
 	multiplier_timer_bar.visible = active
 	if active:
+		_multiplier_pulse_timer = 0.0
 		multiplier_timer_bar.value = (time_left / Constants.MULTIPLIER_DURATION) * 100.0
 		if time_left < 3.0:
-			var pulse = 0.7 + 0.3 * sin(Time.get_ticks_msec() * 0.01)
+			var pulse = 0.7 + 0.3 * sin(_multiplier_pulse_timer * 5.0)
 			multiplier_timer_bar.modulate = Color(1.0, pulse, 0.0)
 
 func _on_tier_changed(tier: int) -> void:

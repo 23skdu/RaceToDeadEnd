@@ -116,16 +116,21 @@ func _spawn_civilian() -> void:
 	civilian.exited_safely.connect(_on_civilian_safe_exit.bind(civilian), CONNECT_ONE_SHOT)
 	civilian.hit_by_player.connect(_on_civilian_hit.bind(civilian), CONNECT_ONE_SHOT)
 	add_child(civilian)
+	GameManager.register_enemy_spawned(civilian)
 
 func _on_civilian_safe_exit(civilian: Node) -> void:
 	ScoreManager.register_civilian_protected(civilian.global_position)
+	GameManager.register_enemy_destroyed(civilian)
 	if civilian.has_method("on_pool_release"):
 		ObjectPool.release(civilian)
 
 func _on_civilian_hit(civilian: Node) -> void:
 	ScoreManager.register_civilian_damaged()
+	GameManager.register_enemy_destroyed(civilian)
 	if is_instance_valid(player) and player.has_method("take_damage"):
 		player.take_damage(Constants.CIVILIAN_PENALTY)
+	if civilian.has_method("on_pool_release"):
+		ObjectPool.release(civilian)
 
 func _get_wave_composition(tier: int) -> Dictionary:
 	var comp = {}

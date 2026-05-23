@@ -345,3 +345,239 @@ All 10 parts (42-51) implemented and tested:
 | 68 | ObjectPool Pickup Signal Cleanup | Low | Low | P3 |
 
 **Previously deferred:** Part 22 (TileMapLayer Highway, P3), Part 35 (class_name EnemyBase, P3), Part 40 (Integration Tests, P1).
+
+---
+
+## Phase 6: Deep Codebase Bugfix & Performance Audit (New)
+
+10 additional improvement suggestions identified via systematic codebase analysis of all game scripts. Focus: bugs found during deep review, performance hot paths, and edge-case resource leaks.
+
+### Suggestion 71: InputRemap Destructive Rebind
+
+**Problem:** `InputRemap._apply_binding()` calls `InputMap.action_erase_events(action)` which removes ALL input events for an action — including gamepad bindings added by `GameManager._add_input_mappings()`. Rebinding any single key destroys all controller bindings for that action. The Clear button has the same issue.
+
+**Current code:** `_apply_binding()` erases the entire action then adds only the rebound key. `_on_clear_pressed()` also erases the entire action. The `_listening_idx` variable tracks which slot (0 or 1) is being rebound but is never used to target the replacement.
+
+**Plan:**
+1. In `_apply_binding()`, get the current event list with `InputMap.action_get_events(action)`.
+2. If `_listening_idx < events.size()`, replace `events[_listening_idx]` with the new event.
+3. If `_listening_idx >= events.size()`, append the new event.
+4. Erase the action, re-add all (preserved) events including the new one.
+5. In `_on_clear_pressed()`, add an `idx` parameter and remove only that slot's event, not all events.
+6. Test: rebind `move_left` to a key, verify gamepad DPAD_LEFT still works. Clear a single binding, verify others remain.
+
+**Effort:** Low — **Impact:** High — **Priority:** P1
+
+---
+
+### Suggestion 72: DroneBomb Pool State Reset
+
+**Problem:** DroneBomb has no `on_pool_acquire()` or `init()` method. When a DroneBomb is released to the ObjectPool and re-acquired:
+- `age` retains its previous value (~2.1s after detonation), causing immediate re-detonation.
+- `exploded` is still `true`, so the `_process` branch goes straight to the explosion-fade code, skipping the warning blink phase.
+- `explosion_visual` Polygon2D from the previous detonation is still a child node, creating visual garbage.
+
+**Current code:** `_ready()` runs once when the pool is created. `process_mode` is set to `DISABLED` on pool release, pausing `_process`. On re-acquire, `process_mode` is restored, but `age`, `exploded`, and visuals are stale.
+
+**Plan:**
+1. Add `on_pool_acquire()` to DroneBomb that resets `age = 0.0`, `exploded = false`, `hit_by_bullet = false`.
+2. In `on_pool_acquire()`, remove any leftover `explosion_visual` Polygon2D child (use `queue_free()`).
+3. Add `warning_visual.visible = true` so the warning circle shows immediately on reuse.
+4. Test: spawn two DroneBombs sequentially from pool, verify second bomb has full 1.5s detonation delay and no visual artifacts.
+5. Test: acquire → detonate → release → acquire → verify age is 0 and bomb does not instantly detonate.
+
+**Effort:** Low — **Impact:** High — **Priority:** P1
+
+---
+
+### Suggestion 73: AudioManager SFX Priority System Broken
+
+**Problem:** `AudioManager.play_sfx()` accepts a `priority: int` parameter intended to allow high-priority sounds (explosions, alerts) to preempt lower-priority ones. However, the loop uses the player array `index` (`i`) as the comparison value instead of the `priority` argument. This means `sfx_players[0]` always has the highest "priority", regardless of which sound is playing in it. The `priority` parameter is silently ignored.
+
+**Current code:**
+```gdscript
+for i in sfx_players.size():
+    var p = sfx_players[i]
+    if not p.playing:
+        best_idx = i
+        break
+    if i < best_priority:   # BUG: should compare priority of playing sound, not index
+        best_priority = i
+        best_idx = i
+```
+
+**Plan:**
+1. Store the priority of each currently-playing sound in a parallel array `_player_priorities: Array[int]`, defaulting to 0.
+2. At `play_sfx()` call time, set `_player_priorities[best_idx] = priority`.
+3. When a player finishes playing (detect via `finished` signal), reset its priority to 0.
+4. In the find-best loop, when a player is busy, compare `_player_priorities[i]` against the incoming `priority` — if the incoming priority is higher, preempt.
+5. Connect `finished` signal on each SFX player in `_ready()` to a cleanup handler.
+6. Test: play 17 sounds (exhausting the 16-player pool) with varying priorities, verify highest-priority sounds preempt lowest.
+
+**Effort:** Medium — **Impact:** High — **Priority:** P1
+
+---
+
+### Suggestion 74: Game Pause Options Loads Script Instead of Scene
+
+**Problem:** `Game._show_pause_options()` instantiates `Options.gd` directly:
+```gdscript
+_options_menu = preload("res://scripts/scenes/ui/Options.gd").new()
+```
+This creates a bare `CanvasLayer` with no child nodes. The `@onready` variables in `Options.gd` reference `$Panel`, `$Panel/TabContainer`, etc., which only exist in `Options.tscn`. These will all be null, causing either silent failures or crashes when the pause options menu is opened.
+
+**Current code:** Main menu correctly uses `preload("res://scenes/ui/Options.tscn").instantiate()`, but the pause menu does not.
+
+**Plan:**
+1. Change the load in `_show_pause_options()` from `preload("res://scripts/scenes/ui/Options.gd").new()` to `preload("res://scenes/ui/Options.tscn").instantiate()`.
+2. Verify: press pause during gameplay, click Options, confirm the full options UI appears with sliders, checkboxes, and input remapping.
+3. Test: verify `back_to_menu_requested` signal from Options scene properly returns to pause menu.
+
+**Effort:** Low — **Impact:** High — **Priority:** P1
+
+---
+
+### Suggestion 75: Mine Explosion Redundant Group Scan
+
+**Problem:** `Mine._explode()` falls back to `get_tree().get_nodes_in_group("enemy")` when direct `get_overlapping_bodies()` / `get_overlapping_areas()` returns no hits. This:
+- Creates a new `Array` allocation via the scene tree scan.
+- Iterates ALL enemies in the scene (including off-screen ones).
+- Performs manual distance checks that the physics engine already handles.
+- Happens every mine explosion (~15 per 60s game at tier 10+).
+
+**Current code:**
+```gdscript
+if not hit:
+    var enemies = get_tree().get_nodes_in_group("enemy")
+    for enemy in enemies:
+        if not is_instance_valid(enemy): continue
+        var dist = global_position.distance_to(enemy.global_position)
+        if dist <= explosion_radius and enemy.has_method("take_damage"):
+            enemy.take_damage(damage)
+```
+
+**Plan:**
+1. Replace the group scan fallback with a direct iteration of `GameManager.enemy_list` (already available, no allocation needed).
+2. Add an early distance-sq check to avoid `distance_to()` sqrt: `if global_position.distance_squared_to(enemy.global_position) <= explosion_radius * explosion_radius`.
+3. Remove the `is_instance_valid` check — `GameManager.enemy_list` entries are cleaned up every frame.
+4. Test: detonate mine near 3 enemies, verify all 3 take damage. Test: mine explosion with no nearby enemies, verify no crash.
+5. Benchmark: measure mine explosion before/after to confirm no group scan allocation.
+
+**Effort:** Low — **Impact:** Medium — **Priority:** P2
+
+---
+
+### Suggestion 76: SettingsManager Unthrottled ConfigFile Save
+
+**Problem:** `SettingsManager.set_volume()` calls `save_settings()` immediately on every call. During slider drag, `value_changed` fires continuously (dozens of events per second), causing rapid ConfigFile writes. This can cause:
+- Disk wear (small writes)
+- Frame hitches from synchronous I/O
+- Race conditions if the file is written while another process reads it
+
+**Current code:** `_on_master_changed(value)` → `SettingsManager.set_volume("Master", value)` → `save_settings()` → `_config.save(SETTINGS_PATH)` — synchronous disk write on every slider movement.
+
+**Plan:**
+1. Add a `_save_debounce_timer: float` to `SettingsManager`, defaulting to 0.
+2. In `set_volume()`, instead of calling `save_settings()` immediately, set the timer to 0.5 seconds.
+3. In `_process(delta)`, decrement the timer; when it hits 0, call `save_settings()` and set the timer to -1 (no pending save).
+4. Call `save_settings()` immediately in `set_fullscreen()` (user expects instant response for toggle).
+5. Test: drag Master volume slider rapidly for 3 seconds, verify only 1-2 ConfigFile writes occur.
+6. Test: verify settings are still persisted correctly after debounced save fires.
+
+**Effort:** Low — **Impact:** Medium — **Priority:** P2
+
+---
+
+### Suggestion 77: HUD Multiplier Timer Bar Per-Frame sin() Compute
+
+**Problem:** `HUD._on_multiplier_timer_updated()` calls `sin(Time.get_ticks_msec() * 0.01)` every frame the multiplier timer bar is visible. The `Time.get_ticks_msec()` returns milliseconds since engine start (~106 days worth). Multiplying by 0.01 and calling `sin()` generates a per-frame allocation (the float result) and causes the bar color to pulse. This computation is trivial but runs every render frame (~3600 calls per minute of active multiplier time).
+
+**Current code:**
+```gdscript
+if time_left < 3.0:
+    var pulse = 0.7 + 0.3 * sin(Time.get_ticks_msec() * 0.01)
+    multiplier_timer_bar.modulate = Color(1.0, pulse, 0.0)
+```
+
+**Plan:**
+1. Replace the absolute-time `sin()` with a relative-time approach using `_multiplier_pulse_timer: float` that increments by `delta` in the HUD's `_process`.
+2. Use `sin(_multiplier_pulse_timer * 5.0)` for a consistent 5 rad/s pulse speed regardless of engine uptime.
+3. Reset `_multiplier_pulse_timer` to 0 when the timer bar becomes visible.
+4. Remove the `Time.get_ticks_msec()` call entirely.
+5. Test: verify the pulse visual is indistinguishable from the original.
+6. Verify: no `Time` singleton calls remain in `_process` hot path.
+
+**Effort:** Low — **Impact:** Low — **Priority:** P3
+
+---
+
+### Suggestion 78: Parallax Background Per-Game Image Allocation
+
+**Problem:** `Game._setup_parallax()` creates three procedural `Image` textures every time a new `Game.tscn` is loaded (each restart, each new run). Each image is 4×256 pixels with a per-pixel fill loop (1024 pixel writes per layer × 3 layers = 3072 writes). The resulting `ImageTexture` objects are discarded on scene unload. This is visible as a ~5-10ms hitch on game start.
+
+**Current code:** `_setup_parallax()` unconditionally runs `Image.create()` + double-loop + `ImageTexture.create_from_image()` for each of 3 layers.
+
+**Plan:**
+1. Move the parallax texture creation to a static variable: `static var _parallax_textures: Array[Texture2D] = []`.
+2. In `_setup_parallax()`, check `_parallax_textures.size() > 0` — if cached, assign textures directly without regenerating.
+3. Generate textures only on first call (when `_parallax_textures` is empty).
+4. Keep the per-layer color customization (the gradient colors are layer-specific, not in the textures — they're in the `ColorRect` or sprite modulate). Actually, the colors ARE in the texture data, so cache by layer.
+5. Since the colors are identical every game start (same `l` array in the closure), caching is safe.
+6. Test: restart game 3 times, verify `Image.create()` runs only once. Confirm parallax rendering is identical to pre-cache behavior.
+
+**Effort:** Low — **Impact:** Medium — **Priority:** P2
+
+---
+
+### Suggestion 79: Mine Arm Timer Lost on Pool Reuse
+
+**Problem:** `Mine._ready()` contains `await get_tree().create_timer(arm_time).timeout` which runs exactly once when the mine is first instantiated. After the timer completes, `armed = true`. When the mine is released to pool and re-acquired, `_ready()` does NOT re-run, so `armed` remains `true` and the 0.5-second arm delay is lost. Player-placed mines are immediately armed on the second use.
+
+**Current code:** `_ready()` → await timer (0.5s) → `armed = true`. `ObjectPool.release()` hides the node but doesn't reset `armed`. `ObjectPool.acquire()` does not call any reset method on Mine (no `on_pool_acquire()` exists).
+
+**Plan:**
+1. Add `on_pool_acquire()` to Mine that resets `armed = false` and starts a new arm timer.
+2. Instead of a coroutine (which can't be created in `on_pool_acquire` since it's called from `acquire()`), use `create_tween()`: `create_tween().tween_interval(arm_time).tween_callback(func(): armed = true)`.
+3. Kill any existing tween in `on_pool_acquire()` before starting the new one to avoid stale callbacks.
+4. Store the tween in a `var _arm_tween: Tween` variable.
+5. Test: drop mine → wait 0.2s → touch enemy → verify no explosion (not armed yet). Drop second mine (from pool) → wait 0.2s → verify still not armed.
+6. Test: drop mine → wait 0.6s → touch enemy → verify explosion.
+
+**Effort:** Low — **Impact:** Medium — **Priority:** P2
+
+---
+
+### Suggestion 80: Civilian Cleanup Edge Case
+
+**Problem:** Civilians spawned by `Spawner._spawn_civilian()` are added as direct children of Spawner but are NOT added to `GameManager.enemy_list`. The main cleanup loop in `Spawner._process()` only acts on `GameManager.enemy_list`, so civilians are immune to distance-based cleanup. They rely entirely on two one-shot signals (`exited_safely` and `hit_by_player`) for cleanup. If both signals fail to fire (civilian stays in bounds without player interaction), the civilian node remains forever, accumulating orphan nodes over long play sessions.
+
+**Current code:** `_spawn_civilian()` → `add_child(civilian)`. No registration in `GameManager.enemy_list`. `_on_civilian_safe_exit()` and `_on_civilian_hit()` handle cleanup individually via one-shot signal connections.
+
+**Plan:**
+1. Add civilians to `GameManager.enemy_list` in `_spawn_civilian()`: `GameManager.register_enemy_spawned(civilian)`.
+2. In `_on_civilian_safe_exit()` and `_on_civilian_hit()`, call `GameManager.register_enemy_destroyed(civilian)` before `ObjectPool.release()`.
+3. The existing `Spawner._process()` cleanup loop already handles position-based cleanup for `GameManager.enemy_list` — civilians will now be cleaned up when they scroll past `CLEANUP_DISTANCE` even if signals don't fire.
+4. Add a `civilian` group or type check in the cleanup loop to ensure civilians are released to pool (not `queue_free()`).
+5. Test: spawn civilian, let it scroll off screen without player interaction, verify it is cleaned up within 10 seconds.
+6. Test: civilian hit by player, verify cleanup still works via signal path (no double-cleanup).
+
+**Effort:** Low — **Impact:** Medium — **Priority:** P2
+
+---
+
+## Priority Matrix (Phase 6)
+
+| Suggestion | Title | Effort | Impact | Priority |
+|------------|-------|--------|--------|----------|
+| 71 | InputRemap Destructive Rebind | Low | High | P1 |
+| 72 | DroneBomb Pool State Reset | Low | High | P1 |
+| 73 | AudioManager SFX Priority System Broken | Medium | High | P1 |
+| 74 | Game Pause Options Script vs Scene | Low | High | P1 |
+| 75 | Mine Explosion Redundant Group Scan | Low | Medium | P2 |
+| 76 | SettingsManager Unthrottled Save | Low | Medium | P2 |
+| 78 | Parallax Background Per-Game Allocation | Low | Medium | P2 |
+| 79 | Mine Arm Timer Lost on Pool Reuse | Low | Medium | P2 |
+| 80 | Civilian Cleanup Edge Case | Low | Medium | P2 |
+| 77 | HUD Multiplier Timer Per-Frame sin() | Low | Low | P3 |
+
+**Previously deferred (unchanged):** Part 22 (TileMapLayer Highway, P3), Part 35 (class_name EnemyBase, P3), Part 40 (Integration Tests, P1).

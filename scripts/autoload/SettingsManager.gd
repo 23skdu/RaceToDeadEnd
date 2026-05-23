@@ -6,9 +6,17 @@ const VIDEO_SECTION: String = "video"
 
 var _config: ConfigFile = ConfigFile.new()
 var _loaded: bool = false
+var _save_debounce_timer: float = 0.0
 
 func _ready() -> void:
 	load_settings()
+
+func _process(delta: float) -> void:
+	if _save_debounce_timer > 0.0:
+		_save_debounce_timer -= delta
+		if _save_debounce_timer <= 0.0:
+			_save_debounce_timer = -1.0
+			save_settings()
 
 func load_settings() -> void:
 	if not FileAccess.file_exists(SETTINGS_PATH):
@@ -47,7 +55,7 @@ func set_volume(bus_name: String, linear_value: float) -> void:
 		return
 	AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear_value) if linear_value > 0 else -80.0)
 	_config.set_value(AUDIO_SECTION, bus_name, linear_value)
-	save_settings()
+	_save_debounce_timer = 0.5
 
 func get_volume(bus_name: String, default: float = 1.0) -> float:
 	if _config.has_section_key(AUDIO_SECTION, bus_name):

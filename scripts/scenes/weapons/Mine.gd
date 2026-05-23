@@ -5,6 +5,7 @@ var explosion_radius: float = Constants.MINE_EXPLOSION_RADIUS
 var armed: bool = false
 var arm_time: float = Constants.MINE_ARM_TIME
 var _blast_col: CollisionShape2D
+var _arm_tween: Tween
 
 func _ready() -> void:
 	collision_layer = 0
@@ -17,6 +18,18 @@ func _ready() -> void:
 	add_child(_blast_col)
 	await get_tree().create_timer(arm_time).timeout
 	armed = true
+
+func on_pool_acquire() -> void:
+	armed = false
+	if _arm_tween:
+		_arm_tween.kill()
+	_arm_tween = create_tween()
+	_arm_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_arm_tween.tween_interval(arm_time)
+	_arm_tween.tween_callback(func(): armed = true)
+	_blast_col.disabled = true
+	body_entered.connect(_on_body_entered)
+	area_entered.connect(_on_area_entered)
 
 func init(pos: Vector2) -> void:
 	global_position = pos
@@ -51,12 +64,11 @@ func _explode() -> void:
 			area.take_damage(damage)
 			hit = true
 	if not hit:
-		var enemies = get_tree().get_nodes_in_group("enemy")
-		for enemy in enemies:
+		var radius_sq = explosion_radius * explosion_radius
+		for enemy in GameManager.enemy_list:
 			if not is_instance_valid(enemy):
 				continue
-			var dist = global_position.distance_to(enemy.global_position)
-			if dist <= explosion_radius and enemy.has_method("take_damage"):
+			if global_position.distance_squared_to(enemy.global_position) <= radius_sq and enemy.has_method("take_damage"):
 				enemy.take_damage(damage)
 	
 	var flash = Polygon2D.new()

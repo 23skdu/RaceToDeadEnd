@@ -97,6 +97,8 @@ func _on_segment_completed(segment: int) -> void:
 	elif tier >= 12:
 		weather.set_weather(weather.WeatherType.STORM)
 
+static var _cached_parallax_textures: Array[Texture2D] = []
+
 func _setup_parallax() -> void:
 	_parallax = ParallaxBackground.new()
 	_parallax.name = "ParallaxBackground"
@@ -109,21 +111,24 @@ func _setup_parallax() -> void:
 		{ "scale": Vector2(0.3, 0.0), "color": Color(0.12, 0.1, 0.18), "label": "mid" },
 		{ "scale": Vector2(0.6, 0.0), "color": Color(0.18, 0.14, 0.22), "label": "near" },
 	]
-	for l in layers:
+	if _cached_parallax_textures.is_empty():
+		for l in layers:
+			var img = Image.create(4, 256, false, Image.FORMAT_RGBA8)
+			for y in 256:
+				var t = float(y) / 255.0
+				var c = l.color.lerp(Color(l.color.r * 0.5, l.color.g * 0.5, l.color.b * 0.5, 1.0), t)
+				img.set_pixel(0, y, c)
+				img.set_pixel(1, y, c)
+				img.set_pixel(2, y, c)
+				img.set_pixel(3, y, c)
+			_cached_parallax_textures.append(ImageTexture.create_from_image(img))
+	for i in _cached_parallax_textures.size():
+		var l = layers[i]
 		var layer = ParallaxLayer.new()
 		layer.name = "Layer" + l.label.capitalize()
 		layer.motion_scale = l.scale
 		var sprite = Sprite2D.new()
-		var img = Image.create(4, 256, false, Image.FORMAT_RGBA8)
-		for y in 256:
-			var t = float(y) / 255.0
-			var c = l.color.lerp(Color(l.color.r * 0.5, l.color.g * 0.5, l.color.b * 0.5, 1.0), t)
-			img.set_pixel(0, y, c)
-			img.set_pixel(1, y, c)
-			img.set_pixel(2, y, c)
-			img.set_pixel(3, y, c)
-		var tex = ImageTexture.create_from_image(img)
-		sprite.texture = tex
+		sprite.texture = _cached_parallax_textures[i]
 		sprite.centered = false
 		var vs = DisplayServer.window_get_size()
 		sprite.scale = Vector2(vs.x / 4.0, 3.0)
@@ -184,7 +189,7 @@ func _hide_pause_menu() -> void:
 func _show_pause_options() -> void:
 	_hide_pause_menu()
 	get_tree().paused = false
-	_options_menu = preload("res://scripts/scenes/ui/Options.gd").new()
+	_options_menu = preload("res://scenes/ui/Options.tscn").instantiate()
 	add_child(_options_menu)
 	_options_menu.back_to_menu_requested.connect(func():
 		if _options_menu:

@@ -49,6 +49,16 @@ func _process(delta: float) -> void:
 			explosion_visual.scale = Vector2.ONE * (1.0 + t * 0.5)
 			explosion_visual.color = Color(1.0, 0.7, 0.1, 1.0 - t)
 
+func on_pool_acquire() -> void:
+	age = 0.0
+	exploded = false
+	hit_by_bullet = false
+	if explosion_visual and is_instance_valid(explosion_visual):
+		explosion_visual.queue_free()
+		explosion_visual = null
+	if warning_visual and is_instance_valid(warning_visual):
+		warning_visual.visible = true
+
 func _on_area_entered(area: Area2D) -> void:
 	if not exploded and area.is_in_group("bullet"):
 		hit_by_bullet = true

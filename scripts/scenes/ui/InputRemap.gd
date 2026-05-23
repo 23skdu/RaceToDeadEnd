@@ -55,7 +55,7 @@ func _build_action_list() -> void:
 		clear_btn.custom_minimum_size.x = 30
 		var captured_action2 = action
 		var captured_idx2 = 0
-		clear_btn.pressed.connect(_on_clear_pressed.bind(captured_action2))
+		clear_btn.pressed.connect(_on_clear_pressed.bind(captured_action2, captured_idx2))
 		row.add_child(clear_btn)
 
 		action_list.add_child(row)
@@ -82,25 +82,36 @@ func _input(event: InputEvent) -> void:
 	if _listening_action == "":
 		return
 	if event is InputEventKey and event.pressed:
-		_apply_binding(_listening_action, event)
+		_apply_binding(_listening_action, _listening_idx, event)
 		_listening_action = ""
 		_listening_idx = -1
 		get_viewport().set_input_as_handled()
 	elif event is InputEventJoypadButton and event.pressed:
-		_apply_binding(_listening_action, event)
+		_apply_binding(_listening_action, _listening_idx, event)
 		_listening_action = ""
 		_listening_idx = -1
 		get_viewport().set_input_as_handled()
 
-func _apply_binding(action: String, event: InputEvent) -> void:
+func _apply_binding(action: String, idx: int, event: InputEvent) -> void:
+	var events = InputMap.action_get_events(action)
+	if idx < events.size():
+		events[idx] = event
+	else:
+		events.append(event)
 	InputMap.action_erase_events(action)
-	InputMap.action_add_event(action, event)
+	for e in events:
+		InputMap.action_add_event(action, e)
 	save_bindings()
 	binding_changed.emit(action)
 	_rebuild()
 
-func _on_clear_pressed(action: String) -> void:
+func _on_clear_pressed(action: String, idx: int) -> void:
+	var events = InputMap.action_get_events(action)
+	if idx < events.size():
+		events.remove_at(idx)
 	InputMap.action_erase_events(action)
+	for e in events:
+		InputMap.action_add_event(action, e)
 	save_bindings()
 	binding_changed.emit(action)
 	_rebuild()

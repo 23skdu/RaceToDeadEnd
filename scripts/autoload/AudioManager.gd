@@ -26,6 +26,8 @@ var _stream_lightning: AudioStreamWAV
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+var _player_priorities: Array[int] = []
+
 func _ready() -> void:
 	seed(42)
 	_rng.seed = 42
@@ -41,10 +43,16 @@ func _ready() -> void:
 		p.name = "SFXPlayer" + str(i)
 		add_child(p)
 		sfx_players.append(p)
+		_player_priorities.append(0)
+		p.finished.connect(_on_sfx_finished.bind(i))
 
 	_setup_audio_buses()
 	_generate_menu_music()
 	play_menu_music()
+
+func _on_sfx_finished(player_idx: int) -> void:
+	if player_idx < _player_priorities.size():
+		_player_priorities[player_idx] = 0
 
 func _setup_audio_buses() -> void:
 	for i in AudioServer.bus_count:
@@ -108,14 +116,14 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 	if not stream:
 		return
 	var best_idx = -1
-	var best_priority = 999
+	var lowest_priority = 999
 	for i in sfx_players.size():
 		var p = sfx_players[i]
 		if not p.playing:
 			best_idx = i
 			break
-		if i < best_priority:
-			best_priority = i
+		if _player_priorities[i] < lowest_priority:
+			lowest_priority = _player_priorities[i]
 			best_idx = i
 	if best_idx == -1:
 		best_idx = 0
@@ -124,6 +132,8 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 	player.global_position = pos
 	player.pitch_scale = _rng.randf_range(0.92, 1.08)
 	player.play()
+	if best_idx < _player_priorities.size():
+		_player_priorities[best_idx] = priority
 
 func set_bus_volume(bus: Bus, volume_db: float) -> void:
 	AudioServer.set_bus_volume_db(bus, volume_db)
