@@ -1,5 +1,5 @@
 func _init():
-	var s = load("res://scripts/test/unit/test_spawner.gd")
+	var s = load("res://tests/unit/test_spawner.gd")
 	if s:
 		var base = s.get_base_script()
 		if base:

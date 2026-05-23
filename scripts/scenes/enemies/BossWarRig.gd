@@ -50,7 +50,17 @@ func _check_phase() -> void:
 			speed = 80.0 * 1.2
 		elif phase == 3:
 			speed = 80.0 * 1.4
+		_update_phase_visuals()
 		boss_phase_changed.emit(phase)
+
+func _update_phase_visuals() -> void:
+	match phase:
+		2:
+			sprite.modulate = Color(1.0, 0.9, 0.3, 1.0)
+		3:
+			sprite.modulate = Color(1.0, 0.3, 0.3, 1.0)
+		_:
+			sprite.modulate = Color.WHITE
 
 func _execute_attack() -> void:
 	if hp <= Constants.BOSS_WAR_RIG_HP * 0.3 and not minion_spawned:

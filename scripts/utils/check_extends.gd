@@ -14,7 +14,7 @@ func _does_inherit_from_test(thing):
 	return to_return
 
 func _init():
-	var path = "scripts/test/unit"
+	var path = "tests/unit"
 	var prefix = "test_"
 	var suffix = ".gd"
 	

@@ -1,14 +1,14 @@
 extends SceneTree
 
 func _init() -> void:
-	var dir := DirAccess.open("res://scripts/test/unit")
+	var dir := DirAccess.open("res://tests/unit")
 	var all_files: Array[String] = []
 	if dir:
 		dir.list_dir_begin()
 		var f := dir.get_next()
 		while f != "":
 			if f.begins_with("test_") and f.ends_with(".gd"):
-				all_files.append("res://scripts/test/unit/" + f)
+				all_files.append("res://tests/unit/" + f)
 			f = dir.get_next()
 		dir.list_dir_end()
 	all_files.sort()
@@ -44,7 +44,7 @@ func _init() -> void:
 
 	gut_config._apply_options(options, gut)
 
-	await get_tree().process_frame
+	await self.process_frame
 
 	gut.test_scripts()
 

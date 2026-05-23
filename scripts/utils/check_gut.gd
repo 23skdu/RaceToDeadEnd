@@ -2,7 +2,7 @@ extends SceneTree
 
 func _init():
 	# Reproduce GUT's _get_files logic exactly
-	var path = "scripts/test/unit"
+	var path = "tests/unit"
 	var prefix = "test_"
 	var suffix = ".gd"
 	

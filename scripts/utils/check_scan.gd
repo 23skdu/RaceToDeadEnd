@@ -1,7 +1,7 @@
 extends SceneTree
 
 func _init():
-	var path = "scripts/test/unit"
+	var path = "tests/unit"
 	var d = DirAccess.open(path)
 	if d == null:
 		print("DirAccess.open failed")

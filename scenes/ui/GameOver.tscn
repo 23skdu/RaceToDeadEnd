@@ -73,3 +73,14 @@ offset_top = 430.0
 offset_right = 450.0
 offset_bottom = 480.0
 text = "MAIN MENU"
+
+[node name="PressSpaceLabel" type="Label" parent="Panel"]
+offset_left = 100.0
+offset_top = 360.0
+offset_right = 500.0
+offset_bottom = 400.0
+theme_override_colors/font_color = Color(1, 1, 1, 0)
+theme_override_font_sizes/font_size = 18
+text = "PRESS SPACE TO CONTINUE"
+horizontal_alignment = 1
+mouse_filter = 2

@@ -10,6 +10,7 @@ signal menu_requested
 @onready var continue_button: Button = $Panel/ContinueButton
 @onready var garage_button: Button = $Panel/GarageButton
 @onready var menu_button: Button = $Panel/MenuButton
+@onready var press_space_label: Label = $Panel/PressSpaceLabel
 
 func _ready() -> void:
 	if not GameManager.game_over.is_connected(_on_game_over):
@@ -17,6 +18,7 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
 	garage_button.pressed.connect(_on_garage_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)
+	press_space_label.modulate = Color(1, 1, 1, 0)
 	hide()
 
 func _on_game_over(final_score: int) -> void:
@@ -24,6 +26,13 @@ func _on_game_over(final_score: int) -> void:
 	high_score_label.text = "BEST: " + str(GameManager.high_score)
 	credits_label.text = "CREDITS EARNED: +" + str(floori(final_score / 10.0))
 	show()
+	_fade_in_press_space()
+
+func _fade_in_press_space() -> void:
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.tween_interval(1.5)
+	tween.tween_property(press_space_label, "modulate:a", 1.0, 0.4)
 
 func _on_continue_pressed() -> void:
 	hide()

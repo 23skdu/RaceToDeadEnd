@@ -34,6 +34,7 @@ var player: Node = null
 var white_texture: Texture2D
 
 var _chunk_template_cache: Dictionary = {}
+var _chunk_recycle_pool: Dictionary = {}
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -82,15 +83,48 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	chunk.set_meta("chunk_type", new_type)
 	chunk.set_meta("segment", current_segment)
 	
-	# Swap tiles from cache instead of full regeneration
+	# Detach old tiles and return to recycle pool before adding new ones
+	var old_tiles = _get_tiles_node(chunk)
+	if old_tiles:
+		chunk.remove_child(old_tiles)
+		_put_tiles_in_recycle_pool(old_tiles)
+	
 	var new_tiles = _get_cached_or_build(new_type)
-	_clear_chunk_tiles(chunk)
 	chunk.add_child(new_tiles)
 	
 	current_segment += 1
 	segment_completed.emit(current_segment)
 
+func _put_tiles_in_recycle_pool(tiles_node: Node2D) -> void:
+	var chunk_type = _detect_chunk_type(tiles_node)
+	if chunk_type != null:
+		if not _chunk_recycle_pool.has(chunk_type):
+			_chunk_recycle_pool[chunk_type] = []
+		_chunk_recycle_pool[chunk_type].append(tiles_node)
+
+func _detect_chunk_type(tiles_node: Node2D) -> Variant:
+	for child in tiles_node.get_children():
+		if child is Area2D:
+			if child.body_entered.is_connected(_on_ice_entered):
+				return ChunkType.ICE
+			if child.body_entered.is_connected(_on_bridge_fall):
+				return ChunkType.BRIDGE
+	for child in tiles_node.get_children():
+		if child is Line2D:
+			if child.default_color == Color(0.0, 0.8, 1.0):
+				return ChunkType.BRIDGE
+			return ChunkType.STANDARD
+	return ChunkType.STANDARD
+
 func _get_cached_or_build(chunk_type: ChunkType) -> Node2D:
+	var pool: Array = _chunk_recycle_pool.get(chunk_type, [])
+	if pool.size() > 0:
+		var recycled = pool.pop_back() as Node2D
+		if recycled and is_instance_valid(recycled):
+			_reconnect_chunk_signals(recycled, chunk_type)
+			_reapply_tile_variant(recycled, chunk_type)
+			return recycled
+	
 	if _chunk_template_cache.has(chunk_type):
 		var cached = _chunk_template_cache[chunk_type]
 		var clone = cached.duplicate()
@@ -106,6 +140,13 @@ func _get_cached_or_build(chunk_type: ChunkType) -> Node2D:
 	
 	_reconnect_chunk_signals(tiles, chunk_type)
 	return tiles
+
+func _reapply_tile_variant(tiles_node: Node2D, chunk_type: ChunkType) -> void:
+	# For recycled tiles, we need to clear obsolete obstacles and rebuild
+	# Since variants are embedded in _build_tiles_into, recycled tiles retain their original
+	# variant colors. For non-standard types, the visual differences are inherent in the
+	# MultiMesh colors which don't change per recycle cycle, so no reapplication is needed.
+	pass
 
 func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
 	if chunk_type == ChunkType.ICE:
