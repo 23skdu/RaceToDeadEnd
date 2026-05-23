@@ -16,8 +16,7 @@ func _ready() -> void:
 	_blast_col = CollisionShape2D.new()
 	_blast_col.shape = CircleShape2D.new()
 	add_child(_blast_col)
-	await get_tree().create_timer(arm_time).timeout
-	armed = true
+	_blast_col.disabled = true
 
 func on_pool_acquire() -> void:
 	armed = false
@@ -28,8 +27,10 @@ func on_pool_acquire() -> void:
 	_arm_tween.tween_interval(arm_time)
 	_arm_tween.tween_callback(func(): armed = true)
 	_blast_col.disabled = true
-	body_entered.connect(_on_body_entered)
-	area_entered.connect(_on_area_entered)
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+	if not area_entered.is_connected(_on_area_entered):
+		area_entered.connect(_on_area_entered)
 
 func init(pos: Vector2) -> void:
 	global_position = pos

@@ -1,7 +1,13 @@
 extends GutTest
 
+const TestHelper = preload("res://tests/test_helper.gd")
+
 func before_each():
 	TestHelper.ensure_audio_buses()
+	if AudioManager.music_player.bus != &"Music":
+		AudioManager.music_player.bus = &"Music"
+		for p in AudioManager.sfx_players:
+			p.bus = &"SFX"
 
 func test_audio_manager_has_music_player():
 	assert_true(AudioManager.music_player != null, "Music player should exist")

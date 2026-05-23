@@ -1,8 +1,10 @@
 extends GutTest
 
 var InterceptorScene
+var _TestHelper
 
 func before_all():
+	_TestHelper = load("res://tests/test_helper.gd")
 	InterceptorScene = load("res://scenes/player/Interceptor.tscn")
 
 class SignalCapture:
@@ -155,7 +157,7 @@ func test_invincibility_timer():
 func test_take_damage_while_invincible():
 	var player = _create_player()
 	player.invincible = true
-	var gm = TestHelper.create_game_manager()
+	var gm = _TestHelper.create_game_manager()
 	add_child_autofree(gm)
 	gm.start_game()
 	var initial_health = gm.health
@@ -164,7 +166,7 @@ func test_take_damage_while_invincible():
 
 func test_take_damage_sets_invincibility():
 	var player = _create_player()
-	var gm = TestHelper.create_game_manager()
+	var gm = _TestHelper.create_game_manager()
 	add_child_autofree(gm)
 	gm.start_game()
 	player.take_damage(1)
@@ -174,7 +176,7 @@ func test_take_damage_sets_invincibility():
 func test_take_damage_while_boosting():
 	var player = _create_player()
 	player.boost_active = true
-	var gm = TestHelper.create_game_manager()
+	var gm = _TestHelper.create_game_manager()
 	add_child_autofree(gm)
 	gm.start_game()
 	var initial_health = gm.health

@@ -1,5 +1,7 @@
 extends GutTest
 
+const TestHelper = preload("res://tests/test_helper.gd")
+
 func before_each():
 	TestHelper.ensure_audio_buses()
 

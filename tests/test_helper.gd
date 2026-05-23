@@ -1,4 +1,3 @@
-class_name TestHelper
 extends Node
 
 ## Ensures audio buses exist for GUT tests (project.godot buses may not load fully)

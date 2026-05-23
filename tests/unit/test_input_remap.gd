@@ -107,7 +107,7 @@ func test_apply_binding_emits_signal():
 	watch_signals(_remap)
 	var event = InputEventKey.new()
 	event.physical_keycode = KEY_A
-	_remap._apply_binding("move_left", event)
+	_remap._apply_binding("move_left", 0, event)
 	assert_signal_emitted(_remap, "binding_changed")
 
 func test_on_rebind_pressed_sets_listening():

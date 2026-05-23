@@ -28,9 +28,19 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var _player_priorities: Array[int] = []
 
+static func _init_buses() -> void:
+	var expected_buses = ["Master", "Music", "SFX"]
+	for i in expected_buses.size():
+		var bus_name = expected_buses[i]
+		if AudioServer.get_bus_count() <= i or AudioServer.get_bus_name(i) != bus_name:
+			if AudioServer.get_bus_count() <= i:
+				AudioServer.add_bus()
+			AudioServer.set_bus_name(i, bus_name)
+
 func _ready() -> void:
 	seed(42)
 	_rng.seed = 42
+	_init_buses()
 
 	music_player = AudioStreamPlayer.new()
 	music_player.bus = "Music"

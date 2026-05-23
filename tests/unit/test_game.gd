@@ -67,13 +67,13 @@ func test_game_weapon_fired_missile():
 
 func test_game_weapon_fired_mine():
 	var game = _create_game()
-	ObjectPool.create_pool("test_mine", preload("res://scenes/weapons/Mine.tscn"), 1)
+	ObjectPool.create_pool("mine", preload("res://scenes/weapons/Mine.tscn"), 1)
 	game._on_player_weapon_fired("mine", Vector2.ZERO, Vector2.UP)
 	assert_true(true, "Mine weapon fired should not crash")
 
 func test_game_weapon_fired_emp():
 	var game = _create_game()
-	ObjectPool.create_pool("test_emp", preload("res://scenes/weapons/EMPBlast.tscn"), 1)
+	ObjectPool.create_pool("emp", preload("res://scenes/weapons/EMPBlast.tscn"), 1)
 	game._on_player_weapon_fired("emp", Vector2.ZERO, Vector2.UP)
 	assert_true(true, "EMP weapon fired should not crash")
 
@@ -103,7 +103,7 @@ func test_game_over_restart_delay_allows_after_cooldown():
 	var game = _create_game()
 	GameManager.state = GameManager.GameState.GAME_OVER
 	game._game_over_restart_timer = 1.5
-	assert_ge(game._game_over_restart_timer, 1.5, "Should allow restart after 1.5s")
+	assert_gte(game._game_over_restart_timer, 1.5, "Should allow restart after 1.5s")
 
 func test_ready_creates_pools():
 	var game = _create_game()
