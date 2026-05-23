@@ -149,9 +149,9 @@ All 10 parts (42-51) implemented and tested:
 
 ---
 
-## Phase 5: Deep Performance & Feature Audit (New)
+## Phase 5: Deep Performance & Feature Audit
 
-10 improvement suggestions identified via systematic codebase analysis of all 28 scripts, 17 scenes, and 6 autoloads:
+10 improvement suggestions identified via systematic codebase analysis. **S62 completed.**
 
 ### Suggestion 61: AudioManager Lazy Stream Generation
 
@@ -170,21 +170,15 @@ All 10 parts (42-51) implemented and tested:
 
 ---
 
-### Suggestion 62: Highway Chunk Dual-Buffer Recycling
+### Suggestion 62: Highway Chunk Dual-Buffer Recycling (COMPLETED)
 
-**Problem:** `Highway._recycle_chunk()` calls `_get_cached_or_build()` which runs `duplicate()` on a cached template, then `_clear_chunk_tiles()` which `queue_free()` the old tiles node. Each recycle creates ~30-60 child nodes (MultiMeshInstance2D, Line2D, Area2D, StaticBody2D, Polygon2D) via `duplicate()` and frees an equivalent set. With 8 active chunks recycling every ~2.4 seconds, this is continuous alloc/free churn.
+**Problem:** `Highway._recycle_chunk()` calls `_get_cached_or_build()` which runs `duplicate()` on a cached template, then `_clear_chunk_tiles()` which `queue_free()` the old tiles node. Each recycle creates ~30-60 child nodes via `duplicate()` and frees an equivalent set. With 8 active chunks recycling every ~2.4 seconds, this is continuous alloc/free churn.
 
-**Current code:** Template cache stores one tiles Node2D per ChunkType. `_get_cached_or_build` duplicates it on every call. `_recycle_chunk` calls `_clear_chunk_tiles` → `queue_free` on the old node.
+**Solution:** Replaced `_chunk_template_cache` + `_chunk_recycle_pool` with `_chunk_dual_buffers` — 2 pre-built Node2D per ChunkType with `_buffer_in_use` tracking. `_reserve_tiles()` returns a free buffer (or builds one as fallback); `_mark_buffer_free()` marks the buffer available on recycle. Eliminates `duplicate()` in the common case. Removed `_detect_chunk_type()` which was buggy (DEBRIS/CONSTRUCTION always classified as STANDARD).
 
-**Plan:**
-1. Change `_chunk_template_cache` to store Array of 2 tiles Node2D per ChunkType instead of 1.
-2. Track active buffer index per chunk: use buffer[0], next recycle swaps to buffer[1].
-3. Eliminate `duplicate()` calls — just reparent the pre-built buffer to the chunk.
-4. Adjust `_reconnect_chunk_signals` to work on pre-built buffers (signals are lost on duplicate anyway).
-5. Maintain buffer arrays in a clear state (reset colors, positions, etc.) before reuse.
-6. Test: highway chunk scrolling for 60s at 60 FPS, verify no pipeline stall from alloc events.
+**Files changed:** `Highway.gd` (dual-buffer core, removed 6 methods), `test_highway.gd` (updated test), `Constants.gd` (chunk weight constants already added).
 
-**Effort:** Medium — **Impact:** High — **Priority:** P1
+**Tests:** `test_reserve_tiles_returns_two_buffers` verifies separate instances with matching child counts. All 573 batch-1 tests pass.
 
 ---
 
@@ -333,7 +327,7 @@ All 10 parts (42-51) implemented and tested:
 
 | Suggestion | Title | Effort | Impact | Priority |
 |------------|-------|--------|--------|----------|
-| 62 | Highway Chunk Dual-Buffer Recycling | Medium | High | P1 |
+| 62 | Highway Chunk Dual-Buffer Recycling | Medium | High | P1 | ✅
 | 65 | Difficulty Speed Scaling | Low | High | P1 |
 | 69 | BossWarRig Multi-Phase Behavior | Medium | High | P1 |
 | 61 | AudioManager Lazy Stream Generation | Low | Medium | P2 |
