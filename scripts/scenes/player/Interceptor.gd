@@ -69,9 +69,16 @@ func _ready() -> void:
 		emp_level
 	]
 	
+	speed = GameManager.current_speed
+	if not GameManager.speed_changed.is_connected(_on_speed_changed):
+		GameManager.speed_changed.connect(_on_speed_changed)
+	
 	target_x = _lane_to_x(current_lane)
 	position.x = target_x
 	_update_boost_ui()
+
+func _on_speed_changed(new_speed: float) -> void:
+	speed = new_speed
 
 func _process(delta: float) -> void:
 	_update_timers(delta)

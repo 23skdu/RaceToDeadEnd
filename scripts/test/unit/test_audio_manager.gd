@@ -14,19 +14,29 @@ func test_audio_manager_uses_sfx_bus():
 	assert_true(AudioManager.sfx_players[0] is AudioStreamPlayer2D, "SFX players should be AudioStreamPlayer2D")
 
 func test_audio_manager_caches_laser_stream():
-	assert_true(AudioManager._stream_laser != null, "Laser stream should be cached")
+	assert_null(AudioManager._stream_laser, "Laser stream should be null until first play")
+	AudioManager.play_synth_laser(Vector2.ZERO)
+	assert_true(AudioManager._stream_laser != null, "Laser stream should be cached after first play")
 
 func test_audio_manager_caches_explosion_stream():
-	assert_true(AudioManager._stream_explosion != null, "Explosion stream should be cached")
+	assert_null(AudioManager._stream_explosion, "Explosion stream should be null until first play")
+	AudioManager.play_synth_explosion(Vector2.ZERO)
+	assert_true(AudioManager._stream_explosion != null, "Explosion stream should be cached after first play")
 
 func test_audio_manager_caches_hurt_stream():
-	assert_true(AudioManager._stream_hurt != null, "Hurt stream should be cached")
+	assert_null(AudioManager._stream_hurt, "Hurt stream should be null until first play")
+	AudioManager.play_synth_hurt()
+	assert_true(AudioManager._stream_hurt != null, "Hurt stream should be cached after first play")
 
 func test_audio_manager_caches_boost_stream():
-	assert_true(AudioManager._stream_boost != null, "Boost stream should be cached")
+	assert_null(AudioManager._stream_boost, "Boost stream should be null until first play")
+	AudioManager.play_synth_boost()
+	assert_true(AudioManager._stream_boost != null, "Boost stream should be cached after first play")
 
 func test_audio_manager_caches_emp_stream():
-	assert_true(AudioManager._stream_emp != null, "EMP stream should be cached")
+	assert_null(AudioManager._stream_emp, "EMP stream should be null until first play")
+	AudioManager.play_synth_emp(Vector2.ZERO)
+	assert_true(AudioManager._stream_emp != null, "EMP stream should be cached after first play")
 
 func test_audio_manager_play_synth_laser_uses_cached():
 	var before_count = 0
@@ -100,6 +110,7 @@ func test_sfx_player_count_constant():
 	assert_eq(am.SFX_PLAYER_COUNT, 16, "SFX player count should be 16")
 
 func test_cached_streams_are_reusable():
+	AudioManager.play_synth_laser(Vector2.ZERO)
 	var stream1 = AudioManager._stream_laser
 	AudioManager.play_synth_laser(Vector2.ZERO)
 	var stream2 = AudioManager._stream_laser
@@ -157,8 +168,9 @@ func test_generate_emp_stream():
 	assert_true(stream != null, "Should generate emp stream")
 
 func test_play_music_sets_stream():
-	AudioManager.play_music(AudioManager._stream_laser)
-	assert_eq(AudioManager.music_player.stream, AudioManager._stream_laser, "Music player stream should be set")
+	var stream = AudioStreamWAV.new()
+	AudioManager.play_music(stream)
+	assert_eq(AudioManager.music_player.stream, stream, "Music player stream should be set")
 
 func test_play_sfx_sets_position():
 	var pos = Vector2(100, 200)
@@ -260,7 +272,9 @@ func test_all_sfx_players_use_sfx_bus():
 		assert_eq(p.bus, StringName("SFX"), "SFX player should use SFX bus")
 
 func test_audio_manager_caches_lightning_stream():
-	assert_true(AudioManager._stream_lightning != null, "Lightning stream should be cached")
+	assert_null(AudioManager._stream_lightning, "Lightning stream should be null until first play")
+	AudioManager.play_lightning_strike(Vector2.ZERO)
+	assert_true(AudioManager._stream_lightning != null, "Lightning stream should be cached after first play")
 
 func test_audio_manager_play_lightning_uses_cached():
 	AudioManager.play_lightning_strike(Vector2(0, -400))
@@ -296,12 +310,24 @@ func test_play_lightning_strike_sets_position():
 	assert_true(found, "Lightning SFX position should be set")
 
 func test_cached_streams_enemy_hit_death():
-	assert_true(AudioManager._stream_rotor_hit != null, "Rotor hit stream should be cached")
-	assert_true(AudioManager._stream_scav_hit != null, "Scav hit stream should be cached")
-	assert_true(AudioManager._stream_drone_hit != null, "Drone hit stream should be cached")
-	assert_true(AudioManager._stream_rotor_death != null, "Rotor death stream should be cached")
-	assert_true(AudioManager._stream_scav_death != null, "Scav death stream should be cached")
-	assert_true(AudioManager._stream_drone_death != null, "Drone death stream should be cached")
+	assert_null(AudioManager._stream_rotor_hit, "Rotor hit stream should be null until first play")
+	assert_null(AudioManager._stream_scav_hit, "Scav hit stream should be null until first play")
+	assert_null(AudioManager._stream_drone_hit, "Drone hit stream should be null until first play")
+	assert_null(AudioManager._stream_rotor_death, "Rotor death stream should be null until first play")
+	assert_null(AudioManager._stream_scav_death, "Scav death stream should be null until first play")
+	assert_null(AudioManager._stream_drone_death, "Drone death stream should be null until first play")
+	AudioManager.play_rotor_hit(Vector2.ZERO)
+	AudioManager.play_scav_hit(Vector2.ZERO)
+	AudioManager.play_drone_hit(Vector2.ZERO)
+	AudioManager.play_rotor_death(Vector2.ZERO)
+	AudioManager.play_scav_death(Vector2.ZERO)
+	AudioManager.play_drone_death(Vector2.ZERO)
+	assert_true(AudioManager._stream_rotor_hit != null, "Rotor hit stream should be cached after play")
+	assert_true(AudioManager._stream_scav_hit != null, "Scav hit stream should be cached after play")
+	assert_true(AudioManager._stream_drone_hit != null, "Drone hit stream should be cached after play")
+	assert_true(AudioManager._stream_rotor_death != null, "Rotor death stream should be cached after play")
+	assert_true(AudioManager._stream_scav_death != null, "Scav death stream should be cached after play")
+	assert_true(AudioManager._stream_drone_death != null, "Drone death stream should be cached after play")
 
 func test_play_rotor_hit():
 	AudioManager.play_rotor_hit(Vector2.ZERO)

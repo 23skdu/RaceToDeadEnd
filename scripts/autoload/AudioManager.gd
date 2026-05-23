@@ -43,7 +43,7 @@ func _ready() -> void:
 		sfx_players.append(p)
 
 	_setup_audio_buses()
-	_generate_cached_streams()
+	_generate_menu_music()
 	play_menu_music()
 
 func _setup_audio_buses() -> void:
@@ -67,21 +67,7 @@ func _setup_audio_buses() -> void:
 				compressor.gain = 1.0
 				AudioServer.add_bus_effect(i, compressor)
 
-func _generate_cached_streams() -> void:
-	_stream_laser = _generate_laser_stream()
-	_stream_explosion = _generate_explosion_stream()
-	_stream_hurt = _generate_hurt_stream()
-	_stream_boost = _generate_boost_stream()
-	_stream_emp = _generate_emp_stream()
-	_stream_menu_music = _generate_menu_music()
-	_stream_game_music = _generate_game_music()
-	_stream_rotor_hit = _generate_rotor_hit_stream()
-	_stream_scav_hit = _generate_scav_hit_stream()
-	_stream_drone_hit = _generate_drone_hit_stream()
-	_stream_rotor_death = _generate_rotor_death_stream()
-	_stream_scav_death = _generate_scav_death_stream()
-	_stream_drone_death = _generate_drone_death_stream()
-	_stream_lightning = _generate_lightning_stream()
+
 
 func _build_16bit_stream(duration: float, generator: Callable) -> AudioStreamWAV:
 	var num_samples = int(SAMPLE_RATE * duration)
@@ -98,10 +84,14 @@ func _build_16bit_stream(duration: float, generator: Callable) -> AudioStreamWAV
 	return stream
 
 func play_menu_music() -> void:
+	if not _stream_menu_music:
+		_stream_menu_music = _generate_menu_music()
 	if music_player.stream != _stream_menu_music:
 		play_music(_stream_menu_music)
 
 func play_game_music() -> void:
+	if not _stream_game_music:
+		_stream_game_music = _generate_game_music()
 	if music_player.stream != _stream_game_music:
 		play_music(_stream_game_music)
 
@@ -139,39 +129,63 @@ func set_bus_volume(bus: Bus, volume_db: float) -> void:
 	AudioServer.set_bus_volume_db(bus, volume_db)
 
 func play_synth_laser(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_laser:
+		_stream_laser = _generate_laser_stream()
 	play_sfx(_stream_laser, pos)
 
 func play_synth_explosion(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_explosion:
+		_stream_explosion = _generate_explosion_stream()
 	play_sfx(_stream_explosion, pos)
 
 func play_synth_hurt() -> void:
+	if not _stream_hurt:
+		_stream_hurt = _generate_hurt_stream()
 	play_sfx(_stream_hurt, Vector2.ZERO)
 
 func play_synth_boost() -> void:
+	if not _stream_boost:
+		_stream_boost = _generate_boost_stream()
 	play_sfx(_stream_boost, Vector2.ZERO)
 
 func play_synth_emp(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_emp:
+		_stream_emp = _generate_emp_stream()
 	play_sfx(_stream_emp, pos)
 
 func play_rotor_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_rotor_hit:
+		_stream_rotor_hit = _generate_rotor_hit_stream()
 	play_sfx(_stream_rotor_hit, pos)
 
 func play_scav_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_scav_hit:
+		_stream_scav_hit = _generate_scav_hit_stream()
 	play_sfx(_stream_scav_hit, pos)
 
 func play_drone_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_drone_hit:
+		_stream_drone_hit = _generate_drone_hit_stream()
 	play_sfx(_stream_drone_hit, pos)
 
 func play_rotor_death(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_rotor_death:
+		_stream_rotor_death = _generate_rotor_death_stream()
 	play_sfx(_stream_rotor_death, pos)
 
 func play_scav_death(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_scav_death:
+		_stream_scav_death = _generate_scav_death_stream()
 	play_sfx(_stream_scav_death, pos)
 
 func play_drone_death(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_drone_death:
+		_stream_drone_death = _generate_drone_death_stream()
 	play_sfx(_stream_drone_death, pos)
 
 func play_lightning_strike(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_lightning:
+		_stream_lightning = _generate_lightning_stream()
 	play_sfx(_stream_lightning, pos)
 
 # =================Procedural 16-bit Synthesizer Stream Generators=================

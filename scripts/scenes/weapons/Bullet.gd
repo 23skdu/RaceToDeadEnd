@@ -34,6 +34,9 @@ func init(pos: Vector2, dir: Vector2, player_owned: bool = true) -> void:
 	else:
 		collision_mask = 2
 
+const MAX_HOMING_RANGE: float = 400.0
+const EARLY_OUT_DIST_SQ: float = 4000.0
+
 func _physics_process(delta: float) -> void:
 	if homing_strength > 0.0:
 		_cache_timer += delta
@@ -49,6 +52,7 @@ func _physics_process(delta: float) -> void:
 func _find_nearest(enemies: Array) -> Node:
 	var nearest: Node = null
 	var min_dist: float = INF
+	var any_in_range: bool = false
 	for e in enemies:
 		if not is_instance_valid(e):
 			continue
@@ -56,6 +60,12 @@ func _find_nearest(enemies: Array) -> Node:
 		if d < min_dist:
 			min_dist = d
 			nearest = e
+		if d < MAX_HOMING_RANGE * MAX_HOMING_RANGE:
+			any_in_range = true
+		if d < EARLY_OUT_DIST_SQ:
+			return e
+	if not any_in_range:
+		return null
 	return nearest
 
 func _on_body_entered(body: Node) -> void:

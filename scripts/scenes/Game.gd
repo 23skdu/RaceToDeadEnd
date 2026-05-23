@@ -152,10 +152,12 @@ func _go_to_garage() -> void:
 var _parallax: ParallaxBackground = null
 var _pause_menu: CanvasLayer = null
 var _options_menu: CanvasLayer = null
+var _game_over_restart_timer: float = 0.0
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if GameManager.state == GameManager.GameState.GAME_OVER:
-		if Input.is_action_just_pressed("ui_accept"):
+		_game_over_restart_timer += delta
+		if _game_over_restart_timer >= 1.5 and Input.is_action_just_pressed("ui_accept"):
 			_restart_game()
 	elif GameManager.state == GameManager.GameState.PLAYING:
 		if Input.is_action_just_pressed("pause"):

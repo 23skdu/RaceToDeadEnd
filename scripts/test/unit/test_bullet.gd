@@ -240,3 +240,24 @@ func test_bullet_homing_ignores_enemies_outside_cache_interval():
 	b._cached_enemies = []
 	b._physics_process(0.05)
 	assert_eq(b._cached_enemies.size(), 0, "Should not refresh cache before interval")
+
+func test_find_nearest_early_out_close_enemy():
+	var b = _create_bullet()
+	b.global_position = Vector2(0, 0)
+	var close = Node2D.new()
+	close.global_position = Vector2(10, 10)
+	var far = Node2D.new()
+	far.global_position = Vector2(200, 200)
+	add_child_autofree(close)
+	add_child_autofree(far)
+	var result = b._find_nearest([far, close])
+	assert_eq(result, close, "Should find close enemy with early-out")
+
+func test_find_nearest_returns_null_when_all_out_of_range():
+	var b = _create_bullet()
+	b.global_position = Vector2(0, 0)
+	var distant = Node2D.new()
+	distant.global_position = Vector2(500, 500)
+	add_child_autofree(distant)
+	var result = b._find_nearest([distant])
+	assert_null(result, "Should return null when all enemies out of range")

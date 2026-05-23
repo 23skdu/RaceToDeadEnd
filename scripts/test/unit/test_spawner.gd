@@ -132,35 +132,35 @@ func test_garbage_collection_removes_far_enemies():
 	s.player = _create_mock_player()
 	var mock_enemy = Node2D.new()
 	mock_enemy.global_position = Vector2(0, 1000)
-	s.active_enemies.append(mock_enemy)
+	GameManager.enemy_list.append(mock_enemy)
 	add_child_autofree(s)
 	s.add_child(mock_enemy)
 	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
-	assert_false(s.active_enemies.has(mock_enemy), "Far enemy should be garbage collected")
+	assert_false(GameManager.enemy_list.has(mock_enemy), "Far enemy should be garbage collected")
 
 func test_garbage_collection_keeps_near_enemies():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	var mock_enemy = Node2D.new()
 	mock_enemy.global_position = Vector2(0, 100)
-	s.active_enemies.append(mock_enemy)
+	GameManager.enemy_list.append(mock_enemy)
 	add_child_autofree(s)
 	s.add_child(mock_enemy)
 	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
-	assert_true(s.active_enemies.has(mock_enemy), "Near enemy should be kept")
+	assert_true(GameManager.enemy_list.has(mock_enemy), "Near enemy should be kept")
 
 func test_garbage_collection_removes_invalid_enemies():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	var mock_enemy = Node2D.new()
-	s.active_enemies.append(mock_enemy)
+	GameManager.enemy_list.append(mock_enemy)
 	mock_enemy.queue_free()
 	add_child_autofree(s)
 	GameManager.state = GameManager.GameState.PLAYING
 	s._process(0.1)
-	assert_false(s.active_enemies.has(mock_enemy), "Invalid enemy should be removed")
+	assert_false(GameManager.enemy_list.has(mock_enemy), "Invalid enemy should be removed")
 
 func test_spawn_enemy_missing_scene():
 	var s = Spawner.new()

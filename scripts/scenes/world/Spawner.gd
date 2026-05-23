@@ -19,7 +19,6 @@ signal spawn_minion_requested(enemy_type: String, count: int)
 var player: Node = null
 var world_node: Node = null
 var enemy_scenes: Dictionary = {}
-var active_enemies: Array[Node] = []
 var wave_timer: float = 0.0
 var wave_interval: float = 5.0
 var current_wave: int = 0
@@ -50,13 +49,13 @@ func _process(delta: float) -> void:
 		_spawn_civilian()
 		
 	var player_y = player.global_position.y
-	var i = active_enemies.size() - 1
+	var i = GameManager.enemy_list.size() - 1
 	while i >= 0:
-		var e = active_enemies[i]
+		var e = GameManager.enemy_list[i]
 		if not is_instance_valid(e) or e.is_queued_for_deletion():
-			active_enemies.remove_at(i)
+			GameManager.enemy_list.remove_at(i)
 		elif e.global_position.y - player_y > Constants.CLEANUP_DISTANCE:
-			active_enemies.remove_at(i)
+			GameManager.enemy_list.remove_at(i)
 			if e.has_method("on_pool_release"):
 				ObjectPool.release(e)
 			else:
@@ -96,7 +95,6 @@ func _spawn_boss() -> void:
 	boss._spawner = self
 	boss.destroyed.connect(_on_enemy_destroyed)
 	add_child(boss)
-	active_enemies.append(boss)
 	boss_spawned.emit(boss)
 	enemy_spawned.emit(boss)
 
@@ -113,12 +111,11 @@ func _spawn_civilian() -> void:
 			return
 	var lane = randi_range(0, Constants.LANE_COUNT - 1)
 	var dir = 1.0 if randi() % 2 == 0 else -1.0
-	civilian.init(lane, Constants.BASE_SPEED, dir, player)
+	civilian.init(lane, GameManager.current_speed, dir, player)
 	civilian.global_position = Vector2(Constants.LANE_POSITIONS[lane], player.global_position.y - Constants.SPAWN_DISTANCE * 0.5)
 	civilian.exited_safely.connect(_on_civilian_safe_exit.bind(civilian), CONNECT_ONE_SHOT)
 	civilian.hit_by_player.connect(_on_civilian_hit.bind(civilian), CONNECT_ONE_SHOT)
 	add_child(civilian)
-	active_enemies.append(civilian)
 
 func _on_civilian_safe_exit(civilian: Node) -> void:
 	ScoreManager.register_civilian_protected(civilian.global_position)
@@ -172,11 +169,10 @@ func _spawn_enemy(type: String) -> void:
 		
 	enemy.destroyed.connect(_on_enemy_destroyed)
 	add_child(enemy)
-	active_enemies.append(enemy)
 	enemy_spawned.emit(enemy)
 
 	if enemy.has_method("init"):
-		enemy.init(et, lane, player, Constants.BASE_SPEED, self)
+		enemy.init(et, lane, player, GameManager.current_speed, self)
 		
 	if type == "scav" and "world_node" in enemy:
 		enemy.world_node = world_node
@@ -186,7 +182,6 @@ func _spawn_enemy(type: String) -> void:
 func _on_enemy_destroyed(pos: Vector2, enemy_type: String, enemy: Node) -> void:
 	ScoreManager.register_kill(enemy_type, pos)
 	_drop_pickup(pos)
-	active_enemies.erase(enemy)
 	enemy_destroyed.emit(enemy)
 
 func _drop_pickup(position: Vector2) -> void:

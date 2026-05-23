@@ -276,6 +276,21 @@ func test_save_validation_with_corrupted_data():
 	gm.save_progress()
 	assert_true(true, "Save should succeed with valid data")
 
+func test_load_rejects_checksum_mismatch():
+	var gm = get_gm()
+	gm.credits = 999
+	gm.save_progress()
+	var file = FileAccess.open("user://save.dat", FileAccess.READ_WRITE)
+	if file:
+		var data = file.get_var()
+		data["_checksum"] = 0
+		file.seek_begin(0)
+		file.store_var(data)
+		file.close()
+	gm.credits = 0
+	gm.load_progress()
+	assert_eq(gm.credits, 0, "Credits should not load with wrong checksum")
+
 func test_load_validation_ignores_invalid_types():
 	var gm = get_gm()
 	gm.credits = 100
@@ -447,3 +462,28 @@ func test_load_nonexistent_file():
 	gm.credits = 42
 	gm.load_progress()
 	assert_eq(gm.credits, 42, "Credits should not change when no save file")
+
+func test_current_speed_starts_at_base():
+	var gm = get_gm()
+	assert_eq(gm.current_speed, Constants.BASE_SPEED, "Should start at BASE_SPEED")
+
+func test_current_speed_resets_on_start_game():
+	var gm = get_gm()
+	gm.current_speed = 999.0
+	gm.start_game()
+	assert_eq(gm.current_speed, Constants.BASE_SPEED, "Should reset to BASE_SPEED on start")
+
+func test_current_speed_increases_with_tier():
+	var gm = get_gm()
+	gm.start_game()
+	gm._difficulty_progress = Constants.TIER_THRESHOLD
+	gm._check_difficulty_advance()
+	assert_eq(gm.difficulty_tier, 2, "Should be tier 2")
+	assert_eq(gm.current_speed, Constants.BASE_SPEED + Constants.SPEED_PER_TIER, "Speed should increase by SPEED_PER_TIER")
+
+func test_current_speed_caps_at_max():
+	var gm = get_gm()
+	gm.start_game()
+	gm._difficulty_progress = Constants.TIER_THRESHOLD * 30
+	gm._check_difficulty_advance()
+	assert_eq(gm.current_speed, Constants.MAX_GAME_SPEED, "Speed should cap at MAX_GAME_SPEED")

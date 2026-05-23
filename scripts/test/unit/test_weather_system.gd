@@ -266,3 +266,31 @@ func test_rain_particles_emit_count_scales():
 func test_white_texture_created():
 	var ws = _create_weather()
 	assert_true(ws.white_texture != null, "White texture should be created")
+
+func test_overlay_transition_sets_prev_color():
+	var ws = _create_weather()
+	ws.set_weather(ws.WeatherType.CLEAR)
+	var prev = ws._prev_overlay_color
+	ws.set_weather(ws.WeatherType.ACID_RAIN)
+	assert_eq(ws._prev_overlay_color, Constants.ACID_OVERLAY_CLEAR, "Prev overlay should be clear")
+	assert_eq(ws._target_overlay_color, Constants.ACID_OVERLAY_COLOR_LIGHT, "Target overlay should be acid light")
+
+func test_overlay_color_lerps_during_transition():
+	var ws = _create_weather()
+	ws._set_weather(ws.WeatherType.CLEAR)
+	ws.set_weather(ws.WeatherType.ACID_RAIN)
+	ws.weather_transition = 0.5
+	ws._update_weather_transition(0.0)
+	if ws.acid_overlay:
+		var expected = Constants.ACID_OVERLAY_CLEAR.lerp(Constants.ACID_OVERLAY_COLOR_LIGHT, 0.5)
+		assert_almost_eq(ws.acid_overlay.color.a, expected.a, 0.01, "Overlay alpha should be mid-transition")
+
+func test_overlay_color_completes_on_transition_end():
+	var ws = _create_weather()
+	ws._set_weather(ws.WeatherType.CLEAR)
+	ws.set_weather(ws.WeatherType.STORM)
+	ws.weather_transition = 0.9
+	ws._update_weather_transition(0.2)
+	assert_eq(ws.current_weather, ws.WeatherType.STORM, "Weather should be storm after transition")
+	if ws.acid_overlay:
+		assert_almost_eq(ws.acid_overlay.color.a, Constants.ACID_OVERLAY_COLOR_HEAVY.a, 0.01, "Overlay should match target after transition")

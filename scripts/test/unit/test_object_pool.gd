@@ -108,3 +108,11 @@ func test_pool_array_typed():
 	assert_true(pool is Array, "Pool should be an array")
 	for item in pool:
 		assert_true(item is Node, "Pool items should be Nodes")
+
+func test_pickup_signal_disconnected_on_release():
+	ObjectPool.create_pickup_pool(2)
+	var collected = false
+	var pickup = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): collected = true)
+	assert_true(pickup.body_entered.is_connected(ObjectPool._on_pickup_body_entered), "Signal should be connected while active")
+	ObjectPool.release(pickup)
+	assert_false(pickup.body_entered.is_connected(ObjectPool._on_pickup_body_entered), "Signal should be disconnected after release")

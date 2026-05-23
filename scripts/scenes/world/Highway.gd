@@ -94,7 +94,6 @@ func _get_cached_or_build(chunk_type: ChunkType) -> Node2D:
 	if _chunk_template_cache.has(chunk_type):
 		var cached = _chunk_template_cache[chunk_type]
 		var clone = cached.duplicate()
-		# Reconnect signals for ICE and BRIDGE chunks
 		_reconnect_chunk_signals(clone, chunk_type)
 		return clone
 	
@@ -103,8 +102,7 @@ func _get_cached_or_build(chunk_type: ChunkType) -> Node2D:
 	tiles.set_y_sort_enabled(true)
 	_build_tiles_into(tiles, chunk_type)
 	
-	# Cache the template — but signals won't duplicate, so store without them
-	_chunk_template_cache[chunk_type] = tiles.duplicate()
+	_chunk_template_cache[chunk_type] = tiles
 	
 	_reconnect_chunk_signals(tiles, chunk_type)
 	return tiles

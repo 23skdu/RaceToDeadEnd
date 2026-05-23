@@ -155,6 +155,9 @@ func release(node: Node) -> void:
 		return
 	if node.has_method("on_pool_release"):
 		node.on_pool_release()
+	_pickup_pool_data.erase(node)
+	if node.has_signal("body_entered") and node.body_entered.is_connected(_on_pickup_body_entered):
+		node.body_entered.disconnect(_on_pickup_body_entered)
 	node.set_meta("_in_pool", true)
 	node.visible = false
 	node.process_mode = Node.PROCESS_MODE_DISABLED

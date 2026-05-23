@@ -13,6 +13,8 @@ const TIER_THRESHOLD: int = 1000
 const MAX_TIER: int = 20
 const SEGMENT_DIFFICULTY_BONUS: float = 200.0
 const SCORE_RATE: int = 10
+const SPEED_PER_TIER: float = 15.0
+const MAX_GAME_SPEED: float = 600.0
 
 # Spawner
 const BASE_WAVE_INTERVAL: float = 5.0

@@ -38,6 +38,9 @@ var _base_multiplier: int = 1
 var _last_tier_threshold: int = 0
 
 var _score_ticker: Timer
+var current_speed: float = Constants.BASE_SPEED
+
+signal speed_changed(speed: float)
 
 func _ready() -> void:
 	_add_input_mappings()
@@ -75,6 +78,8 @@ func start_game() -> void:
 	multiplier = 1
 	difficulty_tier = 1
 	current_segment = 0
+	current_speed = Constants.BASE_SPEED
+	speed_changed.emit(current_speed)
 	score_updated.emit(score)
 	health_updated.emit(health)
 	multiplier_updated.emit(multiplier)
@@ -100,7 +105,9 @@ func _check_difficulty_advance() -> void:
 	var new_tier = mini(1 + floori(_difficulty_progress / Constants.TIER_THRESHOLD), Constants.MAX_TIER)
 	if new_tier > difficulty_tier:
 		difficulty_tier = new_tier
+		current_speed = mini(Constants.BASE_SPEED + (difficulty_tier - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED)
 		difficulty_tier_changed.emit(difficulty_tier)
+		speed_changed.emit(current_speed)
 
 func add_health(amount: int) -> void:
 	health = clampi(health + amount, 0, max_health)
@@ -201,10 +208,15 @@ func _add_joy_motion(action: String, axis: int, dir: float) -> void:
 	InputMap.action_add_event(action, ev)
 
 func save_progress() -> void:
-	var save_data = {
+	var payload = {
 		credits = credits,
 		high_score = high_score,
 		upgrade_levels = upgrade_levels.duplicate(),
+	}
+	var payload_str = var_to_str(payload)
+	var save_data = {
+		payload = payload,
+		_checksum = hash(payload_str),
 	}
 	var file = FileAccess.open("user://save.dat", FileAccess.WRITE)
 	if file:
@@ -215,17 +227,23 @@ func load_progress() -> void:
 	if file:
 		var data = file.get_var()
 		if data is Dictionary:
-			if data.has("credits") and typeof(data.credits) == TYPE_INT:
-				credits = maxi(0, data.credits)
-			if data.has("high_score") and typeof(data.high_score) == TYPE_INT:
-				high_score = maxi(0, data.high_score)
-			if data.has("upgrade_levels") and typeof(data.upgrade_levels) == TYPE_DICTIONARY:
-				for key in upgrade_levels:
-					if data.upgrade_levels.has(key) and typeof(data.upgrade_levels[key]) == TYPE_INT:
-						var val = clampi(data.upgrade_levels[key], 1, 5)
-						upgrade_levels[key] = val
-			if data.has("active_packs") and typeof(data.active_packs) == TYPE_DICTIONARY:
-				pass
+			var payload = data.get("payload")
+			var stored_checksum = data.get("_checksum", 0)
+			if payload is Dictionary and stored_checksum != 0:
+				var expected_checksum = hash(var_to_str(payload))
+				if expected_checksum != stored_checksum:
+					push_warning("Save file checksum mismatch, using defaults")
+					return
+			if payload is Dictionary:
+				if payload.has("credits") and typeof(payload.credits) == TYPE_INT:
+					credits = maxi(0, payload.credits)
+				if payload.has("high_score") and typeof(payload.high_score) == TYPE_INT:
+					high_score = maxi(0, payload.high_score)
+				if payload.has("upgrade_levels") and typeof(payload.upgrade_levels) == TYPE_DICTIONARY:
+					for key in upgrade_levels:
+						if payload.upgrade_levels.has(key) and typeof(payload.upgrade_levels[key]) == TYPE_INT:
+							var val = clampi(payload.upgrade_levels[key], 1, 5)
+							upgrade_levels[key] = val
 		else:
 			push_warning("Save data corrupted, using defaults")
 			credits = 0

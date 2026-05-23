@@ -36,6 +36,8 @@ var white_texture: Texture2D
 
 var _rain_particles: GPUParticles2D
 var _rain_particle_material: ParticleProcessMaterial
+var _prev_overlay_color: Color = Constants.ACID_OVERLAY_CLEAR
+var _target_overlay_color: Color = Constants.ACID_OVERLAY_CLEAR
 
 @onready var cloud_container: Node2D = $CloudContainer
 @onready var lightning_container: Node2D = $LightningContainer
@@ -95,9 +97,15 @@ func _update_weather_transition(delta: float) -> void:
 		if weather_transition >= 1.0:
 			weather_transition = 1.0
 			current_weather = target_weather
+			_update_visuals_for_weather(target_weather)
 			weather_changed.emit(_weather_name(current_weather))
 		
 		weather_intensity = weather_transition if target_weather > current_weather else 1.0 - weather_transition
+		if acid_overlay:
+			if current_weather == target_weather:
+				acid_overlay.color = _target_overlay_color
+			else:
+				acid_overlay.color = _prev_overlay_color.lerp(_target_overlay_color, weather_intensity)
 	else:
 		weather_intensity = 1.0 if current_weather != WeatherType.CLEAR else 0.0
 
@@ -240,6 +248,8 @@ func _set_weather(type: WeatherType) -> void:
 	target_weather = type
 	weather_transition = 1.0
 	weather_intensity = 1.0 if type != WeatherType.CLEAR else 0.0
+	_prev_overlay_color = _overlay_color_for(type)
+	_target_overlay_color = _overlay_color_for(type)
 	
 	_update_visuals_for_weather(type)
 	weather_changed.emit(_weather_name(type))
@@ -261,9 +271,17 @@ func _update_visuals_for_weather(type: WeatherType) -> void:
 
 func set_weather(type: WeatherType) -> void:
 	if target_weather != type:
+		_prev_overlay_color = _overlay_color_for(target_weather) if acid_overlay else Constants.ACID_OVERLAY_CLEAR
+		_target_overlay_color = _overlay_color_for(type)
 		target_weather = type
 		weather_transition = 0.0
 		weather_changed.emit(_weather_name(type))
+
+func _overlay_color_for(type: WeatherType) -> Color:
+	match type:
+		WeatherType.ACID_RAIN: return Constants.ACID_OVERLAY_COLOR_LIGHT
+		WeatherType.STORM: return Constants.ACID_OVERLAY_COLOR_HEAVY
+		_: return Constants.ACID_OVERLAY_CLEAR
 
 func set_player(p: Node) -> void:
 	player_ref = p

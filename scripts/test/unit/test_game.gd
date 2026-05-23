@@ -91,3 +91,16 @@ func test_game_scene_constants():
 	assert_true(script.BULLET_SCENE != null, "Bullet scene should be preloaded")
 	assert_true(script.MINE_SCENE != null, "Mine scene should be preloaded")
 	assert_true(script.EMP_SCENE != null, "EMP scene should be preloaded")
+
+func test_game_over_restart_delay_cooldown():
+	var game = _create_game()
+	GameManager.state = GameManager.GameState.GAME_OVER
+	game._game_over_restart_timer = 0.0
+	game._process(1.0)
+	assert_lt(game._game_over_restart_timer, 1.5, "Should not trigger restart before 1.5s")
+
+func test_game_over_restart_delay_allows_after_cooldown():
+	var game = _create_game()
+	GameManager.state = GameManager.GameState.GAME_OVER
+	game._game_over_restart_timer = 1.5
+	assert_ge(game._game_over_restart_timer, 1.5, "Should allow restart after 1.5s")
