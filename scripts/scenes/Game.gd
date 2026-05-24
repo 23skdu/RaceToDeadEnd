@@ -228,8 +228,7 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			var bullet = ObjectPool.acquire("bullet")
 			world.add_child(bullet)
 			bullet.init(pos, dir, true)
-			if not bullet.hit_target.is_connected(_on_bullet_hit):
-				bullet.hit_target.connect(_on_bullet_hit)
+			bullet.hit_target.connect(_on_bullet_hit)
 			AudioManager.play_synth_laser(pos)
 		"missile":
 			var bullet = ObjectPool.acquire("bullet")
@@ -239,8 +238,7 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			bullet.damage = 3
 			bullet.scale = Vector2(1.8, 1.8)
 			bullet.modulate = Color(1.0, 0.25, 0.25)
-			if not bullet.hit_target.is_connected(_on_bullet_hit):
-				bullet.hit_target.connect(_on_bullet_hit)
+			bullet.hit_target.connect(_on_bullet_hit)
 			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
 			AudioManager.play_synth_laser(pos)
 		"mine":

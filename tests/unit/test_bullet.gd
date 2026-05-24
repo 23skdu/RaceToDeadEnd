@@ -281,3 +281,11 @@ func test_max_homing_range_constant():
 func test_early_out_dist_sq_constant():
 	var bullet = _create_bullet()
 	assert_eq(bullet.EARLY_OUT_DIST_SQ, 4000.0, "EARLY_OUT_DIST_SQ should be 4000")
+
+func test_on_pool_release_disconnects_hit_target():
+	var b = _create_bullet()
+	var handler = func(_x): pass
+	b.hit_target.connect(handler)
+	assert_eq(b.hit_target.get_connections().size(), 1, "Should have 1 connection before release")
+	b.on_pool_release()
+	assert_eq(b.hit_target.get_connections().size(), 0, "Should have 0 connections after release")

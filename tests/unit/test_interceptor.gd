@@ -480,3 +480,26 @@ func test_set_slippery_changes_steering():
 	player._physics_process(0.1)
 	var normal_vx = player.velocity.x
 	assert_lt(abs(slippery_vx), abs(normal_vx), "Slippery steering should produce slower lateral velocity")
+
+func test_boost_trail_line_exists():
+	var player = _create_player()
+	assert_not_null(player._trail_line, "Boost trail Line2D should exist")
+	assert_true(player._trail_line is Line2D, "Trail should be a Line2D node")
+
+func test_boost_trail_records_points_during_boost():
+	var player = _create_player()
+	player._trail_points.clear()
+	player.boost_active = true
+	player.velocity = Vector2(0, -200)
+	player._trail_spacing_counter = player.TRAIL_SPACING
+	player._update_boost_trail()
+	assert_gt(player._trail_points.size(), 0, "Trail points should be recorded during boost")
+	assert_gt(player._trail_line.points.size(), 0, "Trail line should have points during boost")
+
+func test_boost_trail_clears_when_not_boosting():
+	var player = _create_player()
+	player._trail_points.push_front(Vector2(100, 100))
+	player.boost_active = false
+	player._update_boost_trail()
+	assert_eq(player._trail_points.size(), 0, "Trail points should be cleared when not boosting")
+	assert_eq(player._trail_line.points.size(), 0, "Trail line should be empty when not boosting")

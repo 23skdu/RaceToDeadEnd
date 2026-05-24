@@ -90,6 +90,7 @@ func on_pool_release() -> void:
 	stun_timer = 0.0
 	hp = 1
 	speed = 200.0
+	sprite.scale = Vector2.ONE
 	sprite.modulate = Color.WHITE
 	velocity = Vector2.ZERO
 	if _spawner and destroyed.is_connected(_spawner._on_enemy_destroyed):
@@ -117,11 +118,16 @@ func _die() -> void:
 	_play_death_sound()
 	CameraShake.shake(0.3, 0.2, 4.0)
 	CameraShake.rumble(0.3, 0.2)
+	collision.set_deferred(&"disabled", true)
+	_death_animation()
 	var type_str = boss_key if boss_key else TYPE_NAMES[enemy_type]
 	destroyed.emit(global_position, type_str, self)
 	if _spawner and destroyed.is_connected(_spawner._on_enemy_destroyed):
 		destroyed.disconnect(_spawner._on_enemy_destroyed)
 	ObjectPool.release(self)
+
+func _death_animation() -> void:
+	sprite.scale = Vector2.ZERO
 
 func _play_death_sound() -> void:
 	match enemy_type:

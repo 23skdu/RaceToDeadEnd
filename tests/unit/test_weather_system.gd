@@ -307,3 +307,30 @@ func test_overlay_color_completes_on_transition_end():
 	assert_eq(ws.current_weather, ws.WeatherType.STORM, "Weather should be storm after transition")
 	if ws.acid_overlay:
 		assert_almost_eq(ws.acid_overlay.color.a, Constants.ACID_OVERLAY_COLOR_HEAVY.a, 0.01, "Overlay should match target after transition")
+
+func test_lightning_flash_cleaned_after_tween():
+	var ws = _create_weather()
+	add_child_autofree(ws)
+	ws._set_weather(ws.WeatherType.STORM)
+	var flash = ws._create_lightning_flash(Vector2.ZERO)
+	ws.lightning_container.add_child(flash)
+	var tween = ws.create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.01)
+	tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free())
+	await tween.finished
+	await get_tree().process_frame
+	assert_true(flash.is_queued_for_deletion(), "Flash should be queued for deletion after tween")
+
+func test_lightning_bolt_cleaned_after_tween():
+	var ws = _create_weather()
+	add_child_autofree(ws)
+	ws._set_weather(ws.WeatherType.STORM)
+	var bolt = Line2D.new()
+	bolt.points = PackedVector2Array([Vector2.ZERO, Vector2(10, 10)])
+	ws.lightning_container.add_child(bolt)
+	var tween = ws.create_tween()
+	tween.tween_property(bolt, "modulate:a", 0.0, 0.01)
+	tween.tween_callback(func(): if is_instance_valid(bolt): bolt.queue_free())
+	await tween.finished
+	await get_tree().process_frame
+	assert_true(bolt.is_queued_for_deletion(), "Bolt should be queued for deletion after tween")

@@ -300,3 +300,27 @@ func test_acquire_auto_creates_pool_with_scene_path():
 func test_acquire_returns_null_for_nonexistent_pool():
 	var item = ObjectPool.acquire("pool_does_not_exist_12345")
 	assert_null(item, "Should return null for nonexistent pool")
+
+func test_scene_cache_avoids_reload():
+	var old_count = ObjectPool._scene_cache.size()
+	ObjectPool._scene_paths["cache_test"] = "res://scenes/weapons/Bullet.tscn"
+	var item = ObjectPool.acquire("cache_test")
+	assert_true(ObjectPool._scene_cache.has("cache_test"), "Scene should be cached after fallback acquire")
+	assert_gt(ObjectPool._scene_cache.size(), old_count, "Cache should have more entries")
+	ObjectPool.release(item)
+
+func test_scene_cache_reuses_cached_scene():
+	ObjectPool._scene_paths["cache_test2"] = "res://scenes/weapons/Bullet.tscn"
+	var item1 = ObjectPool.acquire("cache_test2")
+	assert_true(ObjectPool._scene_cache.has("cache_test2"), "First acquire should populate cache")
+	var item2 = ObjectPool.acquire("cache_test2")
+	assert_ne(item1, item2, "Should get distinct instances from cached scene")
+	ObjectPool.release(item1)
+	ObjectPool.release(item2)
+
+func test_scene_cache_returns_same_packed_scene():
+	ObjectPool._scene_paths["cache_test3"] = "res://scenes/weapons/Bullet.tscn"
+	var item1 = ObjectPool.acquire("cache_test3")
+	var cached = ObjectPool._scene_cache["cache_test3"]
+	assert_is(cached, PackedScene, "Cached entry should be a PackedScene")
+	ObjectPool.release(item1)

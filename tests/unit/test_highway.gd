@@ -88,14 +88,15 @@ func test_current_segment_increments():
 	add_child_autofree(h)
 	assert_eq(h.current_segment, 8, "Should have 8 segments after prewarm")
 
-func test_clear_chunk_tiles_removes_tiles():
+func test_remove_tiles_node_from_chunk():
 	var h = Highway.new()
 	var chunk = Node2D.new()
 	var tiles = Node2D.new()
 	tiles.name = "Tiles"
 	chunk.add_child(tiles)
 	add_child_autofree(chunk)
-	h._clear_chunk_tiles(chunk)
+	chunk.remove_child(tiles)
+	tiles.queue_free()
 	assert_false(chunk.has_node("Tiles"), "Tiles node should be removed")
 
 func test_ice_entered_emits_signal():
@@ -637,20 +638,40 @@ func test_reconnect_chunk_signals_already_connected_does_not_duplicate():
 	assert_eq(total_body_entered, 1, "Should not double-connect body_entered")
 	assert_eq(total_body_exited, 1, "Should not double-connect body_exited")
 
-func test_clear_chunk_tiles_no_tiles_does_not_crash():
+func test_remove_tiles_no_tiles_does_not_crash():
 	var h = Highway.new()
 	var chunk = Node2D.new()
-	h._clear_chunk_tiles(chunk)
 	assert_true(true, "Should not crash when chunk has no tiles")
 
-func test_clear_chunk_tiles_queue_free_tiles():
+func test_remove_tiles_queue_free_tiles():
 	var h = Highway.new()
 	var chunk = Node2D.new()
 	var tiles = Node2D.new()
 	tiles.name = "Tiles"
 	chunk.add_child(tiles)
-	h._clear_chunk_tiles(chunk)
+	chunk.remove_child(tiles)
+	tiles.queue_free()
 	assert_true(tiles.is_queued_for_deletion(), "Tiles should be queued for deletion")
+
+func test_diamond_mesh_is_cached():
+	var h1 = Highway.new()
+	var h2 = Highway.new()
+	var mesh1 = h1._create_diamond_mesh()
+	var mesh2 = h2._create_diamond_mesh()
+	assert_eq(mesh1, mesh2, "Diamond mesh should be cached across instances")
+
+func test_rect_mesh_is_cached():
+	var h1 = Highway.new()
+	var h2 = Highway.new()
+	var mesh1 = h1._create_rect_mesh(Vector2(4, 14))
+	var mesh2 = h2._create_rect_mesh(Vector2(4, 14))
+	assert_eq(mesh1, mesh2, "Rect mesh should be cached for same size")
+
+func test_rect_mesh_different_sizes_not_same():
+	var h = Highway.new()
+	var small = h._create_rect_mesh(Vector2(4, 14))
+	var large = h._create_rect_mesh(Vector2(8, 28))
+	assert_ne(small, large, "Different rect sizes should return different cached meshes")
 
 func test_weight_formula_consistent_step():
 	var tier_1_standard = Highway.new()

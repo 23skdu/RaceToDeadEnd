@@ -2,6 +2,7 @@ extends Node
 
 var _pools: Dictionary = {}
 var _scene_paths: Dictionary = {}
+var _scene_cache: Dictionary = {}
 var _pickup_pool_data: Dictionary = {}
 
 func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> void:
@@ -151,7 +152,9 @@ func acquire(pool_name: String) -> Node:
 		if item.get_parent():
 			item.get_parent().remove_child(item)
 		return item
-	var fallback = load(_scene_paths[pool_name]).instantiate()
+	if not _scene_cache.has(pool_name):
+		_scene_cache[pool_name] = load(_scene_paths[pool_name])
+	var fallback = _scene_cache[pool_name].instantiate()
 	fallback.set_meta("_in_pool", false)
 	add_child(fallback)
 	if fallback.has_method("on_pool_acquire"):

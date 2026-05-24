@@ -26,6 +26,7 @@ var current_wave: int = 0
 
 var _bosses_spawned: int = 0
 var _cleanup_timer: float = 0.0
+var _civilian_spawn_accumulator: float = 0.0
 
 func _ready() -> void:
 	enemy_scenes["rotor"] = preload("res://scenes/enemies/Rotor.tscn") if ResourceLoader.exists("res://scenes/enemies/Rotor.tscn") else null
@@ -62,7 +63,9 @@ func _process(delta: float) -> void:
 		wave_interval = maxf(min_wave_interval, base_wave_interval - (GameManager.difficulty_tier - 1) * wave_interval_decay)
 		wave_timer = wave_interval
 
-	if randf() < Constants.CIVILIAN_SPAWN_CHANCE * delta:
+	_civilian_spawn_accumulator += delta
+	if _civilian_spawn_accumulator >= 1.0 / civilian_chance:
+		_civilian_spawn_accumulator = 0.0
 		_spawn_civilian()
 	
 	_cleanup_timer -= delta

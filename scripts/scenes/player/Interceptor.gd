@@ -1,6 +1,8 @@
 extends CharacterBody2D
 
 const HelpersUtil = preload("res://scripts/utils/Helpers.gd")
+const TRAIL_LENGTH: int = 12
+const TRAIL_SPACING: float = 8.0
 
 
 @export_group("Movement")
@@ -52,6 +54,10 @@ var last_right_tap_time: float = 0.0
 @onready var weapon_mount: Marker2D = $WeaponMount
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
+var _trail_line: Line2D
+var _trail_points: Array[Vector2] = []
+var _trail_spacing_counter: float = 0.0
+
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1
@@ -76,6 +82,12 @@ func _ready() -> void:
 	speed = GameManager.current_speed
 	if not GameManager.speed_changed.is_connected(_on_speed_changed):
 		GameManager.speed_changed.connect(_on_speed_changed)
+	
+	_trail_line = Line2D.new()
+	_trail_line.width = 6.0
+	_trail_line.default_color = Color(1.0, 0.5, 0.0, 0.6)
+	_trail_line.z_index = -1
+	add_child(_trail_line)
 	
 	target_x = _lane_to_x(current_lane)
 	position.x = target_x
@@ -118,6 +130,8 @@ func _physics_process(delta: float) -> void:
 		position.x = target_x
 		
 	move_and_slide()
+	
+	_update_boost_trail()
 	
 	for i in get_slide_collision_count():
 		var col = get_slide_collision(i)
@@ -267,6 +281,28 @@ func take_damage(amount: int = 1) -> void:
 
 func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
+
+func _update_boost_trail() -> void:
+	if boost_active:
+		_trail_spacing_counter += abs(velocity.length()) * get_physics_process_delta_time()
+		if _trail_spacing_counter >= TRAIL_SPACING:
+			_trail_spacing_counter = 0.0
+			_trail_points.push_front(position + Vector2(0, 16))
+			if _trail_points.size() > TRAIL_LENGTH:
+				_trail_points.resize(TRAIL_LENGTH)
+		_trail_line.points = PackedVector2Array(_trail_points)
+		var alpha_step = 0.6 / max(_trail_points.size(), 1)
+		var gradient = Gradient.new()
+		var colors: PackedColorArray = []
+		for j in range(_trail_points.size()):
+			var t = float(j) / max(_trail_points.size() - 1, 1)
+			colors.append(Color(1.0, 0.5, 0.0, 0.6 * (1.0 - t)))
+		_trail_line.gradient = gradient
+		_trail_line.default_color = Color(1.0, 0.5, 0.0, 0.0)
+	else:
+		_trail_points.clear()
+		_trail_spacing_counter = 0.0
+		_trail_line.points = PackedVector2Array()
 
 func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, 84.0, Constants.SPRITE_BASE_VIEWPORT)

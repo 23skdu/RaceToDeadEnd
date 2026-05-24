@@ -36,6 +36,9 @@ var white_texture: Texture2D
 var _chunk_buffers: Dictionary = {}
 var _buffer_in_use: Dictionary = {}
 
+static var _diamond_mesh_cache: ArrayMesh = null
+static var _rect_mesh_cache: Dictionary = {}
+
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -427,6 +430,9 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		chunk_local.add_child(right_bridge)
 
 func _create_rect_mesh(size: Vector2) -> ArrayMesh:
+	var key = Vector2(size.x, size.y)
+	if _rect_mesh_cache.has(key):
+		return _rect_mesh_cache[key]
 	var mesh = ArrayMesh.new()
 	var half_w = size.x / 2.0
 	var half_h = size.y / 2.0
@@ -449,9 +455,12 @@ func _create_rect_mesh(size: Vector2) -> ArrayMesh:
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_rect_mesh_cache[key] = mesh
 	return mesh
 
 func _create_diamond_mesh() -> ArrayMesh:
+	if _diamond_mesh_cache:
+		return _diamond_mesh_cache
 	var mesh = ArrayMesh.new()
 	var half_w = TILE_SIZE.x / 2.0
 	var half_h = TILE_SIZE.y / 2.0
@@ -474,6 +483,7 @@ func _create_diamond_mesh() -> ArrayMesh:
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_diamond_mesh_cache = mesh
 	return mesh
 
 func _create_desert_decoration(type: int) -> Node2D:
@@ -595,8 +605,4 @@ func _get_tiles_node(chunk: Node2D) -> Node2D:
 		return chunk.get_child(0) as Node2D
 	return null
 
-func _clear_chunk_tiles(chunk: Node2D) -> void:
-	var tiles = _get_tiles_node(chunk)
-	if tiles:
-		chunk.remove_child(tiles)
-		tiles.queue_free()
+

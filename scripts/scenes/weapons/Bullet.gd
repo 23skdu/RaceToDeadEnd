@@ -100,6 +100,8 @@ func on_pool_release() -> void:
 	modulate = Color.WHITE
 	_cached_enemies.clear()
 	_cache_timer = 0.0
+	for conn in hit_target.get_connections():
+		hit_target.disconnect(conn.callable)
 
 func _on_visible_on_screen_notifier_screen_exited() -> void:
 	ObjectPool.release(self)

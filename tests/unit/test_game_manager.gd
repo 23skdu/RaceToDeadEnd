@@ -542,3 +542,27 @@ func test_enemy_list_initially_empty():
 func test_register_enemy_spawned_null_no_crash():
 	GameManager.register_enemy_spawned(null)
 	assert_true(true, "register_enemy_spawned should not crash on null")
+
+func test_advance_segment_triggers_auto_save():
+	var save_path = "user://save.dat"
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
+	GameManager.start_game()
+	GameManager.credits = 100
+	assert_false(FileAccess.file_exists(save_path), "Save should not exist before segment advance")
+	GameManager.advance_segment()
+	assert_true(FileAccess.file_exists(save_path), "Save should exist after segment advance with credits")
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
+
+func test_advance_segment_does_not_save_with_zero_credits():
+	var save_path = "user://save.dat"
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
+	GameManager.start_game()
+	GameManager.credits = 0
+	GameManager.score = 0
+	GameManager.advance_segment()
+	assert_false(FileAccess.file_exists(save_path), "Save should not be created with zero credits and score")
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)

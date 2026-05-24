@@ -596,3 +596,27 @@ func test_spawner_resets_wave_timer_on_game_start():
 	GameManager.start_game()
 	assert_gt(s.wave_timer, 0.0, "Wave timer should be reset on game start")
 	assert_eq(s.current_wave, 0, "Current wave should reset to 0")
+
+func test_civilian_spawn_accumulator_increments():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s.civilian_chance = 1.0
+	GameManager.state = GameManager.GameState.PLAYING
+	s._civilian_spawn_accumulator = 0.0
+	s._process(0.5)
+	assert_eq(s._civilian_spawn_accumulator, 0.5, "Accumulator should increment by delta")
+	s._process(0.5)
+	assert_eq(s._civilian_spawn_accumulator, 0.0, "Accumulator should reset after reaching threshold")
+
+func test_civilian_spawn_accumulator_skips_spawn_below_threshold():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	s.civilian_chance = 0.5
+	GameManager.state = GameManager.GameState.PLAYING
+	s._civilian_spawn_accumulator = 0.0
+	var child_before = s.get_child_count()
+	s._process(0.3)
+	var child_after = s.get_child_count()
+	assert_eq(child_after, child_before, "No civilian should spawn below threshold")

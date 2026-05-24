@@ -137,6 +137,8 @@ func advance_segment() -> void:
 	current_segment += 1
 	_difficulty_progress += Constants.SEGMENT_DIFFICULTY_BONUS
 	segment_advanced.emit(current_segment)
+	if credits > 0 or score > 0:
+		save_progress()
 	_check_difficulty_advance()
 
 func end_game() -> void:

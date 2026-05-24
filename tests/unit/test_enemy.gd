@@ -197,3 +197,18 @@ func test_on_pool_release_disconnects_destroyed_signal():
 	assert_true(e.destroyed.is_connected(mock_spawner._on_enemy_destroyed), "Signal should be connected before release")
 	e.on_pool_release()
 	assert_false(e.destroyed.is_connected(mock_spawner._on_enemy_destroyed), "Signal should be disconnected after release")
+
+func test_death_animation_sets_scale_to_zero():
+	var e = _create_enemy()
+	e._ready()
+	e.sprite.scale = Vector2.ONE
+	e._death_animation()
+	assert_almost_eq(e.sprite.scale.x, 0.0, 0.001, "Sprite scale x should be near zero after death animation")
+	assert_almost_eq(e.sprite.scale.y, 0.0, 0.001, "Sprite scale y should be near zero after death animation")
+
+func test_on_pool_release_resets_sprite_scale():
+	var e = _create_enemy()
+	e._ready()
+	e.sprite.scale = Vector2.ZERO
+	e.on_pool_release()
+	assert_eq(e.sprite.scale, Vector2.ONE, "Sprite scale should be reset to one after pool release")
