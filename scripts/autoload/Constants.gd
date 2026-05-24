@@ -45,7 +45,7 @@ const BOOST_RECHARGE_TIME: float = 8.0
 const PRIMARY_FIRE_COOLDOWN: float = 0.1
 const DOUBLE_TAP_DELAY: float = 0.25
 const ACCEL_SPEED: float = 300.0
-const REVERSE_SPEED: float = -350.0
+const REVERSE_SPEED: float = 100.0
 
 # Multiplier
 const MULTIPLIER_DURATION: float = 10.0

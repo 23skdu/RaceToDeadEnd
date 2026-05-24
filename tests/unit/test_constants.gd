@@ -109,7 +109,7 @@ func test_accel_speed():
 	assert_eq(Constants.ACCEL_SPEED, 300.0)
 
 func test_reverse_speed():
-	assert_eq(Constants.REVERSE_SPEED, -350.0)
+	assert_eq(Constants.REVERSE_SPEED, 100.0)
 
 func test_multiplier_duration():
 	assert_eq(Constants.MULTIPLIER_DURATION, 10.0)
