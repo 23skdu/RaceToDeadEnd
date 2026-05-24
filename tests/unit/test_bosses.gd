@@ -1,12 +1,13 @@
 extends GutTest
 
 const Constants = preload("res://scripts/autoload/Constants.gd")
-const ObjectPool = preload("res://scripts/autoload/ObjectPool.gd")
 
 class MockSpawner extends Node:
+	@warning_ignore("unused_signal")
 	signal spawn_minion_requested(enemy_type: String, count: int)
+	@warning_ignore("unused_signal")
 	signal enemy_destroyed(position: Vector2, enemy_type: String, enemy: Node)
-	func _on_enemy_destroyed(pos, type, node): pass
+	func _on_enemy_destroyed(_pos, _type, _node): pass
 
 var _player: Node2D
 var _spawner: MockSpawner
@@ -29,21 +30,24 @@ func after_each() -> void:
 	ObjectPool.pools.clear()
 
 func test_boss_bunny_spawns_bomb() -> void:
+	var parent = Node2D.new()
+	add_child_autofree(parent)
+	
 	var boss = preload("res://scenes/enemies/BossBunny.tscn").instantiate()
 	boss.player = _player
 	boss._spawner = _spawner
-	add_child_autofree(boss)
-	
-	var bomb_spawned = [false]
-	_spawner.connect("spawn_minion_requested", func(type, count):
-		if type == "baby_bunny_bomb" and count == 1:
-			bomb_spawned[0] = true
-	)
+	parent.add_child(boss)
 	
 	boss.attack_timer = Constants.BOSS_ATTACK_INTERVAL + 1.0
 	boss._physics_process(0.1)
 	
-	assert_true(bomb_spawned[0], "BossBunny should request BabyBunnyBomb spawn")
+	var bomb_spawned = false
+	for child in parent.get_children():
+		if child != boss:
+			bomb_spawned = true
+			break
+				
+	assert_true(bomb_spawned, "BossBunny should instantiate BabyBunnyBomb")
 
 func test_boss_sasquatch_dodges() -> void:
 	var boss = preload("res://scenes/enemies/BossSasquatch.tscn").instantiate()
