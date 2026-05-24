@@ -10,7 +10,7 @@
 res://
 ├── autoload/                # .gd.uid stubs (editor tracking for relocated scripts)
 ├── scenes/                  # .tscn scene files
-│   ├── enemies/             # Rotor, Scav, Drone, BossWarRig, Civilian
+│   ├── enemies/             # Rotor, Scav, Drone, BossBunny, BossSasquatch, BossVoidDrone, BossWarRig, Civilian
 │   ├── player/              # Interceptor
 │   ├── ui/                  # HUD, GameOver, Garage, Options, PauseMenu
 │   ├── weapons/             # Bullet, Mine, EMPBlast, DroneBomb
@@ -21,7 +21,7 @@ res://
 │   │   ├── ScoreManager.gd  # Score event routing, kill/pickup registration
 │   │   ├── AudioManager.gd  # Procedural audio synthesis + playback
 │   │   ├── ObjectPool.gd    # Generic object pool (enemies, bullets, pickups)
-│   │   ├── Constants.gd     # All game constants
+│   │   ├── Constants.gd     # All game constants (8 lanes, lane positions, bullet speeds, colors)
 │   │   ├── CameraShake.gd   # Screen shake + gamepad rumble
 │   │   ├── TransitionLayer.gd # Fade-to-black scene transitions
 │   │   ├── Helpers.gd       # Static utility functions (sprite scaling)
@@ -30,7 +30,7 @@ res://
 │   ├── scenes/              # Scripts attached to scene nodes
 │   │   ├── Game.gd          # Game root: init pools, connect signals, pause/game-over
 │   │   ├── Main.gd          # Main menu
-│   │   ├── enemies/         # Enemy base + subtype behaviors
+│   │   ├── enemies/         # Enemy base (boss_key, _die type emission) + subtype behaviors
 │   │   ├── player/          # Interceptor controller
 │   │   ├── ui/              # HUD, menus, input remapping
 │   │   ├── weapons/         # Bullet, Mine, EMP, DroneBomb logic
@@ -39,7 +39,7 @@ res://
 │   └── utils/               # Development/analysis tools
 ├── tests/                   # GUT test suite
 │   ├── test_helper.gd       # Test utilities (class_name TestHelper)
-│   ├── unit/                # 35+ unit test files
+│   ├── unit/                # 36 unit test files
 │   └── integration/         # Integration tests (combat flow, stress pool)
 ├── assets/                  # Sprites, audio, tilesets, environments
 ├── addons/gut/              # GUT plugin
@@ -54,20 +54,23 @@ res://
 ### Game Loop
 1. `Main.tscn` → player clicks Start → `Game.tscn` loads
 2. `Game._ready()` creates object pools, starts `GameManager`, connects signals
-3. `Highway` generates scrolling road chunks (8 active, recycled off-screen)
-4. `Spawner` spawns enemy waves based on difficulty tier, `Interceptor` fights them
+3. `Highway` generates scrolling road chunks (8 active, recycled off-screen) with 5 chunk types
+4. `Spawner` spawns enemy waves based on difficulty tier, gating Scavs behind 1st boss kill and Drones behind 2nd; `Interceptor` fights them
 5. `GameManager` tracks score, difficulty tier, speed scaling, and game state
 6. On death → `GameManager.end_game()` → `GameOver` screen → restart/menu
 
 ### Object Pooling
 - All bullets, enemies, mines, EMPs, and civilians use `ObjectPool`
 - Pools created in `Game._ready()` with initial capacities (50 bullets, 8 rotors, etc.)
+- Pool create overwrites (e.g., `create_pool` on an existing pool name) `queue_free` old children before repopulating
 - Pooled items are hidden + disabled; `acquire()` activates, `release()` deactivates
-- Pickups use a dedicated pool with `Area2D` collision + `body_entered` collection
+- Pickups use a dedicated pool (`create_pickup_pool`) with `Area2D` collision + `body_entered` collection
 
 ### Highway
-- Infinite scrolling highway in isometric diamond-tile style
+- Infinite scrolling highway in isometric diamond-tile style, **8 lanes wide** (LANE_POSITIONS from -168 to 168)
 - 5 chunk types: Standard, Debris, Ice, Construction, Bridge
+- Ice chunks: icy-blue diamond tiles with 15% random reflective white highlights, frosty shoulder tiles, semi-transparent blue background
+- Bridge chunks: concrete-gray lane tiles, darker curb shoulders, cyan guardrails, **structural cross-beams** (Line2D) every 3 tile rows
 - Dual-buffer recycling: pre-built tile arrays swapped on chunk reuse (no `duplicate()`)
 - MultiMeshInstance2D for batched lane/shoulder rendering (reduced draw calls)
 - Chunk difficulty weighted by tier (more hazards at higher tiers)
@@ -75,16 +78,33 @@ res://
 ### Combat
 - **Primary**: Machine gun (0.1s cooldown, auto-fire)
 - **Secondary**: Homing missile, proximity mine, EMP blast (cycled via Q)
+- Player bullet speed = `GameManager.current_speed + BULLET_SPEED_OFFSET (500)` — always outruns max player speed (including boost)
+- Enemy bullet speed is constant `BULLET_SPEED (500)`
 - Homing bullets use distance-bounded targeting (MAX_HOMING_RANGE = 400px)
-- Enemy types: Rotor (swarm), Scav (flank + shoot), Drone (hover + bomb)
-- BossWarRig: 3-phase boss (ram → ram+bullets → ram+bullets+minions)
+- Enemy types: Rotor (swarm), Scav (flank + shoot, gated behind 1st boss kill), Drone (hover + bomb, gated behind 2nd boss kill)
+- 4 boss types: BossBunny, BossSasquatch, BossVoidDrone, BossWarRig (3-phase: ram → ram+bullets → ram+bullets+minions)
 
 ### Difficulty & Speed Scaling
 - Difficulty tier advances every 1000 score points (max tier 20)
 - Game speed scales: `BASE_SPEED + (tier - 1) * SPEED_PER_TIER` (cap at 600)
 - Wave interval decreases with tier: `BASE - (tier - 1) * 0.3` (min 2s)
 - Weather escalates at tiers 5, 8, 12 (rain → acid rain → storm)
-- Boss waves every 3000 score points
+- Boss waves every 3000 score points; `bosses_killed` tracks defeated bosses
+
+### Enemy Gating
+- Scav enemies are excluded from wave compositions until `bosses_killed >= 1` (after 1st boss fight)
+- Drone enemies are excluded until `bosses_killed >= 2` (after 2nd boss fight)
+- Boss scripts set `boss_key` (e.g., `boss_bunny`, `boss_sasquatch`, `boss_void_drone`, `boss`) in `_reset_state()`
+- `Enemy._die()` emits the `boss_key` string instead of the default `TYPE_NAMES[enemy_type]` when `boss_key` is non-empty
+- `GameManager.bosses_killed` is incremented when `Game._on_boss_defeated` fires
+
+### Player (Interceptor)
+- Sprite scaled to 84px base size (vs 64px for Rotor enemies — ~31% larger)
+- `_lane_to_x()` maps lane index to world X position via `Constants.LANE_POSITIONS` (clamped 0–7)
+- 6 upgradeable stats: max health, boost capacity, fire rate, missile ammo, mine ammo, EMP ammo
+- Boost: 2× speed multiplier, 3 charges, 8s recharge per charge
+- Slippery steering when on ice chunks
+- Bridge fall: takes damage when driven off the edge of a bridge chunk
 
 ### Audio
 - Fully procedural: all SFX and music synthesized at runtime (no asset files)
@@ -115,6 +135,7 @@ res://
 
 - **Framework**: GUT (Godot Unit Testing) via `addons/gut/`
 - **Runner**: `run_tests.gd` (SceneTree script, headless) and `run_tests.sh` (batch CI)
-- **Unit tests**: 35+ files covering all autoloads, scenes, and utilities
-- **Integration tests**: Combat flow and stress/pool exhaustion
+- **Unit tests**: 36 files covering all autoloads, scenes, and utilities
+- **Integration tests**: 2 files covering combat flow and stress/pool exhaustion
 - Test helper with audio bus setup, mock player creation, scene instantiation
+- Run: `godot --headless --path . -s addons/gut/gut_cmdln.gd -- -gdir tests/unit`
