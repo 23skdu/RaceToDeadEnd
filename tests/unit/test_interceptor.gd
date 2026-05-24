@@ -253,7 +253,7 @@ func test_fire_rate_upgrade():
 func test_ready_sets_collision_layers():
 	var player = _create_player()
 	assert_eq(player.collision_layer, 1, "Player should be on layer 1")
-	assert_eq(player.collision_mask, 1, "Player should mask layer 1")
+	assert_eq(player.collision_mask, 1 | 2, "Player should mask layer 1 (obstacles) and layer 2 (enemies)")
 	assert_true(player.is_in_group("player"), "Player should be in player group")
 
 func test_ready_sets_z_index():

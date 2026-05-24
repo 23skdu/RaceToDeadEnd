@@ -193,11 +193,12 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		_:
 			bg_color = Color(0.76, 0.64, 0.42)
 	var bg = Polygon2D.new()
+	var bg_half_w = half_w * (CHUNK_WIDTH + 1)
 	bg.polygon = PackedVector2Array([
-		Vector2(-half_w * CHUNK_WIDTH * 0.5, -half_h),
-		Vector2(half_w * CHUNK_WIDTH * 0.5, -half_h),
-		Vector2(half_w * CHUNK_WIDTH * 0.5, CHUNK_PIXEL_HEIGHT + half_h),
-		Vector2(-half_w * CHUNK_WIDTH * 0.5, CHUNK_PIXEL_HEIGHT + half_h),
+		Vector2(-bg_half_w, -half_h),
+		Vector2(bg_half_w, -half_h),
+		Vector2(bg_half_w, CHUNK_PIXEL_HEIGHT + half_h),
+		Vector2(-bg_half_w, CHUNK_PIXEL_HEIGHT + half_h),
 	])
 	bg.color = bg_color
 	chunk_local.add_child(bg)
@@ -268,6 +269,23 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		lane_merged.multimesh = multimesh
 		lane_merged.modulate = lane_polygons[0]["color"]
 		chunk_local.add_child(lane_merged)
+		
+		var edge_marking_color = Color(0.9, 0.9, 0.5, 0.6)
+		var edge_marking = MultiMeshInstance2D.new()
+		edge_marking.texture = white_texture
+		var emesh = MultiMesh.new()
+		emesh.mesh = _create_rect_mesh(Vector2(2, half_h * 0.9))
+		var edge_positions: Array[Vector2] = []
+		for row in CHUNK_HEIGHT:
+			var y_pos = row * TILE_SIZE.y + half_h
+			edge_positions.append(Vector2((LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w, y_pos))
+			edge_positions.append(Vector2((LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w, y_pos))
+		emesh.instance_count = edge_positions.size()
+		for i in edge_positions.size():
+			emesh.set_instance_transform_2d(i, Transform2D(0.0, edge_positions[i]))
+		edge_marking.multimesh = emesh
+		edge_marking.modulate = edge_marking_color
+		chunk_local.add_child(edge_marking)
 	
 	if shoulder_polygons.size() > 0:
 		var shoulder_merged = MultiMeshInstance2D.new()
@@ -322,7 +340,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		obstacle.add_to_group("obstacles")
 		
 		var col_poly = CollisionPolygon2D.new()
-		var sf = 0.6
+		var sf = 0.85
 		col_poly.polygon = PackedVector2Array([
 			Vector2(0, -half_h * sf),
 			Vector2(half_w * sf, 0),
@@ -336,8 +354,39 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		visual.color = obs["color"]
 		obstacle.add_child(visual)
 		
+		var highlight = Polygon2D.new()
+		highlight.polygon = PackedVector2Array([
+			Vector2(0, -half_h * sf * 0.5),
+			Vector2(half_w * sf * 0.5, 0),
+			Vector2(0, half_h * sf * 0.5),
+			Vector2(-half_w * sf * 0.5, 0)
+		])
+		highlight.color = Color(1.0, 1.0, 1.0, 0.5)
+		obstacle.add_child(highlight)
+		
 		chunk_local.add_child(obstacle)
 	
+	if lane_polygons.size() > 0 and chunk_type != ChunkType.ICE and chunk_type != ChunkType.BRIDGE:
+		var crack_mmi = MultiMeshInstance2D.new()
+		crack_mmi.texture = white_texture
+		var cmesh = MultiMesh.new()
+		cmesh.mesh = _create_rect_mesh(Vector2(1, half_h * 0.3))
+		var crack_positions: Array[Vector2] = []
+		for row in CHUNK_HEIGHT:
+			for col in range(LANE_START_COL + 1, LANE_END_COL):
+				var lane_cx = (col - HALF_CHUNK) * TILE_SIZE.x
+				var y_pos = row * TILE_SIZE.y + half_h * 0.5
+				if _rng.randf() < 0.12:
+					var x_offset = _rng.randf_range(-TILE_SIZE.x * 0.35, TILE_SIZE.x * 0.35)
+					crack_positions.append(Vector2(lane_cx + x_offset, y_pos))
+		if crack_positions.size() > 0:
+			cmesh.instance_count = crack_positions.size()
+			for i in crack_positions.size():
+				cmesh.set_instance_transform_2d(i, Transform2D(0.0, crack_positions[i]))
+			crack_mmi.multimesh = cmesh
+			crack_mmi.modulate = Color(0.0, 0.0, 0.0, 0.15)
+			chunk_local.add_child(crack_mmi)
+
 	var left_rail_x = (LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w
 	var right_rail_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w
 	
@@ -362,6 +411,24 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		right_points.append(Vector2(right_rail_x, y_pos))
 	right_rail.points = right_points
 	chunk_local.add_child(right_rail)
+	
+	if chunk_type != ChunkType.BRIDGE and chunk_type != ChunkType.ICE:
+		var post_color = Color(0.5, 0.5, 0.5, 0.7)
+		var post_mmi = MultiMeshInstance2D.new()
+		post_mmi.texture = white_texture
+		var pmesh = MultiMesh.new()
+		pmesh.mesh = _create_rect_mesh(Vector2(2, 6))
+		var post_positions: Array[Vector2] = []
+		for row in range(0, CHUNK_HEIGHT + 1, 2):
+			var y_pos = row * TILE_SIZE.y + half_h
+			post_positions.append(Vector2(left_rail_x, y_pos))
+			post_positions.append(Vector2(right_rail_x, y_pos))
+		pmesh.instance_count = post_positions.size()
+		for i in post_positions.size():
+			pmesh.set_instance_transform_2d(i, Transform2D(0.0, post_positions[i]))
+		post_mmi.multimesh = pmesh
+		post_mmi.modulate = post_color
+		chunk_local.add_child(post_mmi)
 	
 	if chunk_type == ChunkType.ICE:
 		var ice_area = Area2D.new()

@@ -60,7 +60,7 @@ var _trail_spacing_counter: float = 0.0
 
 func _ready() -> void:
 	collision_layer = 1
-	collision_mask = 1
+	collision_mask = 1 | 2
 	z_index = 1
 	add_to_group("player")
 	_scale_sprite()
@@ -141,6 +141,9 @@ func _physics_process(delta: float) -> void:
 				if not boost_active:
 					GameManager.take_damage(GameManager.max_health)
 			elif collider.is_in_group("obstacles") or collider is StaticBody2D:
+				if not boost_active:
+					take_damage(1)
+			elif collider.is_in_group("enemy"):
 				if not boost_active:
 					take_damage(1)
 
