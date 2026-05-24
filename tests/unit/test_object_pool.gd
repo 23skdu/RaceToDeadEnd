@@ -138,3 +138,165 @@ func test_pickup_fallback_has_pool_name():
 	assert_eq(fallback.get_meta("_pool_name"), "pickup", "Fallback _pool_name should be 'pickup'")
 	ObjectPool.release(fallback)
 	assert_false(fallback.is_queued_for_deletion(), "Pickup fallback should be returned to pool, not freed")
+
+func test_create_pool_replaces_existing():
+	if ObjectPool.has_pool("test_recreate"):
+		ObjectPool._pools.erase("test_recreate")
+	ObjectPool.create_pool("test_recreate", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var first_batch = ObjectPool._pools["test_recreate"]
+	assert_eq(first_batch.size(), 1, "Should have 1 item before recreate")
+	ObjectPool.create_pool("test_recreate", preload("res://scenes/weapons/Bullet.tscn"), 2)
+	assert_true(first_batch[0].is_queued_for_deletion(), "Old pool items should be freed")
+	var second_batch = ObjectPool._pools["test_recreate"]
+	assert_eq(second_batch.size(), 2, "New pool should have 2 items")
+
+func test_create_pickup_pool_replaces_existing():
+	if ObjectPool.has_pool("pickup"):
+		ObjectPool._pools.erase("pickup")
+	ObjectPool.create_pickup_pool(1)
+	var first_batch = ObjectPool._pools["pickup"]
+	assert_eq(first_batch.size(), 1, "Should have 1 item before recreate")
+	ObjectPool.create_pickup_pool(2)
+	assert_true(first_batch[0].is_queued_for_deletion(), "Old pickup pool items should be freed")
+	var second_batch = ObjectPool._pools["pickup"]
+	assert_eq(second_batch.size(), 2, "New pool should have 2 items")
+
+func test_acquire_calls_on_pool_acquire():
+	var s = GDScript.new()
+	s.source_code = """
+extends Node2D
+var acquired = false
+func on_pool_acquire():
+	acquired = true
+"""
+	s.reload()
+	ObjectPool.create_pool("test_lifecycle", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var scripted = Node2D.new()
+	scripted.set_script(s)
+	scripted.set_meta("_pool_name", "test_lifecycle")
+	scripted.set_meta("_in_pool", true)
+	scripted.visible = false
+	scripted.process_mode = Node.PROCESS_MODE_DISABLED
+	ObjectPool.add_child(scripted)
+	ObjectPool._pools["test_lifecycle"].append(scripted)
+	var acquired_item = ObjectPool.acquire("test_lifecycle")
+	assert_true(acquired_item.get("acquired"), "on_pool_acquire should be called")
+	ObjectPool.release(acquired_item)
+
+func test_release_calls_on_pool_release():
+	var s = GDScript.new()
+	s.source_code = """
+extends Node2D
+var released = false
+func on_pool_release():
+	released = true
+"""
+	s.reload()
+	ObjectPool.create_pool("test_release_lifecycle", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var scripted = Node2D.new()
+	scripted.set_script(s)
+	scripted.set_meta("_pool_name", "test_release_lifecycle")
+	scripted.set_meta("_in_pool", true)
+	scripted.visible = false
+	scripted.process_mode = Node.PROCESS_MODE_DISABLED
+	ObjectPool.add_child(scripted)
+	ObjectPool._pools["test_release_lifecycle"].append(scripted)
+	scripted.set_meta("_in_pool", false)
+	ObjectPool.release(scripted)
+	assert_true(scripted.get("released"), "on_pool_release should be called")
+
+func test_acquire_skips_invalid_instance():
+	ObjectPool.create_pool("test_stale", preload("res://scenes/weapons/Bullet.tscn"), 2)
+	var item = ObjectPool.acquire("test_stale")
+	var stale = Node.new()
+	stale.set_meta("_pool_name", "test_stale")
+	stale.set_meta("_in_pool", true)
+	ObjectPool._pools["test_stale"].append(stale)
+	stale.free()
+	var healthy = ObjectPool.acquire("test_stale")
+	assert_true(healthy != null, "Should skip stale instance and return healthy one")
+
+func test_acquire_skips_item_not_in_pool():
+	ObjectPool.create_pool("test_not_in_pool", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var item = ObjectPool.acquire("test_not_in_pool")
+	var acquired = ObjectPool.acquire("test_not_in_pool")
+	assert_true(acquired != null, "Should return fallback when pool items are all in use")
+	assert_false(acquired.is_queued_for_deletion(), "Fallback should be valid")
+
+func test_acquire_removes_child_from_parent():
+	ObjectPool.create_pool("test_remove_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var item = ObjectPool.acquire("test_remove_parent")
+	assert_null(item.get_parent(), "Acquired item should have no parent")
+	ObjectPool.release(item)
+
+func test_acquire_pickup_auto_creates_pool():
+	var item = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): pass)
+	assert_true(ObjectPool.has_pool("pickup"), "Pickup pool should be auto-created")
+	assert_true(item != null, "Should return a valid pickup")
+	ObjectPool.release(item)
+
+func test_acquire_pickup_non_player_body_does_nothing():
+	var hit = false
+	ObjectPool.create_pickup_pool(1)
+	var pickup = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): hit = true)
+	var non_player = Node2D.new()
+	add_child_autofree(non_player)
+	pickup.body_entered.emit(non_player)
+	assert_false(hit, "Non-player body should not trigger callback")
+	ObjectPool.release(pickup)
+
+func test_acquire_pickup_ammo_color():
+	ObjectPool.create_pickup_pool(1)
+	var pickup = ObjectPool.acquire_pickup("ammo", Vector2.ZERO, func(_t, _p): pass)
+	var visual = ObjectPool._get_pickup_visual(pickup)
+	assert_eq(visual.color, Color(1.0, 0.8, 0.2), "Ammo pickup should be yellow")
+	ObjectPool.release(pickup)
+
+func test_acquire_pickup_boost_color():
+	ObjectPool.create_pickup_pool(1)
+	var pickup = ObjectPool.acquire_pickup("boost", Vector2.ZERO, func(_t, _p): pass)
+	var visual = ObjectPool._get_pickup_visual(pickup)
+	assert_eq(visual.color, Color(0.2, 0.8, 1.0), "Boost pickup should be cyan")
+	ObjectPool.release(pickup)
+
+func test_acquire_pickup_multiplier_color():
+	ObjectPool.create_pickup_pool(1)
+	var pickup = ObjectPool.acquire_pickup("multiplier", Vector2.ZERO, func(_t, _p): pass)
+	var visual = ObjectPool._get_pickup_visual(pickup)
+	assert_eq(visual.color, Color(1.0, 0.3, 1.0), "Multiplier pickup should be magenta")
+	ObjectPool.release(pickup)
+
+func test_acquire_pickup_calls_on_pool_acquire():
+	var s = GDScript.new()
+	s.source_code = """
+extends Area2D
+var acquired = false
+func on_pool_acquire():
+	acquired = true
+"""
+	s.reload()
+	ObjectPool.create_pickup_pool(1)
+	var pickup = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): pass)
+	var scripted = Area2D.new()
+	scripted.set_script(s)
+	scripted.set_meta("_pool_name", "pickup")
+	scripted.set_meta("_in_pool", true)
+	ObjectPool._pools["pickup"].append(scripted)
+	var acquired = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): pass)
+	assert_true(acquired.get("acquired"), "on_pool_acquire should be called on pickup acquire")
+
+func test_release_pool_item_removes_from_parent():
+	ObjectPool.create_pool("test_rel_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var item = ObjectPool.acquire("test_rel_parent")
+	ObjectPool.release(item)
+	assert_null(item.get_parent(), "Released item should be reparented to ObjectPool")
+
+func test_acquire_auto_creates_pool_with_scene_path():
+	ObjectPool._scene_paths["auto_test"] = "res://scenes/weapons/Bullet.tscn"
+	var item = ObjectPool.acquire("auto_test")
+	assert_true(item != null, "Should auto-create pool from stored scene path")
+	assert_true(item.has_method("init"), "Auto-created pool should return correct type")
+
+func test_acquire_returns_null_for_nonexistent_pool():
+	var item = ObjectPool.acquire("pool_does_not_exist_12345")
+	assert_null(item, "Should return null for nonexistent pool")

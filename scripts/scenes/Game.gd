@@ -15,6 +15,11 @@ const POOP_WEAPON_SCENE = preload("res://scenes/weapons/PoopWeapon.tscn")
 const BOSS_VOID_DRONE_SCENE = preload("res://scenes/enemies/BossVoidDrone.tscn")
 const CIVILIAN_SCENE = preload("res://scenes/enemies/Civilian.tscn")
 
+const DEMO_BUNNY_SCENE = preload("res://demo/DemoBossBunny.tscn")
+const DEMO_SASQ_SCENE = preload("res://demo/DemoBossSasquatch.tscn")
+const DEMO_VOID_SCENE = preload("res://demo/DemoBossVoidDrone.tscn")
+const DEMO_WAR_SCENE = preload("res://demo/DemoBossWarRig.tscn")
+
 const POPUP_POOL_SIZE: int = 10
 
 @onready var world: Node2D = $World
@@ -61,6 +66,8 @@ func _ready() -> void:
 	spawner.world_node = world
 	spawner.enemy_spawned.connect(GameManager.register_enemy_spawned)
 	spawner.enemy_destroyed.connect(GameManager.register_enemy_destroyed)
+	if spawner.has_signal("boss_defeated"):
+		spawner.boss_defeated.connect(_on_boss_defeated)
 	highway.player = player
 	
 	if weather:
@@ -308,3 +315,23 @@ func _on_score_popped(pos: Vector2, _points: int, label: String) -> void:
 	tween.tween_property(popup, "position:y", pos.y - 60.0, 0.8)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(_return_popup_label.bind(popup))
+
+func _on_boss_defeated(boss_type: String) -> void:
+	get_tree().paused = true
+	var demo_scene = null
+	if boss_type == "boss_bunny":
+		demo_scene = DEMO_BUNNY_SCENE.instantiate()
+	elif boss_type == "boss_sasquatch":
+		demo_scene = DEMO_SASQ_SCENE.instantiate()
+	elif boss_type == "boss_void_drone":
+		demo_scene = DEMO_VOID_SCENE.instantiate()
+	elif boss_type == "boss":
+		demo_scene = DEMO_WAR_SCENE.instantiate()
+		
+	if demo_scene:
+		$UI.add_child(demo_scene)
+		demo_scene.demo_finished.connect(_on_demo_finished)
+
+func _on_demo_finished() -> void:
+	get_tree().paused = false
+	AudioManager.play_game_music()

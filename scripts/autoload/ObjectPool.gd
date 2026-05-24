@@ -5,6 +5,10 @@ var _scene_paths: Dictionary = {}
 var _pickup_pool_data: Dictionary = {}
 
 func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> void:
+	if _pools.has(pool_name):
+		for node in get_children():
+			if node.has_meta("_pool_name") and node.get_meta("_pool_name") == pool_name:
+				node.queue_free()
 	var pool: Array[Node] = []
 	_scene_paths[pool_name] = scene.resource_path
 	for _i in initial_size:
@@ -18,6 +22,10 @@ func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> vo
 	_pools[pool_name] = pool
 
 func create_pickup_pool(initial_size: int = 20) -> void:
+	if _pools.has("pickup"):
+		for node in get_children():
+			if node.has_meta("_pool_name") and node.get_meta("_pool_name") == "pickup":
+				node.queue_free()
 	_scene_paths["pickup"] = ""
 	var pool: Array[Node] = []
 	for _i in initial_size:
@@ -80,6 +88,7 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 			item.get_parent().remove_child(item)
 		return item
 	var fallback = _create_pickup_node()
+	fallback.set_meta("_pool_name", "pickup")
 	fallback.set_meta("_in_pool", false)
 	fallback.global_position = position
 	fallback.set_meta("_pickup_type", pickup_type)

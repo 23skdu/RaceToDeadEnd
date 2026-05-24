@@ -14,6 +14,7 @@ signal wave_spawned(wave_number: int)
 signal enemy_spawned(enemy: Node)
 signal enemy_destroyed(enemy: Node)
 signal boss_spawned(boss: Node)
+signal boss_defeated(boss_type: String)
 signal spawn_minion_requested(enemy_type: String, count: int)
 
 var player: Node = null
@@ -219,6 +220,8 @@ func _on_enemy_destroyed(pos: Vector2, enemy_type: String, enemy: Node) -> void:
 	ScoreManager.register_kill(enemy_type, pos)
 	_drop_pickup(pos)
 	enemy_destroyed.emit(enemy)
+	if enemy_type in ["boss_bunny", "boss_sasquatch", "boss_void_drone", "boss"]:
+		boss_defeated.emit(enemy_type)
 
 func _drop_pickup(position: Vector2) -> void:
 	var roll = randf()

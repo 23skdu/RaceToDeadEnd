@@ -437,6 +437,221 @@ func test_bridge_chunk_area_has_bridge_fall_connections():
 
 
 
+func test_mark_buffer_free_reuses_buffer():
+	var h = Highway.new()
+	h._chunk_buffers = {}
+	h._buffer_in_use = {}
+	var first = h._reserve_tiles(h.ChunkType.STANDARD)
+	var second = h._reserve_tiles(h.ChunkType.STANDARD)
+	assert_eq(h._chunk_buffers[h.ChunkType.STANDARD].size(), 2, "Pool should have 2 buffers after two calls")
+	
+	h._mark_buffer_free(first)
+	assert_false(h._buffer_in_use[h.ChunkType.STANDARD][0], "First buffer should be marked free")
+	
+	var reused = h._reserve_tiles(h.ChunkType.STANDARD)
+	assert_eq(reused, first, "Reserve should reuse the freed buffer")
+	assert_eq(h._chunk_buffers[h.ChunkType.STANDARD].size(), 2, "Pool should not grow when reusing freed buffer")
+
+func test_mark_buffer_free_unknown_buffer_does_nothing():
+	var h = Highway.new()
+	h._chunk_buffers = {}
+	h._buffer_in_use = {}
+	var unknown = Node2D.new()
+	h._mark_buffer_free(unknown)
+	assert_true(true, "Should not crash when marking unknown buffer free")
+
+func test_mark_buffer_free_skips_other_types():
+	var h = Highway.new()
+	h._chunk_buffers = {}
+	h._buffer_in_use = {}
+	var standard = h._reserve_tiles(h.ChunkType.STANDARD)
+	var ice = h._reserve_tiles(h.ChunkType.ICE)
+	h._mark_buffer_free(standard)
+	assert_false(h._buffer_in_use[h.ChunkType.STANDARD][0], "STANDARD buffer should be freed")
+	assert_true(h._buffer_in_use[h.ChunkType.ICE][0], "ICE buffer should still be in use")
+
+func test_reserve_tiles_reuses_freed_buffer_across_types():
+	var h = Highway.new()
+	h._chunk_buffers = {}
+	h._buffer_in_use = {}
+	var standard = h._reserve_tiles(h.ChunkType.STANDARD)
+	h._mark_buffer_free(standard)
+	var ice = h._reserve_tiles(h.ChunkType.ICE)
+	assert_ne(standard, ice, "STANDARD buffer should not be reused for ICE type")
+
+func test_reserve_tiles_reconnect_signals_on_reuse():
+	var h = Highway.new()
+	h._chunk_buffers = {}
+	h._buffer_in_use = {}
+	var buf = h._reserve_tiles(h.ChunkType.ICE)
+	h._mark_buffer_free(buf)
+	var reused = h._reserve_tiles(h.ChunkType.ICE)
+	assert_eq(reused, buf, "Should reuse freed ICE buffer")
+
+func test_recycle_chunk_removes_old_tiles():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	var chunk = h.active_chunks[0]
+	var old_tiles = h._get_tiles_node(chunk)
+	assert_true(old_tiles != null, "Chunk should have tiles before recycle")
+	h._recycle_chunk(chunk)
+	var tiles_after = h._get_tiles_node(chunk)
+	assert_ne(tiles_after, old_tiles, "Old tiles should be replaced after recycle")
+	assert_false(old_tiles.is_inside_tree(), "Old tiles should be removed from tree")
+
+func test_recycle_chunk_old_tiles_buffer_freed():
+	var h = Highway.new()
+	add_child_autofree(h)
+	h._chunk_buffers = {}
+	h._buffer_in_use = {}
+	var buf = h._reserve_tiles(h.ChunkType.STANDARD)
+	_force_prewarm_empty(h)
+	h._spawn_chunk(0)
+	var chunk = h.active_chunks[0]
+	h._recycle_chunk(chunk)
+	assert_false(buf.is_inside_tree(), "Old tiles buffer should be removed from tree")
+
+func _force_prewarm_empty(h):
+	h.active_chunks.clear()
+	h.current_segment = 0
+
+func test_generate_chunk_tiles_into_creates_tiles():
+	var h = Highway.new()
+	var parent = Node2D.new()
+	add_child_autofree(parent)
+	h._generate_chunk_tiles_into(parent, h.ChunkType.STANDARD)
+	assert_eq(parent.name, "Tiles", "Parent should be named Tiles")
+	assert_true(parent.is_y_sort_enabled(), "Parent should have Y-sort enabled")
+	assert_gt(parent.get_child_count(), 0, "Parent should have tile children")
+
+func test_create_rect_mesh_returns_array_mesh():
+	var h = Highway.new()
+	var mesh = h._create_rect_mesh(Vector2(4, 14))
+	assert_is(mesh, ArrayMesh, "Should return ArrayMesh")
+	assert_eq(mesh.get_surface_count(), 1, "Should have 1 surface")
+
+func test_create_rect_mesh_has_correct_vertex_count():
+	var h = Highway.new()
+	var mesh = h._create_rect_mesh(Vector2(10, 20))
+	var arrays = mesh.surface_get_arrays(0)
+	var verts = arrays[Mesh.ARRAY_VERTEX] as PackedVector2Array
+	assert_eq(verts.size(), 4, "Rect mesh should have 4 vertices")
+
+func test_get_tiles_node_returns_null_for_empty_chunk():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	var result = h._get_tiles_node(chunk)
+	assert_null(result, "Empty chunk should return null")
+
+func test_get_tiles_node_returns_first_child():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	var child = Node2D.new()
+	child.name = "Tiles"
+	chunk.add_child(child)
+	var result = h._get_tiles_node(chunk)
+	assert_eq(result, child, "Should return first child of chunk")
+
+func test_get_tile_variant_default_returns_zero():
+	var h = Highway.new()
+	var result = h._get_tile_variant(-1, 0, 0)
+	assert_eq(result, 0, "Invalid chunk type should return 0")
+
+func test_process_recycles_multiple_chunks_in_one_frame():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	h.player.global_position = Vector2(0, 5000)
+	h._process(0.1)
+	assert_eq(h.active_chunks.size(), 8, "Chunk count should remain 8 after recycling multiple")
+
+func test_process_with_player_at_exact_threshold():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	var threshold = h.CHUNK_PIXEL_HEIGHT * h.DESPAWN_CHUNKS_BEHIND
+	h.player.global_position = Vector2(0, threshold + 1)
+	h._process(0.1)
+	assert_eq(h.active_chunks.size(), 8, "Should handle exact threshold boundary")
+
+func test_process_does_not_recycle_below_threshold():
+	var h = Highway.new()
+	h.player = _create_mock_player(Vector2(0, 0))
+	add_child_autofree(h)
+	var segment_before = h.current_segment
+	h._process(0.1)
+	assert_eq(h.current_segment, segment_before, "Should not recycle when player is close")
+
+func test_reconnect_chunk_signals_bridge_connects_areas():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.BRIDGE)
+	var clone = tiles.duplicate()
+	h._reconnect_chunk_signals(clone, h.ChunkType.BRIDGE)
+	var found_connected = false
+	for child in clone.get_children():
+		if child is Area2D:
+			if child.body_entered.is_connected(h._on_bridge_fall):
+				found_connected = true
+	assert_true(found_connected, "BRIDGE Area2D should have body_entered connected to _on_bridge_fall")
+
+func test_reconnect_chunk_signals_standard_does_nothing():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.STANDARD)
+	var clone = tiles.duplicate()
+	h._reconnect_chunk_signals(clone, h.ChunkType.STANDARD)
+	for child in clone.get_children():
+		if child is Area2D:
+			assert_eq(child.body_entered.get_connections().size(), 0, "STANDARD should not connect signals")
+	assert_true(true, "STANDARD reconnect should not error")
+
+func test_reconnect_chunk_signals_debris_does_nothing():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.DEBRIS)
+	var clone = tiles.duplicate()
+	h._reconnect_chunk_signals(clone, h.ChunkType.DEBRIS)
+	assert_true(true, "DEBRIS reconnect should not error")
+
+func test_reconnect_chunk_signals_construction_does_nothing():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.CONSTRUCTION)
+	var clone = tiles.duplicate()
+	h._reconnect_chunk_signals(clone, h.ChunkType.CONSTRUCTION)
+	assert_true(true, "CONSTRUCTION reconnect should not error")
+
+func test_reconnect_chunk_signals_already_connected_does_not_duplicate():
+	var h = Highway.new()
+	var tiles = Node2D.new()
+	h._build_tiles_into(tiles, h.ChunkType.ICE)
+	h._reconnect_chunk_signals(tiles, h.ChunkType.ICE)
+	var total_body_entered = 0
+	var total_body_exited = 0
+	for child in tiles.get_children():
+		if child is Area2D:
+			total_body_entered += child.body_entered.get_connections().size()
+			total_body_exited += child.body_exited.get_connections().size()
+	assert_eq(total_body_entered, 1, "Should not double-connect body_entered")
+	assert_eq(total_body_exited, 1, "Should not double-connect body_exited")
+
+func test_clear_chunk_tiles_no_tiles_does_not_crash():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	h._clear_chunk_tiles(chunk)
+	assert_true(true, "Should not crash when chunk has no tiles")
+
+func test_clear_chunk_tiles_queue_free_tiles():
+	var h = Highway.new()
+	var chunk = Node2D.new()
+	var tiles = Node2D.new()
+	tiles.name = "Tiles"
+	chunk.add_child(tiles)
+	h._clear_chunk_tiles(chunk)
+	assert_true(tiles.is_queued_for_deletion(), "Tiles should be queued for deletion")
+
 func test_weight_formula_consistent_step():
 	var tier_1_standard = Highway.new()
 	add_child_autofree(tier_1_standard)

@@ -3,11 +3,12 @@ extends GutTest
 const Constants = preload("res://scripts/autoload/Constants.gd")
 
 class MockSpawner extends Node:
-	@warning_ignore("unused_signal")
 	signal spawn_minion_requested(enemy_type: String, count: int)
-	@warning_ignore("unused_signal")
 	signal enemy_destroyed(position: Vector2, enemy_type: String, enemy: Node)
-	func _on_enemy_destroyed(_pos, _type, _node): pass
+	func _dummy():
+		spawn_minion_requested.emit("", 0)
+		enemy_destroyed.emit(Vector2.ZERO, "", null)
+	func _on_enemy_destroyed(_pos: Vector2, _type: String, _node: Node) -> void: pass
 
 var _player: Node2D
 var _spawner: MockSpawner
@@ -21,13 +22,17 @@ func before_each() -> void:
 	_spawner.name = "Spawner"
 	add_child_autofree(_spawner)
 	
-	ObjectPool.create_pool("baby_bunny_bomb", preload("res://scenes/weapons/BabyBunnyBomb.tscn"), 2)
-	ObjectPool.create_pool("poop_weapon", preload("res://scenes/weapons/PoopWeapon.tscn"), 2)
+	var op = get_node("/root/ObjectPool")
+	if op:
+		op.create_pool("baby_bunny_bomb", preload("res://scenes/weapons/BabyBunnyBomb.tscn"), 2)
+		op.create_pool("poop_weapon", preload("res://scenes/weapons/PoopWeapon.tscn"), 2)
 
 func after_each() -> void:
 	if _player:
 		_player.free()
-	ObjectPool.pools.clear()
+	var op = get_node("/root/ObjectPool")
+	if op:
+		op._pools.clear()
 
 func test_boss_bunny_spawns_bomb() -> void:
 	var parent = Node2D.new()

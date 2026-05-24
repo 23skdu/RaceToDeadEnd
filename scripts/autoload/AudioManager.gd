@@ -24,6 +24,11 @@ var _stream_scav_death: AudioStreamWAV
 var _stream_drone_death: AudioStreamWAV
 var _stream_lightning: AudioStreamWAV
 
+var _stream_demo_boss_bunny: AudioStreamWAV
+var _stream_demo_boss_sasquatch: AudioStreamWAV
+var _stream_demo_boss_void_drone: AudioStreamWAV
+var _stream_demo_boss_war_rig: AudioStreamWAV
+
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var _player_priorities: Array[int] = []
@@ -121,6 +126,28 @@ func play_music(stream: AudioStream) -> void:
 
 func stop_music() -> void:
 	music_player.stop()
+
+func play_demo_music(boss_type: String) -> void:
+	var stream: AudioStreamWAV
+	if boss_type == "boss_bunny":
+		if not _stream_demo_boss_bunny:
+			_stream_demo_boss_bunny = _generate_demo_music_bunny()
+		stream = _stream_demo_boss_bunny
+	elif boss_type == "boss_sasquatch":
+		if not _stream_demo_boss_sasquatch:
+			_stream_demo_boss_sasquatch = _generate_demo_music_sasquatch()
+		stream = _stream_demo_boss_sasquatch
+	elif boss_type == "boss_void_drone":
+		if not _stream_demo_boss_void_drone:
+			_stream_demo_boss_void_drone = _generate_demo_music_void_drone()
+		stream = _stream_demo_boss_void_drone
+	elif boss_type == "boss":
+		if not _stream_demo_boss_war_rig:
+			_stream_demo_boss_war_rig = _generate_demo_music_war_rig()
+		stream = _stream_demo_boss_war_rig
+	
+	if stream and music_player.stream != stream:
+		play_music(stream)
 
 func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 0) -> void:
 	if not stream:
@@ -411,3 +438,55 @@ func _generate_lightning_stream() -> AudioStreamWAV:
 			val += _rng.randf() * 5000.0 - 2500.0
 		return val
 	)
+
+func _generate_demo_music_bunny() -> AudioStreamWAV:
+	# Bouncy 8-bit victory tune
+	var stream = _build_16bit_stream(4.0, func(t: float, _i: int) -> float:
+		var step_idx = int(t * 8.0)
+		var arpeggio = [0, 4, 7, 12, 16, 12, 7, 4]
+		var semitone = arpeggio[step_idx % arpeggio.size()]
+		var freq = 440.0 * pow(1.059463, semitone)
+		var wave = 1.0 if fmod(t * freq, 1.0) < 0.5 else -1.0
+		return wave * 6000.0 * maxf(0.0, 1.0 - fmod(t * 8.0, 1.0))
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+func _generate_demo_music_sasquatch() -> AudioStreamWAV:
+	# Heavy, lumbering beat
+	var stream = _build_16bit_stream(4.0, func(t: float, _i: int) -> float:
+		var step_idx = int(t * 4.0)
+		var freq = 110.0 if step_idx % 2 == 0 else 164.81 # A2 to E3
+		var val = sin(TAU * freq * t) * 8000.0
+		var step_t = fmod(t * 4.0, 1.0)
+		if step_idx % 2 == 0:
+			val += sin(TAU * lerpf(100.0, 20.0, step_t) * step_t) * 10000.0 * maxf(0.0, 1.0 - step_t)
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+func _generate_demo_music_void_drone() -> AudioStreamWAV:
+	# Spacy, pulsing electronic tune
+	var stream = _build_16bit_stream(4.0, func(t: float, _i: int) -> float:
+		var freq = 220.0 + sin(t * TAU * 2.0) * 10.0
+		var wave = sin(TAU * freq * t)
+		var pulse = sin(TAU * t * 8.0) * 0.5 + 0.5
+		return wave * 7000.0 * pulse
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+func _generate_demo_music_war_rig() -> AudioStreamWAV:
+	# Epic, intense distorted chords
+	var stream = _build_16bit_stream(6.0, func(t: float, _i: int) -> float:
+		var step = int(t * 2.0)
+		var base_freq = 55.0 if step % 4 < 2 else 65.41
+		var v1 = 1.0 if fmod(t * base_freq, 1.0) < 0.5 else -1.0
+		var v2 = 1.0 if fmod(t * base_freq * 1.5, 1.0) < 0.5 else -1.0
+		var v3 = 1.0 if fmod(t * base_freq * 2.0, 1.0) < 0.5 else -1.0
+		return (v1 + v2 + v3) * 2500.0
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+

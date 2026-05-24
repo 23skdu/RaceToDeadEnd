@@ -51,7 +51,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if not player:
 		return
-	var player_y = player.global_position.y
+	var player_y = to_local(player.global_position).y
 	var threshold = CHUNK_PIXEL_HEIGHT * DESPAWN_CHUNKS_BEHIND
 	for chunk in active_chunks:
 		if chunk.position.y - player_y > threshold:

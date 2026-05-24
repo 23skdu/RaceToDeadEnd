@@ -6,15 +6,15 @@ func test_scale_sprite_to_viewport_no_crash():
 	img.fill(Color.WHITE)
 	sprite.texture = ImageTexture.create_from_image(img)
 	sprite.add_to_group("test_sprite")
-	HelpersUtil.scale_sprite_to_viewport(sprite, 64.0, 1280.0)
+	Helpers.scale_sprite_to_viewport(sprite, 64.0, 1280.0)
 	assert_true(sprite.scale.length() > 0, "Sprite scale should be set")
 
 func test_scale_sprite_to_viewport_null_sprite():
-	HelpersUtil.scale_sprite_to_viewport(null, 64.0, 1280.0)
+	Helpers.scale_sprite_to_viewport(null, 64.0, 1280.0)
 	assert_true(true, "Should not crash with null sprite")
 
 func test_scale_sprite_to_viewport_no_texture():
 	var sprite = Sprite2D.new()
 	sprite.add_to_group("test_sprite2")
-	HelpersUtil.scale_sprite_to_viewport(sprite, 64.0, 1280.0)
+	Helpers.scale_sprite_to_viewport(sprite, 64.0, 1280.0)
 	assert_true(true, "Should not crash with no texture")

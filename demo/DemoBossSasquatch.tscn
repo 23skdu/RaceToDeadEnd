@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3 uid="uid://demo_boss_sasq"]
+
+[ext_resource type="Script" path="res://demo/DemoScene.gd" id="1_demo"]
+
+[node name="DemoBossSasquatch" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_demo")
+boss_type = "boss_sasquatch"
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.4, 0.2, 0.1, 1.0)
+
+[node name="Label" type="Label" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 48
+text = "SASQUATCH DEFEATED!"
+horizontal_alignment = 1
+vertical_alignment = 1
