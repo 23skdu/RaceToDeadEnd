@@ -15,7 +15,7 @@ func _ready() -> void:
 		img.fill(Color(0.4, 0.25, 0.1, 1.0))
 		$Sprite2D.texture = ImageTexture.create_from_image(img)
 
-func init(pos: Vector2, dir: Vector2, player_owned: bool = false) -> void:
+func init(pos: Vector2, dir: Vector2, _player_owned: bool = false) -> void:
 	global_position = pos
 	direction = dir.normalized()
 	collision_layer = 4

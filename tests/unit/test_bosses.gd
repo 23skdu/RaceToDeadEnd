@@ -22,23 +22,23 @@ func test_boss_bunny_spawns_bomb() -> void:
 	boss._spawner = _spawner
 	add_child_autofree(boss)
 	
-	var bomb_spawned = false
+	var bomb_spawned = [false]
 	_spawner.connect("spawn_minion_requested", func(type, count):
 		if type == "baby_bunny_bomb" and count == 1:
-			bomb_spawned = true
+			bomb_spawned[0] = true
 	)
 	
 	boss.attack_timer = Constants.BOSS_ATTACK_INTERVAL + 1.0
 	boss._physics_process(0.1)
 	
-	assert_true(bomb_spawned, "BossBunny should request BabyBunnyBomb spawn")
+	assert_true(bomb_spawned[0], "BossBunny should request BabyBunnyBomb spawn")
 
 func test_boss_sasquatch_dodges() -> void:
 	var boss = preload("res://scenes/enemies/BossSasquatch.tscn").instantiate()
 	boss.player = _player
 	add_child_autofree(boss)
 	
-	var initial_lane = boss.target_lane_x
+	var _initial_lane = boss.target_lane_x
 	boss.dodge_timer = 2.0 # Force dodge
 	boss._physics_process(0.1)
 	
@@ -55,7 +55,7 @@ func test_boss_sasquatch_throws_poop() -> void:
 	boss._physics_process(0.1)
 	
 	# Check if PoopWeapon was added as child (since it falls back to get_parent())
-	var poop = boss.get_parent().get_node_or_null("PoopWeapon")
+	var _poop = boss.get_parent().get_node_or_null("PoopWeapon")
 	assert_true(true, "Poop throwing executed") # Poop logic uses ObjectPool which we didn't init, so it might fail or instantiate directly
 
 func test_boss_void_drone_spawns_drones() -> void:
@@ -64,13 +64,13 @@ func test_boss_void_drone_spawns_drones() -> void:
 	boss._spawner = _spawner
 	add_child_autofree(boss)
 	
-	var drone_spawned = false
+	var drone_spawned = [false]
 	_spawner.connect("spawn_minion_requested", func(type, count):
 		if type == "drone" and count == 2:
-			drone_spawned = true
+			drone_spawned[0] = true
 	)
 	
 	boss.attack_timer = Constants.BOSS_ATTACK_INTERVAL * 2.0
 	boss._physics_process(0.1)
 	
-	assert_true(drone_spawned, "BossVoidDrone should request drone spawns")
+	assert_true(drone_spawned[0], "BossVoidDrone should request drone spawns")

@@ -26,8 +26,8 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, sign(player.global_position.x - global_position.x) * speed, 200.0 * delta)
 	velocity.y = speed
 	
-	var collision = move_and_collide(velocity * delta)
-	if collision:
-		var col = collision.get_collider()
+	var hit_collision = move_and_collide(velocity * delta)
+	if hit_collision:
+		var col = hit_collision.get_collider()
 		if col.name == "Player":
 			_die()

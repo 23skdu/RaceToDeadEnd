@@ -1,4 +1,4 @@
-class_name Helpers
+class_name HelpersUtil
 extends RefCounted
 
 static func scale_sprite_to_viewport(sprite: Sprite2D, base_size: float = 64.0, base_viewport: float = 1280.0) -> void:
