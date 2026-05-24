@@ -88,7 +88,7 @@ func _ready() -> void:
 	
 	highway.segment_completed.connect(_on_segment_completed)
 
-func _on_segment_completed(segment: int) -> void:
+func _on_segment_completed(_segment: int) -> void:
 	if not weather:
 		return
 	var tier = GameManager.difficulty_tier
@@ -286,7 +286,7 @@ func _show_floating_text(pos: Vector2, text: String, color: Color, size: int = 1
 	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(_return_popup_label.bind(popup))
 
-func _on_score_popped(pos: Vector2, points: int, label: String) -> void:
+func _on_score_popped(pos: Vector2, _points: int, label: String) -> void:
 	var popup = _get_popup_label()
 	popup.text = label
 	popup.add_theme_color_override("font_color", Color(1.0, 1.0, 0.5))
