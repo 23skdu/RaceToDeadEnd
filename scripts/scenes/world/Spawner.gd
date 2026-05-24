@@ -32,6 +32,9 @@ func _ready() -> void:
 	enemy_scenes["drone"] = preload("res://scenes/enemies/Drone.tscn") if ResourceLoader.exists("res://scenes/enemies/Drone.tscn") else null
 	enemy_scenes["civilian"] = preload("res://scenes/enemies/Civilian.tscn") if ResourceLoader.exists("res://scenes/enemies/Civilian.tscn") else null
 	enemy_scenes["boss"] = preload("res://scenes/enemies/BossWarRig.tscn") if ResourceLoader.exists("res://scenes/enemies/BossWarRig.tscn") else null
+	enemy_scenes["boss_bunny"] = preload("res://scenes/enemies/BossBunny.tscn") if ResourceLoader.exists("res://scenes/enemies/BossBunny.tscn") else null
+	enemy_scenes["boss_sasquatch"] = preload("res://scenes/enemies/BossSasquatch.tscn") if ResourceLoader.exists("res://scenes/enemies/BossSasquatch.tscn") else null
+	enemy_scenes["boss_void_drone"] = preload("res://scenes/enemies/BossVoidDrone.tscn") if ResourceLoader.exists("res://scenes/enemies/BossVoidDrone.tscn") else null
 	if not GameManager.game_started.is_connected(_on_game_started):
 		GameManager.game_started.connect(_on_game_started)
 	spawn_minion_requested.connect(_on_spawn_minion_requested)
@@ -99,13 +102,21 @@ func _should_spawn_boss() -> bool:
 	return GameManager.score >= next_threshold and enemy_scenes.has("boss") and enemy_scenes["boss"]
 
 func _spawn_boss() -> void:
+	var boss_key = "boss_bunny"
+	if _bosses_spawned == 1:
+		boss_key = "boss_sasquatch"
+	elif _bosses_spawned == 2:
+		boss_key = "boss_void_drone"
+	elif _bosses_spawned >= 3:
+		boss_key = "boss"
+		
 	_bosses_spawned += 1
 	if not player:
 		return
-	var boss = ObjectPool.acquire("boss")
+	var boss = ObjectPool.acquire(boss_key)
 	if not boss:
-		if enemy_scenes.has("boss") and enemy_scenes["boss"]:
-			boss = enemy_scenes["boss"].instantiate()
+		if enemy_scenes.has(boss_key) and enemy_scenes[boss_key]:
+			boss = enemy_scenes[boss_key].instantiate()
 		else:
 			return
 	var lane = randi_range(2, 3)

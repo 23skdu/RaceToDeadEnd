@@ -169,10 +169,16 @@ func test_boss_score_interval():
 	assert_eq(Constants.BOSS_SCORE_INTERVAL, 3000)
 
 func test_boss_war_rig_hp():
-	assert_eq(Constants.BOSS_WAR_RIG_HP, 20)
+	assert_eq(Constants.BOSS_WAR_RIG_HP, 25)
 
-func test_boss_alien_carrier_hp():
-	assert_eq(Constants.BOSS_ALIEN_CARRIER_HP, 15)
+func test_boss_bunny_hp():
+	assert_eq(Constants.BOSS_BUNNY_HP, 10)
+
+func test_boss_sasquatch_hp():
+	assert_eq(Constants.BOSS_SASQUATCH_HP, 15)
+
+func test_boss_void_drone_hp():
+	assert_eq(Constants.BOSS_VOID_DRONE_HP, 20)
 
 func test_boss_score():
 	assert_eq(Constants.BOSS_SCORE, 1000)

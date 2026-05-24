@@ -8,6 +8,11 @@ const SCAV_SCENE = preload("res://scenes/enemies/Scav.tscn")
 const DRONE_SCENE = preload("res://scenes/enemies/Drone.tscn")
 const DRONE_BOMB_SCENE = preload("res://scenes/weapons/DroneBomb.tscn")
 const BOSS_SCENE = preload("res://scenes/enemies/BossWarRig.tscn")
+const BOSS_BUNNY_SCENE = preload("res://scenes/enemies/BossBunny.tscn")
+const BABY_BUNNY_BOMB_SCENE = preload("res://scenes/weapons/BabyBunnyBomb.tscn")
+const BOSS_SASQUATCH_SCENE = preload("res://scenes/enemies/BossSasquatch.tscn")
+const POOP_WEAPON_SCENE = preload("res://scenes/weapons/PoopWeapon.tscn")
+const BOSS_VOID_DRONE_SCENE = preload("res://scenes/enemies/BossVoidDrone.tscn")
 const CIVILIAN_SCENE = preload("res://scenes/enemies/Civilian.tscn")
 
 const POPUP_POOL_SIZE: int = 10
@@ -41,6 +46,11 @@ func _ready() -> void:
 	ObjectPool.create_pool("drone", DRONE_SCENE, 4)
 	ObjectPool.create_pool("drone_bomb", DRONE_BOMB_SCENE, 6)
 	ObjectPool.create_pool("boss", BOSS_SCENE, 2)
+	ObjectPool.create_pool("boss_bunny", BOSS_BUNNY_SCENE, 2)
+	ObjectPool.create_pool("baby_bunny_bomb", BABY_BUNNY_BOMB_SCENE, 10)
+	ObjectPool.create_pool("boss_sasquatch", BOSS_SASQUATCH_SCENE, 2)
+	ObjectPool.create_pool("poop_weapon", POOP_WEAPON_SCENE, 10)
+	ObjectPool.create_pool("boss_void_drone", BOSS_VOID_DRONE_SCENE, 2)
 	ObjectPool.create_pool("civilian", CIVILIAN_SCENE, 4)
 	ObjectPool.create_pickup_pool(20)
 	

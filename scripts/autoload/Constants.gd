@@ -81,8 +81,10 @@ const CIVILIAN_PENALTY: int = 1
 
 # Boss
 const BOSS_SCORE_INTERVAL: int = 3000
-const BOSS_WAR_RIG_HP: int = 20
-const BOSS_ALIEN_CARRIER_HP: int = 15
+const BOSS_BUNNY_HP: int = 10
+const BOSS_SASQUATCH_HP: int = 15
+const BOSS_VOID_DRONE_HP: int = 20
+const BOSS_WAR_RIG_HP: int = 25
 const BOSS_SCORE: int = 1000
 const BOSS_ATTACK_INTERVAL: float = 2.0
 
