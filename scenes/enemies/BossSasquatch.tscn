@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://bosssasquatch123"]
+[gd_scene format=3 uid="uid://dp812bsffklsc"]
 
 [ext_resource type="Script" path="res://scripts/scenes/enemies/BossSasquatch.gd" id="1_boss"]
 

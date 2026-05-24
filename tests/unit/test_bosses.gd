@@ -3,18 +3,30 @@ extends GutTest
 const Constants = preload("res://scripts/autoload/Constants.gd")
 const ObjectPool = preload("res://scripts/autoload/ObjectPool.gd")
 
+class MockSpawner extends Node:
+	signal spawn_minion_requested(enemy_type: String, count: int)
+	signal enemy_destroyed(position: Vector2, enemy_type: String, enemy: Node)
+	func _on_enemy_destroyed(pos, type, node): pass
+
 var _player: Node2D
-var _spawner: Node
+var _spawner: MockSpawner
 
 func before_each() -> void:
 	_player = Node2D.new()
 	_player.name = "Player"
 	_player.global_position = Vector2(0, 0)
 	
-	_spawner = Node.new()
+	_spawner = MockSpawner.new()
 	_spawner.name = "Spawner"
 	add_child_autofree(_spawner)
-	_spawner.add_user_signal("spawn_minion_requested", [{"name": "enemy_type", "type": TYPE_STRING}, {"name": "count", "type": TYPE_INT}])
+	
+	ObjectPool.create_pool("baby_bunny_bomb", preload("res://scenes/weapons/BabyBunnyBomb.tscn"), 2)
+	ObjectPool.create_pool("poop_weapon", preload("res://scenes/weapons/PoopWeapon.tscn"), 2)
+
+func after_each() -> void:
+	if _player:
+		_player.free()
+	ObjectPool.pools.clear()
 
 func test_boss_bunny_spawns_bomb() -> void:
 	var boss = preload("res://scenes/enemies/BossBunny.tscn").instantiate()
