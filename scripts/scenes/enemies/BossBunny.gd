@@ -7,6 +7,7 @@ func _ready() -> void:
 	_reset_state()
 
 func _reset_state() -> void:
+	boss_key = "boss_bunny"
 	hp = Constants.BOSS_BUNNY_HP
 	score_value = Constants.BOSS_SCORE
 	speed = 80.0

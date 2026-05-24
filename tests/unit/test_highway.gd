@@ -13,9 +13,9 @@ func test_chunk_constants():
 	assert_eq(h.CHUNK_PIXEL_HEIGHT, 240, "Chunk pixel height should be 240")
 	assert_eq(h.PREWARM_CHUNKS, 8, "Prewarm chunks should be 8")
 	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 3, "Despawn chunks behind should be 3")
-	assert_eq(h.SHOULDER_COLUMNS, 4, "Shoulder columns should be 4")
-	assert_eq(h.LANE_START_COL, 4, "Lane start col should be 4")
-	assert_eq(h.LANE_END_COL, 9, "Lane end col should be 9")
+	assert_eq(h.SHOULDER_COLUMNS, 3, "Shoulder columns should be 3")
+	assert_eq(h.LANE_START_COL, 3, "Lane start col should be 3")
+	assert_eq(h.LANE_END_COL, 10, "Lane end col should be 10")
 	assert_eq(h.HALF_CHUNK, 6.5, "Half chunk should be 6.5")
 
 func test_chunk_type_enum():
@@ -141,7 +141,7 @@ func test_get_tile_variant_standard():
 
 func test_get_tile_variant_debris():
 	var h = Highway.new()
-	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 4), 1, "Debris at row 0 col 4 (first lane col)")
+	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 3), 1, "Debris at row 0 col 3 (first lane col)")
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 0), 0, "No Debris at row 0 col 0 (shoulder)")
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 1, 4), 0, "No Debris at row 1 col 4")
 
@@ -151,8 +151,8 @@ func test_get_tile_variant_ice():
 
 func test_get_tile_variant_construction():
 	var h = Highway.new()
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 3), 3, "Construction at col 3 (left of lane)")
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 10), 3, "Construction at col 10 (right of lane)")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 2), 3, "Construction at col 2 (left of lane)")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 11), 3, "Construction at col 11 (right of lane)")
 	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 5), 0, "No Construction at col 5 (mid lane)")
 
 func test_get_tile_variant_bridge():
@@ -394,7 +394,7 @@ func test_guardrail_color_varies_by_chunk_type():
 			assert_eq(child.default_color, standard_color, "STANDARD guardrail should be yellow-white")
 			standard_ok = true
 	for child in bridge_tiles.get_children():
-		if child is Line2D:
+		if child is Line2D and (child.name == "LeftRail" or child.name == "RightRail"):
 			assert_eq(child.default_color, bridge_color, "BRIDGE guardrail should be cyan")
 			bridge_ok = true
 	assert_true(standard_ok, "STANDARD should have guardrail Line2D children")

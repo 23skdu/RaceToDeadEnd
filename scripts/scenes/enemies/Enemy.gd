@@ -13,6 +13,7 @@ const SCAV_TEXTURE = preload("res://assets/sprites/enemies/scav.png")
 const DRONE_TEXTURE = preload("res://assets/sprites/enemies/drone.png")
 
 var enemy_type: EnemyType = EnemyType.ROTOR
+var boss_key: String = ""
 var hp: int = 1
 var speed: float = 200.0
 var lane: int = 0
@@ -116,7 +117,8 @@ func _die() -> void:
 	_play_death_sound()
 	CameraShake.shake(0.3, 0.2, 4.0)
 	CameraShake.rumble(0.3, 0.2)
-	destroyed.emit(global_position, TYPE_NAMES[enemy_type], self)
+	var type_str = boss_key if boss_key else TYPE_NAMES[enemy_type]
+	destroyed.emit(global_position, type_str, self)
 	if _spawner and destroyed.is_connected(_spawner._on_enemy_destroyed):
 		destroyed.disconnect(_spawner._on_enemy_destroyed)
 	ObjectPool.release(self)

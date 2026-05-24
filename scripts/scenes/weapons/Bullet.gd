@@ -24,15 +24,17 @@ func _ready() -> void:
 	monitoring = true
 	monitorable = true
 
-func init(pos: Vector2, dir: Vector2, player_owned: bool = true) -> void:
+func init(pos: Vector2, dir: Vector2, player_owned: bool = true, override_speed: float = -1.0) -> void:
 	global_position = pos
 	direction = dir.normalized()
 	is_player_bullet = player_owned
 	if not is_player_bullet:
 		direction = Vector2.DOWN
 		collision_mask = 1
+		speed = Constants.BULLET_SPEED
 	else:
 		collision_mask = 2
+		speed = GameManager.current_speed + Constants.BULLET_SPEED_OFFSET if override_speed < 0.0 else override_speed
 
 const MAX_HOMING_RANGE: float = 400.0
 const EARLY_OUT_DIST_SQ: float = 4000.0

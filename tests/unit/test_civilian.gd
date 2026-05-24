@@ -35,7 +35,7 @@ func test_init_sets_direction():
 func test_init_sets_position():
 	var c = _create_civilian()
 	c.init(0, 200.0, 1.0)
-	assert_eq(c.global_position.x, -120.0)
+	assert_eq(c.global_position.x, Constants.LANE_POSITIONS[0])
 	assert_eq(c.global_position.y, 0.0)
 
 func test_init_sets_protect_bonus_not_awarded():

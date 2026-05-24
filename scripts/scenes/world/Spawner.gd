@@ -166,19 +166,26 @@ func _on_civilian_hit(civilian: Node) -> void:
 
 func _get_wave_composition(tier: int) -> Dictionary:
 	var comp = {}
+	var can_scav = GameManager.bosses_killed >= 1
+	var can_drone = GameManager.bosses_killed >= 2
 	if tier == 1:
 		comp["rotor"] = 1
 	elif tier == 2:
 		comp["rotor"] = 2
-		comp["scav"] = 1
+		if can_scav:
+			comp["scav"] = 1
 	elif tier == 3:
 		comp["rotor"] = 1
-		comp["scav"] = 1
-		comp["drone"] = 1
+		if can_scav:
+			comp["scav"] = 1
+		if can_drone:
+			comp["drone"] = 1
 	else:
 		comp["rotor"] = clampi(1 + floori(tier / 3.0), 1, 6)
-		comp["scav"] = clampi(floori(tier / 4.0), 1, 3)
-		comp["drone"] = clampi(floori(tier / 6.0), 1, 2)
+		if can_scav:
+			comp["scav"] = clampi(floori(tier / 4.0), 1, 3)
+		if can_drone:
+			comp["drone"] = clampi(floori(tier / 6.0), 1, 2)
 	return comp
 
 func _spawn_enemy(type: String) -> void:

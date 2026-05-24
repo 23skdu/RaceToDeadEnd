@@ -269,7 +269,7 @@ func _update_boost_ui() -> void:
 	boost_charge_updated.emit(boost_charges)
 
 func _scale_sprite() -> void:
-	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
+	HelpersUtil.scale_sprite_to_viewport(sprite, 84.0, Constants.SPRITE_BASE_VIEWPORT)
 
 func add_boost() -> void:
 	if boost_charges < max_boost_charges:

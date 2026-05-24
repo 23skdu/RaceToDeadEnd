@@ -14,6 +14,7 @@ func before_each():
 	GameManager.state = GameManager.GameState.MENU
 	GameManager.difficulty_tier = 1
 	GameManager.score = 0
+	GameManager.bosses_killed = 2
 
 
 func test_wave_interval_default():
@@ -91,6 +92,33 @@ func test_wave_composition_tier_12():
 	assert_eq(comp["rotor"], 5, "Tier 12 should have 5 rotors (capped at 6)")
 	assert_eq(comp["scav"], 3, "Tier 12 should have 3 scavs (capped at 3)")
 	assert_eq(comp["drone"], 2, "Tier 12 should have 2 drones (capped at 2)")
+
+func test_wave_composition_tier_2_no_boss_kills():
+	GameManager.bosses_killed = 0
+	var s = Spawner.new()
+	var comp = s._get_wave_composition(2)
+	assert_false(comp.has("scav"), "Tier 2 should not have scavs when no bosses killed")
+
+func test_wave_composition_tier_3_no_boss_kills():
+	GameManager.bosses_killed = 0
+	var s = Spawner.new()
+	var comp = s._get_wave_composition(3)
+	assert_false(comp.has("scav"), "Tier 3 should not have scavs when no bosses killed")
+	assert_false(comp.has("drone"), "Tier 3 should not have drones when no bosses killed")
+
+func test_wave_composition_tier_3_one_boss_kill():
+	GameManager.bosses_killed = 1
+	var s = Spawner.new()
+	var comp = s._get_wave_composition(3)
+	assert_eq(comp.get("scav"), 1, "Tier 3 should have scav when 1 boss killed")
+	assert_false(comp.has("drone"), "Tier 3 should not have drones when only 1 boss killed")
+
+func test_wave_composition_tier_3_two_boss_kills():
+	GameManager.bosses_killed = 2
+	var s = Spawner.new()
+	var comp = s._get_wave_composition(3)
+	assert_eq(comp.get("scav"), 1, "Tier 3 should have scav when 2 bosses killed")
+	assert_eq(comp.get("drone"), 1, "Tier 3 should have drone when 2 bosses killed")
 
 func test_pick_pickup_type_returns_valid():
 	var s = Spawner.new()

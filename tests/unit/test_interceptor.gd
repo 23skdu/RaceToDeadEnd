@@ -45,22 +45,24 @@ func test_weapon_types_from_constants():
 
 func test_lane_to_x():
 	var player = _create_player()
-	assert_eq(player._lane_to_x(0), -120.0, "Lane 0 X position")
-	assert_eq(player._lane_to_x(1), -72.0, "Lane 1 X position")
-	assert_eq(player._lane_to_x(2), -24.0, "Lane 2 X position")
-	assert_eq(player._lane_to_x(3), 24.0, "Lane 3 X position")
-	assert_eq(player._lane_to_x(4), 72.0, "Lane 4 X position")
-	assert_eq(player._lane_to_x(5), 120.0, "Lane 5 X position")
-	assert_eq(Constants.LANE_POSITIONS[0], -120.0, "Constants lane 0")
-	assert_eq(Constants.LANE_POSITIONS[5], 120.0, "Constants lane 5")
+	assert_eq(player._lane_to_x(0), -168.0, "Lane 0 X position")
+	assert_eq(player._lane_to_x(1), -120.0, "Lane 1 X position")
+	assert_eq(player._lane_to_x(2), -72.0, "Lane 2 X position")
+	assert_eq(player._lane_to_x(3), -24.0, "Lane 3 X position")
+	assert_eq(player._lane_to_x(4), 24.0, "Lane 4 X position")
+	assert_eq(player._lane_to_x(5), 72.0, "Lane 5 X position")
+	assert_eq(player._lane_to_x(6), 120.0, "Lane 6 X position")
+	assert_eq(player._lane_to_x(7), 168.0, "Lane 7 X position")
+	assert_eq(Constants.LANE_POSITIONS[0], -168.0, "Constants lane 0")
+	assert_eq(Constants.LANE_POSITIONS[7], 168.0, "Constants lane 7")
 
 func test_lane_to_x_clamps_negative():
 	var player = _create_player()
-	assert_eq(player._lane_to_x(-1), -120.0, "Negative lane should clamp to 0")
+	assert_eq(player._lane_to_x(-1), -168.0, "Negative lane should clamp to 0")
 
 func test_lane_to_x_clamps_above_max():
 	var player = _create_player()
-	assert_eq(player._lane_to_x(10), 120.0, "Oversized lane should clamp to max")
+	assert_eq(player._lane_to_x(10), 168.0, "Oversized lane should clamp to max")
 
 func test_initial_state():
 	var player = _create_player()

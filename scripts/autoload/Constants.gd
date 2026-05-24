@@ -1,9 +1,9 @@
 extends Node
 
 # Highway / Lane
-const LANE_POSITIONS: Array[float] = [-120.0, -72.0, -24.0, 24.0, 72.0, 120.0]
+const LANE_POSITIONS: Array[float] = [-168.0, -120.0, -72.0, -24.0, 24.0, 72.0, 120.0, 168.0]
 const LANE_WIDTH: float = 48.0
-const LANE_COUNT: int = 6
+const LANE_COUNT: int = 8
 const SPAWN_DISTANCE: float = 450.0
 const CLEANUP_DISTANCE: float = 450.0
 const BASE_SPEED: float = 200.0
@@ -53,6 +53,7 @@ const MULTIPLIER_DURATION: float = 10.0
 # Bullet
 const ENEMY_CACHE_INTERVAL: float = 0.25
 const BULLET_SPEED: float = 500.0
+const BULLET_SPEED_OFFSET: float = 500.0
 
 # Mine
 const MINE_DAMAGE: int = 2

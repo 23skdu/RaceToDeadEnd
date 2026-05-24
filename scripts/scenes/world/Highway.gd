@@ -12,10 +12,10 @@ const CHUNK_PIXEL_HEIGHT: int = 240
 const PREWARM_CHUNKS: int = 8
 const DESPAWN_CHUNKS_BEHIND: int = 3
 
-const LANE_COUNT: int = 6
-const SHOULDER_COLUMNS: int = 4
-const LANE_START_COL: int = 4
-const LANE_END_COL: int = 9
+const LANE_COUNT: int = 8
+const SHOULDER_COLUMNS: int = 3
+const LANE_START_COL: int = 3
+const LANE_END_COL: int = 10
 const HALF_CHUNK: float = (CHUNK_WIDTH - 1) / 2.0
 
 enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
@@ -179,6 +179,26 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var half_w = TILE_SIZE.x / 2.0
 	var half_h = TILE_SIZE.y / 2.0
 	
+	var bg_color: Color
+	match chunk_type:
+		ChunkType.BRIDGE:
+			bg_color = Color(0.08, 0.08, 0.14)
+		ChunkType.CONSTRUCTION:
+			bg_color = Color(0.7, 0.5, 0.0)
+		ChunkType.ICE:
+			bg_color = Color(0.5, 0.8, 0.95, 0.35)
+		_:
+			bg_color = Color(0.76, 0.64, 0.42)
+	var bg = Polygon2D.new()
+	bg.polygon = PackedVector2Array([
+		Vector2(-half_w * CHUNK_WIDTH * 0.5, -half_h),
+		Vector2(half_w * CHUNK_WIDTH * 0.5, -half_h),
+		Vector2(half_w * CHUNK_WIDTH * 0.5, CHUNK_PIXEL_HEIGHT + half_h),
+		Vector2(-half_w * CHUNK_WIDTH * 0.5, CHUNK_PIXEL_HEIGHT + half_h),
+	])
+	bg.color = bg_color
+	chunk_local.add_child(bg)
+	
 	var lane_polygons = []
 	var shoulder_polygons = []
 	var stripe_positions = []
@@ -196,10 +216,13 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			
 			if col < LANE_START_COL or col > LANE_END_COL:
 				if chunk_type == ChunkType.BRIDGE:
-					var tile_color = Color(0.02, 0.02, 0.06)
+					var tile_color = Color(0.12, 0.11, 0.10)
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 				elif chunk_type == ChunkType.CONSTRUCTION:
 					var tile_color = Color(0.7, 0.5, 0.0)
+					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+				elif chunk_type == ChunkType.ICE:
+					var tile_color = Color(0.65, 0.88, 0.95, 0.45)
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 				else:
 					var tile_color = Color(0.76, 0.64, 0.42)
@@ -210,7 +233,12 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 						desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type})
 			else:
 				if chunk_type == ChunkType.ICE:
-					var tile_color = Color(0.2, 0.6, 0.9, 0.6)
+					var tile_color = Color(0.45, 0.85, 1.0, 0.7)
+					if _rng.randf() < 0.15:
+						tile_color = Color(0.8, 0.95, 1.0, 0.85)
+					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+				elif chunk_type == ChunkType.BRIDGE:
+					var tile_color = Color(0.35, 0.32, 0.30)
 					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 				else:
 					var tile_color = Color(0.18, 0.18, 0.22)
@@ -349,6 +377,26 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		chunk_local.add_child(ice_area)
 	
 	if chunk_type == ChunkType.BRIDGE:
+		var beam_every = 3
+		for beam_row in range(0, CHUNK_HEIGHT + 1, beam_every):
+			var beam_y = beam_row * TILE_SIZE.y
+			var beam = Line2D.new()
+			beam.width = 6.0
+			beam.default_color = Color(0.08, 0.08, 0.12)
+			beam.points = PackedVector2Array([
+				Vector2(left_rail_x - 12, beam_y),
+				Vector2(right_rail_x + 12, beam_y)
+			])
+			chunk_local.add_child(beam)
+			var beam_highlight = Line2D.new()
+			beam_highlight.width = 2.0
+			beam_highlight.default_color = Color(0.06, 0.06, 0.1)
+			beam_highlight.points = PackedVector2Array([
+				Vector2(left_rail_x - 12, beam_y + 2),
+				Vector2(right_rail_x + 12, beam_y + 2)
+			])
+			chunk_local.add_child(beam_highlight)
+		
 		var bridge_width = 48.0
 		var left_bridge = Area2D.new()
 		left_bridge.collision_layer = 0

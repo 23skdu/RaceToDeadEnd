@@ -22,6 +22,7 @@ var credits: int = 0
 var high_score: int = 0
 
 var enemy_list: Array[Node] = []
+var bosses_killed: int = 0
 
 var upgrade_levels: Dictionary = {
 	max_health = 1,

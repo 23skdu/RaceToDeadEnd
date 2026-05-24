@@ -94,7 +94,8 @@ func test_move_process():
 	var b = _create_bullet()
 	b.init(Vector2(0, 0), Vector2.UP, true)
 	b._physics_process(1.0)
-	assert_eq(b.position.y, -500.0, "Should move upward at speed")
+	var expected = -(GameManager.current_speed + Constants.BULLET_SPEED_OFFSET)
+	assert_eq(b.position.y, expected, "Should move upward at speed relative to game speed")
 
 func test_homing_adjusts_direction():
 	GameManager.enemy_list = []
