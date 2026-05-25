@@ -5,12 +5,14 @@ const HelpersUtil = preload("res://scripts/utils/Helpers.gd")
 
 signal destroyed(position: Vector2, enemy_type: String, enemy: Node)
 
-enum EnemyType { ROTOR, SCAV, DRONE }
+enum EnemyType { BUNNY, ROTOR, SCAV, DRONE, SASQUATCH }
 
-const TYPE_NAMES: Array[String] = ["rotor", "scav", "drone"]
+const TYPE_NAMES: Array[String] = ["bunny", "rotor", "scav", "drone", "sasquatch"]
 const ROTOR_TEXTURE = preload("res://assets/sprites/enemies/rotor.png")
 const SCAV_TEXTURE = preload("res://assets/sprites/enemies/scav.png")
 const DRONE_TEXTURE = preload("res://assets/sprites/enemies/drone.png")
+
+static var _bunny_texture: Texture2D = null
 
 var enemy_type: EnemyType = EnemyType.ROTOR
 var boss_key: String = ""
@@ -39,6 +41,10 @@ func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float,
 	player = player_ref
 	_spawner = spawner
 	match type:
+		EnemyType.BUNNY:
+			hp = 1
+			speed = base_speed * Constants.BUNNY_SPEED_MULTIPLIER
+			score_value = 50
 		EnemyType.ROTOR:
 			hp = 1
 			speed = base_speed * Constants.ROTOR_SPEED_MULTIPLIER
@@ -51,16 +57,54 @@ func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float,
 			hp = 2
 			speed = base_speed * Constants.DRONE_SPEED_MULTIPLIER
 			score_value = 200
+		EnemyType.SASQUATCH:
+			hp = Constants.SASQUATCH_HP
+			speed = base_speed * 0.6
+			score_value = 300
 	_update_sprite()
 
 func _update_sprite() -> void:
 	match enemy_type:
+		EnemyType.BUNNY:
+			if not _bunny_texture:
+				var img = Image.create(48, 48, false, Image.FORMAT_RGBA8)
+				img.fill(Color(0.0, 0.0, 0.0, 0.0))
+				for x in range(48):
+					for y in range(48):
+						var dx = x - 24
+						var dy = y - 24
+						var d = sqrt(dx * dx + dy * dy)
+						if d < 20.0:
+							img.set_pixel(x, y, Color(1.0, 0.55, 0.65, 1.0))
+				# Ears
+				for x in range(16, 22):
+					for y in range(2, 16):
+						var ex = x - 19
+						var ey = y - 9
+						if ex * ex + ey * ey < 25:
+							img.set_pixel(x, y, Color(1.0, 0.55, 0.65, 1.0))
+				for x in range(26, 32):
+					for y in range(2, 16):
+						var ex = x - 29
+						var ey = y - 9
+						if ex * ex + ey * ey < 25:
+							img.set_pixel(x, y, Color(1.0, 0.55, 0.65, 1.0))
+				# Eyes (menacing red)
+				img.set_pixel(20, 16, Color(1.0, 0.0, 0.0, 1.0))
+				img.set_pixel(28, 16, Color(1.0, 0.0, 0.0, 1.0))
+				_bunny_texture = ImageTexture.create_from_image(img)
+			sprite.texture = _bunny_texture
 		EnemyType.ROTOR:
 			sprite.texture = ROTOR_TEXTURE
 		EnemyType.SCAV:
 			sprite.texture = SCAV_TEXTURE
 		EnemyType.DRONE:
 			sprite.texture = DRONE_TEXTURE
+		EnemyType.SASQUATCH:
+			if not sprite.texture:
+				var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
+				img.fill(Color(0.5, 0.25, 0.1, 1.0))
+				sprite.texture = ImageTexture.create_from_image(img)
 	_scale_sprite()
 
 func _scale_sprite() -> void:
@@ -98,12 +142,16 @@ func on_pool_release() -> void:
 
 func _play_hit_sound() -> void:
 	match enemy_type:
+		EnemyType.BUNNY:
+			AudioManager.play_bunny_hit(global_position)
 		EnemyType.ROTOR:
 			AudioManager.play_rotor_hit(global_position)
 		EnemyType.SCAV:
 			AudioManager.play_scav_hit(global_position)
 		EnemyType.DRONE:
 			AudioManager.play_drone_hit(global_position)
+		EnemyType.SASQUATCH:
+			AudioManager.play_scav_hit(global_position)
 
 func _play_hit_flash() -> void:
 	if not stunned:
@@ -131,9 +179,13 @@ func _death_animation() -> void:
 
 func _play_death_sound() -> void:
 	match enemy_type:
+		EnemyType.BUNNY:
+			AudioManager.play_bunny_death(global_position)
 		EnemyType.ROTOR:
 			AudioManager.play_rotor_death(global_position)
 		EnemyType.SCAV:
 			AudioManager.play_scav_death(global_position)
 		EnemyType.DRONE:
 			AudioManager.play_drone_death(global_position)
+		EnemyType.SASQUATCH:
+			AudioManager.play_scav_death(global_position)

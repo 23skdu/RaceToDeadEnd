@@ -1,23 +1,18 @@
 [gd_scene format=3 uid="uid://dp812bsffklsc"]
 
-[ext_resource type="Script" path="res://scripts/scenes/enemies/BossSasquatch.gd" id="1_boss"]
+[ext_resource type="Script" path="res://scripts/scenes/enemies/BossSasquatch.gd" id="1_enemy"]
 
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_boss"]
-size = Vector2(128, 128)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_col"]
+size = Vector2(40, 48)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_boss"]
-size = Vector2(120, 120)
-
-[node name="BossSasquatch" type="CharacterBody2D"]
-collision_layer = 2
-collision_mask = 5
-script = ExtResource("1_boss")
+[node name="Sasquatch" type="CharacterBody2D"]
+collision_mask = 3
+script = ExtResource("1_enemy")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-texture = SubResource("PlaceholderTexture2D_boss")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_boss")
+shape = SubResource("RectangleShape2D_col")
 
 [node name="HitFlashTimer" type="Timer" parent="."]
 wait_time = 0.1

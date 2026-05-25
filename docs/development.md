@@ -268,7 +268,7 @@ Prefer signals for cross-system communication. The GameManager emits signals tha
 2. Create `scenes/enemies/NewEnemy.gd`:
 
 ```gdscript
-extends "res://scenes/enemies/Enemy.gd"
+extends "res://scripts/scenes/enemies/Enemy.gd"
 
 func _physics_process(delta: float) -> void:
 	# Your AI logic here
@@ -276,15 +276,27 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 ```
 
-3. Register in `Spawner.gd`:
+3. Add to `EnemyType` enum in `Enemy.gd` and add texture, sound, and init handling
+
+4. Add audio streams in `AudioManager.gd` (hit + death generators)
+
+5. Add speed multiplier constant in `Constants.gd`
+
+6. Register in `Spawner.gd`:
 
 ```gdscript
 enemy_scenes["new_enemy"] = preload("res://scenes/enemies/NewEnemy.tscn")
 ```
 
-4. Add to wave composition in `_get_wave_composition()`
+7. Add to wave composition in `_get_wave_composition()`
 
-5. Add score value in `ScoreManager.SCORE_VALUES`
+8. Add score value in `ScoreManager.SCORE_VALUES`
+
+9. Add pool in `Game.gd`:
+
+```gdscript
+ObjectPool.create_pool("new_enemy", NEW_ENEMY_SCENE, N)
+```
 
 ### Add a New Weapon
 
@@ -328,8 +340,10 @@ res://
 │   │   └── Interceptor.tscn/.gd  # Player vehicle
 │   ├── enemies/
 │   │   ├── Enemy.gd           # Base enemy class
+│   │   ├── Bunny.tscn/.gd     # Infected zombie bunny
 │   │   ├── Rotor.tscn/.gd     # Zombie biker
 │   │   ├── Scav.tscn/.gd      # Gang pickup
+│   │   ├── Sasquatch.tscn/.gd # Wandering brute (renamed from BossSasquatch)
 │   │   └── Drone.tscn/.gd     # Alien saucer
 │   ├── weapons/
 │   │   ├── Bullet.tscn/.gd    # Machine gun projectile
@@ -385,7 +399,7 @@ These features are defined in the design doc but not yet coded:
 
 - Civilian vehicles (spawn logic, protect bonus)
 - Weather system (fog, dust storms, acid rain)
-- Boss encounters (every 3000 pts)
+- Boss encounters (every 3000 pts — BossBunny, BossGiantBiker, BossWarRig, BossVoidDrone)
 - Parallax background layers
 - Options menu (audio/video settings)
 - Daily run challenge / seed system

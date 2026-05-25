@@ -1,6 +1,6 @@
 # Performance & Feature Improvement Plan — Implementation Status
 
-Status: ALL 10 items implemented and verified. Full test suite: 100% pass (20 test files).
+Status: ALL 10 items implemented and verified (plus Bunny enemy addition). Full test suite: 100% pass.
 
 ---
 
@@ -92,6 +92,55 @@ Status: ALL 10 items implemented and verified. Full test suite: 100% pass (20 te
 
 ---
 
+## Bonus: Bunny Enemy Addition
+
+A new enemy type "Bunny" (infected zombie bunny) was added as the introductory enemy for Level 1:
+
+**New files:**
+- `scripts/scenes/enemies/Bunny.gd` — Contact-damage-only enemy AI
+- `scenes/enemies/Bunny.tscn` — CharacterBody2D scene with Sprite2D, CollisionShape2D, HitFlashTimer
+
+**Modified files:**
+- `scripts/scenes/enemies/Enemy.gd` — Added `BUNNY` to `EnemyType` enum, procedural pink bunny sprite texture, init values, and hit/death sound routing
+- `scripts/autoload/AudioManager.gd` — Added bunny hit (high-pitched squeak) and death (pop) sound generators
+- `scripts/autoload/Constants.gd` — Added `BUNNY_SPEED_MULTIPLIER = 0.85`
+- `scripts/autoload/ScoreManager.gd` — Added `bunny_kill = 50`
+- `scripts/scenes/world/Spawner.gd` — Registered bunny scene; rewrote wave composition so bunnies are the **only enemy** before the 1st boss kill (`bosses_killed < 1`); Rotors gate at `bosses_killed >= 1`; Scavs at `>= 2`; Drones at `>= 3`
+- `scripts/scenes/Game.gd` — Added `BUNNY_SCENE` preload and `ObjectPool.create_pool("bunny", BUNNY_SCENE, 8)`
+
+**Enemy progression (revised):**
+- Pre-1st boss: Bunnies only → BossBunny
+- Post-1st boss: Rotors available → BossGiantBiker
+- Post-2nd boss: Scavs available → BossWarRig
+- Post-3rd boss: Drones available → BossVoidDrone (repeat)
+
+## Boss Rework: Giant Biker + Sasquatch Conversion
+
+The 2nd boss was replaced and Sasquatch was converted to a wandering monster:
+
+**New files:**
+- `scripts/scenes/enemies/BossGiantBiker.gd` — Zombie giant on motorcycle with chain weapon boss (HP 15, 2-phase enrage at 50% HP)
+- `scenes/enemies/BossGiantBiker.tscn` — Boss scene (120×120 collision, collision_mask=5)
+- `scripts/scenes/weapons/ChainSwing.gd` — Chain weapon Area2D that rotates 130° arc, damages player on contact
+- `scenes/weapons/ChainSwing.tscn` — ChainSwing scene with Line2D visual + collision tip
+- `demo/DemoBossGiantBiker.tscn` — Defeat overlay ("GIANT BIKER DEFEATED!")
+
+**Modified files:**
+- `scripts/scenes/enemies/BossSasquatch.gd` — Removed boss_key, reduced HP to 5, now a regular enemy (`EnemyType.SASQUATCH`) that wanders between lanes and throws projectiles
+- `scenes/enemies/BossSasquatch.tscn` — Changed collision to 40×48, mask to 3 (regular enemy), removed PlaceholderTexture2D
+- `scripts/scenes/enemies/Enemy.gd` — Added `SASQUATCH` to `EnemyType` enum and all match blocks
+- `scripts/autoload/Constants.gd` — Added `BOSS_GIANT_BIKER_HP = 15`, reduced `BOSS_SASQUATCH_HP = 5`
+- `scripts/autoload/ScoreManager.gd` — Added `sasquatch_kill = 300`
+- `scripts/autoload/AudioManager.gd` — Added giant biker demo music generator
+- `scripts/scenes/world/Spawner.gd` — Boss order: Bunny → GiantBiker → WarRig → VoidDrone; added sasquatch to wave compositions after 2nd boss kill
+- `scripts/scenes/Game.gd` — Added pools for boss_giant_biker, sasquatch, chain_swing; updated demo routing
+
+**Enemy progression (revised):**
+- Pre-1st boss: Bunnies only → BossBunny
+- Post-1st boss: Rotors available → BossGiantBiker
+- Post-2nd boss: Scavs + Sasquatches available → BossWarRig
+- Post-3rd boss: Drones added → BossVoidDrone (repeat)
+
 ## Summary Statistics
 
 | Metric | Before | After |
@@ -103,6 +152,9 @@ Status: ALL 10 items implemented and verified. Full test suite: 100% pass (20 te
 | Dead code removed | 0 | 1 function |
 | Caches added | 0 | 3 (diamond mesh, rect mesh, packed scenes) |
 | Visual features added | 0 | 2 (death animation, boost trail) |
-| Gameplay features added | 0 | 1 (auto-save) |
+| Gameplay features added | 0 | 2 (auto-save, bunny enemy) |
+| New enemy types | 3 | 5 (Bunny + Sasquatch conversion) |
+| New bosses | 4 | 4 (Bunny → GiantBiker → WarRig → VoidDrone) |
+| Boss reworks | 0 | 1 (Sasquatch → wandering monster) |
 | Signal optimizations | 0 | 1 (bullet lifecycle) |
 | Frame-rate fixes | 0 | 1 (civilian spawn) |

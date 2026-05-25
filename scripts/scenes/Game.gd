@@ -3,6 +3,7 @@ extends Node
 const BULLET_SCENE = preload("res://scenes/weapons/Bullet.tscn")
 const MINE_SCENE = preload("res://scenes/weapons/Mine.tscn")
 const EMP_SCENE = preload("res://scenes/weapons/EMPBlast.tscn")
+const BUNNY_SCENE = preload("res://scenes/enemies/Bunny.tscn")
 const ROTOR_SCENE = preload("res://scenes/enemies/Rotor.tscn")
 const SCAV_SCENE = preload("res://scenes/enemies/Scav.tscn")
 const DRONE_SCENE = preload("res://scenes/enemies/Drone.tscn")
@@ -10,12 +11,15 @@ const DRONE_BOMB_SCENE = preload("res://scenes/weapons/DroneBomb.tscn")
 const BOSS_SCENE = preload("res://scenes/enemies/BossWarRig.tscn")
 const BOSS_BUNNY_SCENE = preload("res://scenes/enemies/BossBunny.tscn")
 const BABY_BUNNY_BOMB_SCENE = preload("res://scenes/weapons/BabyBunnyBomb.tscn")
-const BOSS_SASQUATCH_SCENE = preload("res://scenes/enemies/BossSasquatch.tscn")
+const BOSS_GIANT_BIKER_SCENE = preload("res://scenes/enemies/BossGiantBiker.tscn")
+const SASQUATCH_SCENE = preload("res://scenes/enemies/BossSasquatch.tscn")
+const CHAIN_SWING_SCENE = preload("res://scenes/weapons/ChainSwing.tscn")
 const POOP_WEAPON_SCENE = preload("res://scenes/weapons/PoopWeapon.tscn")
 const BOSS_VOID_DRONE_SCENE = preload("res://scenes/enemies/BossVoidDrone.tscn")
 const CIVILIAN_SCENE = preload("res://scenes/enemies/Civilian.tscn")
 
 const DEMO_BUNNY_SCENE = preload("res://demo/DemoBossBunny.tscn")
+const DEMO_GIANT_BIKER_SCENE = preload("res://demo/DemoBossGiantBiker.tscn")
 const DEMO_SASQ_SCENE = preload("res://demo/DemoBossSasquatch.tscn")
 const DEMO_VOID_SCENE = preload("res://demo/DemoBossVoidDrone.tscn")
 const DEMO_WAR_SCENE = preload("res://demo/DemoBossWarRig.tscn")
@@ -46,6 +50,7 @@ func _ready() -> void:
 	ObjectPool.create_pool("bullet", BULLET_SCENE, 50)
 	ObjectPool.create_pool("mine", MINE_SCENE, 10)
 	ObjectPool.create_pool("emp", EMP_SCENE, 5)
+	ObjectPool.create_pool("bunny", BUNNY_SCENE, 8)
 	ObjectPool.create_pool("rotor", ROTOR_SCENE, 8)
 	ObjectPool.create_pool("scav", SCAV_SCENE, 6)
 	ObjectPool.create_pool("drone", DRONE_SCENE, 4)
@@ -53,7 +58,9 @@ func _ready() -> void:
 	ObjectPool.create_pool("boss", BOSS_SCENE, 2)
 	ObjectPool.create_pool("boss_bunny", BOSS_BUNNY_SCENE, 2)
 	ObjectPool.create_pool("baby_bunny_bomb", BABY_BUNNY_BOMB_SCENE, 10)
-	ObjectPool.create_pool("boss_sasquatch", BOSS_SASQUATCH_SCENE, 2)
+	ObjectPool.create_pool("boss_giant_biker", BOSS_GIANT_BIKER_SCENE, 2)
+	ObjectPool.create_pool("sasquatch", SASQUATCH_SCENE, 3)
+	ObjectPool.create_pool("chain_swing", CHAIN_SWING_SCENE, 4)
 	ObjectPool.create_pool("poop_weapon", POOP_WEAPON_SCENE, 10)
 	ObjectPool.create_pool("boss_void_drone", BOSS_VOID_DRONE_SCENE, 2)
 	ObjectPool.create_pool("civilian", CIVILIAN_SCENE, 4)
@@ -322,8 +329,8 @@ func _on_boss_defeated(boss_type: String) -> void:
 	var demo_scene = null
 	if boss_type == "boss_bunny":
 		demo_scene = DEMO_BUNNY_SCENE.instantiate()
-	elif boss_type == "boss_sasquatch":
-		demo_scene = DEMO_SASQ_SCENE.instantiate()
+	elif boss_type == "boss_giant_biker":
+		demo_scene = DEMO_GIANT_BIKER_SCENE.instantiate()
 	elif boss_type == "boss_void_drone":
 		demo_scene = DEMO_VOID_SCENE.instantiate()
 	elif boss_type == "boss":

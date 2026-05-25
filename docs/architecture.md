@@ -10,7 +10,7 @@
 res://
 ├── autoload/                # .gd.uid stubs (editor tracking for relocated scripts)
 ├── scenes/                  # .tscn scene files
-│   ├── enemies/             # Rotor, Scav, Drone, BossBunny, BossSasquatch, BossVoidDrone, BossWarRig, Civilian
+│   ├── enemies/             # Bunny, Rotor, Scav, Drone, BossBunny, BossSasquatch, BossWarRig, BossVoidDrone, Civilian
 │   ├── player/              # Interceptor
 │   ├── ui/                  # HUD, GameOver, Garage, Options, PauseMenu
 │   ├── weapons/             # Bullet, Mine, EMPBlast, DroneBomb
@@ -30,7 +30,7 @@ res://
 │   ├── scenes/              # Scripts attached to scene nodes
 │   │   ├── Game.gd          # Game root: init pools, connect signals, pause/game-over
 │   │   ├── Main.gd          # Main menu
-│   │   ├── enemies/         # Enemy base (boss_key, _die type emission) + subtype behaviors
+│   │   ├── enemies/         # Enemy base (boss_key, _die type emission) + subtype behaviors (Bunny, Rotor, Scav, Drone)
 │   │   ├── player/          # Interceptor controller
 │   │   ├── ui/              # HUD, menus, input remapping
 │   │   ├── weapons/         # Bullet, Mine, EMP, DroneBomb logic
@@ -81,8 +81,9 @@ res://
 - Player bullet speed = `GameManager.current_speed + BULLET_SPEED_OFFSET (500)` — always outruns max player speed (including boost)
 - Enemy bullet speed is constant `BULLET_SPEED (500)`
 - Homing bullets use distance-bounded targeting (MAX_HOMING_RANGE = 400px)
-- Enemy types: Rotor (swarm), Scav (flank + shoot, gated behind 1st boss kill), Drone (hover + bomb, gated behind 2nd boss kill)
-- 4 boss types: BossBunny, BossSasquatch, BossVoidDrone, BossWarRig (3-phase: ram → ram+bullets → ram+bullets+minions)
+- Enemy types: Bunny (contact-damage only, gated before 1st boss kill), Rotor (swarm, gated behind 1st boss kill), Scav (flank + shoot, gated behind 2nd boss kill), Sasquatch (wandering brute, gated behind 2nd boss kill), Drone (hover + bomb, gated behind 3rd boss kill)
+- 4 boss types: BossBunny, BossGiantBiker (zombie giant on motorcycle with chain weapon), BossWarRig, BossVoidDrone (3-phase: ram → ram+bullets → ram+bullets+minions)
+- Sasquatch: repurposed from 2nd boss to a random wandering monster that appears after the 2nd boss kill
 
 ### Difficulty & Speed Scaling
 - Difficulty tier advances every 1000 score points (max tier 20)
@@ -92,8 +93,10 @@ res://
 - Boss waves every 3000 score points; `bosses_killed` tracks defeated bosses
 
 ### Enemy Gating
-- Scav enemies are excluded from wave compositions until `bosses_killed >= 1` (after 1st boss fight)
-- Drone enemies are excluded until `bosses_killed >= 2` (after 2nd boss fight)
+- Bunny enemies are the only enemy type before the 1st boss kill (`bosses_killed < 1`)
+- Rotor enemies become available after the 1st boss kill (`bosses_killed >= 1`)
+- Scav enemies and Sasquatch enemies are excluded until `bosses_killed >= 2` (after 2nd boss fight)
+- Drone enemies are excluded until `bosses_killed >= 3` (after 3rd boss fight)
 - Boss scripts set `boss_key` (e.g., `boss_bunny`, `boss_sasquatch`, `boss_void_drone`, `boss`) in `_reset_state()`
 - `Enemy._die()` emits the `boss_key` string instead of the default `TYPE_NAMES[enemy_type]` when `boss_key` is non-empty
 - `GameManager.bosses_killed` is incremented when `Game._on_boss_defeated` fires

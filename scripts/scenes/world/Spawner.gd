@@ -29,13 +29,15 @@ var _cleanup_timer: float = 0.0
 var _civilian_spawn_accumulator: float = 0.0
 
 func _ready() -> void:
+	enemy_scenes["bunny"] = preload("res://scenes/enemies/Bunny.tscn") if ResourceLoader.exists("res://scenes/enemies/Bunny.tscn") else null
 	enemy_scenes["rotor"] = preload("res://scenes/enemies/Rotor.tscn") if ResourceLoader.exists("res://scenes/enemies/Rotor.tscn") else null
 	enemy_scenes["scav"] = preload("res://scenes/enemies/Scav.tscn") if ResourceLoader.exists("res://scenes/enemies/Scav.tscn") else null
+	enemy_scenes["sasquatch"] = preload("res://scenes/enemies/BossSasquatch.tscn") if ResourceLoader.exists("res://scenes/enemies/BossSasquatch.tscn") else null
 	enemy_scenes["drone"] = preload("res://scenes/enemies/Drone.tscn") if ResourceLoader.exists("res://scenes/enemies/Drone.tscn") else null
 	enemy_scenes["civilian"] = preload("res://scenes/enemies/Civilian.tscn") if ResourceLoader.exists("res://scenes/enemies/Civilian.tscn") else null
 	enemy_scenes["boss"] = preload("res://scenes/enemies/BossWarRig.tscn") if ResourceLoader.exists("res://scenes/enemies/BossWarRig.tscn") else null
 	enemy_scenes["boss_bunny"] = preload("res://scenes/enemies/BossBunny.tscn") if ResourceLoader.exists("res://scenes/enemies/BossBunny.tscn") else null
-	enemy_scenes["boss_sasquatch"] = preload("res://scenes/enemies/BossSasquatch.tscn") if ResourceLoader.exists("res://scenes/enemies/BossSasquatch.tscn") else null
+	enemy_scenes["boss_giant_biker"] = preload("res://scenes/enemies/BossGiantBiker.tscn") if ResourceLoader.exists("res://scenes/enemies/BossGiantBiker.tscn") else null
 	enemy_scenes["boss_void_drone"] = preload("res://scenes/enemies/BossVoidDrone.tscn") if ResourceLoader.exists("res://scenes/enemies/BossVoidDrone.tscn") else null
 	if not GameManager.game_started.is_connected(_on_game_started):
 		GameManager.game_started.connect(_on_game_started)
@@ -109,11 +111,11 @@ func _should_spawn_boss() -> bool:
 func _spawn_boss() -> void:
 	var boss_key = "boss_bunny"
 	if _bosses_spawned == 1:
-		boss_key = "boss_sasquatch"
+		boss_key = "boss_giant_biker"
 	elif _bosses_spawned == 2:
-		boss_key = "boss_void_drone"
-	elif _bosses_spawned >= 3:
 		boss_key = "boss"
+	elif _bosses_spawned >= 3:
+		boss_key = "boss_void_drone"
 		
 	_bosses_spawned += 1
 	if not player:
@@ -170,22 +172,43 @@ func _on_civilian_hit(civilian: Node) -> void:
 
 func _get_wave_composition(tier: int) -> Dictionary:
 	var comp = {}
-	var can_scav = GameManager.bosses_killed >= 1
-	var can_drone = GameManager.bosses_killed >= 2
+	var can_bunny = GameManager.bosses_killed < 1
+	var can_rotor = GameManager.bosses_killed >= 1
+	var can_sasquatch = GameManager.bosses_killed >= 2
+	var can_scav = GameManager.bosses_killed >= 2
+	var can_drone = GameManager.bosses_killed >= 3
 	if tier == 1:
-		comp["rotor"] = 1
+		if can_bunny:
+			comp["bunny"] = 1
+		elif can_rotor:
+			comp["rotor"] = 1
 	elif tier == 2:
-		comp["rotor"] = 2
+		if can_bunny:
+			comp["bunny"] = 2
+		elif can_rotor:
+			comp["rotor"] = 2
+		if can_sasquatch:
+			comp["sasquatch"] = 1
 		if can_scav:
 			comp["scav"] = 1
 	elif tier == 3:
-		comp["rotor"] = 1
+		if can_bunny:
+			comp["bunny"] = 1
+		elif can_rotor:
+			comp["rotor"] = 1
+		if can_sasquatch:
+			comp["sasquatch"] = 1
 		if can_scav:
 			comp["scav"] = 1
 		if can_drone:
 			comp["drone"] = 1
 	else:
-		comp["rotor"] = clampi(1 + floori(tier / 3.0), 1, 6)
+		if can_bunny:
+			comp["bunny"] = clampi(1 + floori(tier / 3.0), 1, 6)
+		elif can_rotor:
+			comp["rotor"] = clampi(1 + floori(tier / 3.0), 1, 6)
+		if can_sasquatch:
+			comp["sasquatch"] = clampi(floori(tier / 5.0), 1, 2)
 		if can_scav:
 			comp["scav"] = clampi(floori(tier / 4.0), 1, 3)
 		if can_drone:
@@ -210,7 +233,11 @@ func _spawn_enemy(type: String) -> void:
 	enemy.global_position = Vector2(lane_x, player.global_position.y - Constants.SPAWN_DISTANCE)
 	
 	var et = enemy.EnemyType.ROTOR
-	if type == "scav":
+	if type == "bunny":
+		et = enemy.EnemyType.BUNNY
+	elif type == "sasquatch":
+		et = enemy.EnemyType.SASQUATCH
+	elif type == "scav":
 		et = enemy.EnemyType.SCAV
 	elif type == "drone":
 		et = enemy.EnemyType.DRONE
@@ -231,7 +258,7 @@ func _on_enemy_destroyed(pos: Vector2, enemy_type: String, enemy: Node) -> void:
 	ScoreManager.register_kill(enemy_type, pos)
 	_drop_pickup(pos)
 	enemy_destroyed.emit(enemy)
-	if enemy_type in ["boss_bunny", "boss_sasquatch", "boss_void_drone", "boss"]:
+	if enemy_type in ["boss_bunny", "boss_giant_biker", "boss_void_drone", "boss"]:
 		boss_defeated.emit(enemy_type)
 
 func _drop_pickup(position: Vector2) -> void:

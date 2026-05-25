@@ -20,6 +20,7 @@ Race to Dead End is an isometric vehicular combat racing game inspired by Spy Hu
 ## Part 3: Story & World Setting
 
 Year 2187. The last remaining highway — the Pan-Continental Arterial — stretches across a poisoned Earth. Society collapsed decades ago. Three factions rule the road:
+- **Bunnies** — infected zombie rabbits, the first mutated stage of the plague; mindless and swarm in packs
 - **Rotors** — zombie-like plague victims on souped-up motorcycles, mindless, swarm tactics
 - **Scavs** — post-apocalyptic warrior clans driving armored pickups with turrets
 - **Void Drones** — alien reconnaissance saucers that descended during the chaos
@@ -63,12 +64,28 @@ The highway is divided into **segments** (each ~10 seconds of driving). Every 5 
 
 ## Part 7: Enemy Types & AI Behavior
 
+### Bunnies (Infected Zombie Bunnies)
+- **Appearance**: Small pink-hued rabbit shapes with menacing red eyes
+- **Behavior**: Hop toward the player's lane, contact-only damage
+- **Speed**: Slightly slower than player base speed
+- **HP**: 1 hit
+- **Attack**: Contact damage (1 HP)
+- **Note**: Only appear before the first boss (BossBunny) — they are the introductory enemy type
+
 ### Rotors (Zombie Bikers)
 - **Appearance**: Hunched figures on rusted bikes, glowing red eyes
 - **Behavior**: Swarm from behind, try to flank and sideswipe
 - **Speed**: Equal to player base speed
 - **HP**: 1 hit
 - **Attack**: Bump damage (1 HP)
+
+### Sasquatches (Wandering Brutes)
+- **Appearance**: Large brown shaggy humanoid figures
+- **Behavior**: Wanders between lanes, dodges player attacks, throws projectiles
+- **Speed**: Slower than player base speed
+- **HP**: 5 hits
+- **Attack**: Ranged projectile (causes slippery effect on hit)
+- **Note**: Random wandering monster that starts appearing after the 2nd boss fight (Giant Biker)
 
 ### Scavs (Warrior Pickups)
 - **Appearance**: Armored trucks with roof gunners, faction colors
@@ -135,13 +152,13 @@ The highway is procedurally generated in real-time from tile chunks:
 
 ### In-run scoring:
 - +10 pts/sec base driving
-- +50 per kill (Rotors), +100 (Scavs), +200 (Drones)
+- +50 per kill (Bunnies/Rotors), +100 (Scavs), +200 (Drones), +300 (Sasquatches)
 - +500 for protecting a civilian convoy wave
 - Multiplier from power-ups stacks additively (max 8×)
 
 ### Run milestones:
 - Every 1000 pts = new difficulty tier unlock
-- Every 3000 pts = boss encounter (giant Scav war-rig / alien carrier)
+- Every 3000 pts = boss encounter (BossBunny → Giant Biker → War Rig → Void Drone)
 
 ### Meta-progression (between runs):
 - Credits earned = score / 10

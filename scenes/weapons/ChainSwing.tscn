@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://chainswing"]
+
+[ext_resource type="Script" path="res://scripts/scenes/weapons/ChainSwing.gd" id="1_chain"]
+
+[node name="ChainSwing" type="Area2D"]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_chain")

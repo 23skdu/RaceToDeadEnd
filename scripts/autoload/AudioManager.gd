@@ -16,9 +16,11 @@ var _stream_emp: AudioStreamWAV
 var _stream_menu_music: AudioStreamWAV
 var _stream_game_music: AudioStreamWAV
 
+var _stream_bunny_hit: AudioStreamWAV
 var _stream_rotor_hit: AudioStreamWAV
 var _stream_scav_hit: AudioStreamWAV
 var _stream_drone_hit: AudioStreamWAV
+var _stream_bunny_death: AudioStreamWAV
 var _stream_rotor_death: AudioStreamWAV
 var _stream_scav_death: AudioStreamWAV
 var _stream_drone_death: AudioStreamWAV
@@ -26,6 +28,7 @@ var _stream_lightning: AudioStreamWAV
 
 var _stream_demo_boss_bunny: AudioStreamWAV
 var _stream_demo_boss_sasquatch: AudioStreamWAV
+var _stream_demo_boss_giant_biker: AudioStreamWAV
 var _stream_demo_boss_void_drone: AudioStreamWAV
 var _stream_demo_boss_war_rig: AudioStreamWAV
 
@@ -133,6 +136,10 @@ func play_demo_music(boss_type: String) -> void:
 		if not _stream_demo_boss_bunny:
 			_stream_demo_boss_bunny = _generate_demo_music_bunny()
 		stream = _stream_demo_boss_bunny
+	elif boss_type == "boss_giant_biker":
+		if not _stream_demo_boss_giant_biker:
+			_stream_demo_boss_giant_biker = _generate_demo_music_giant_biker()
+		stream = _stream_demo_boss_giant_biker
 	elif boss_type == "boss_sasquatch":
 		if not _stream_demo_boss_sasquatch:
 			_stream_demo_boss_sasquatch = _generate_demo_music_sasquatch()
@@ -204,6 +211,11 @@ func play_synth_emp(pos: Vector2 = Vector2.ZERO) -> void:
 		_stream_emp = _generate_emp_stream()
 	play_sfx(_stream_emp, pos)
 
+func play_bunny_hit(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_bunny_hit:
+		_stream_bunny_hit = _generate_bunny_hit_stream()
+	play_sfx(_stream_bunny_hit, pos)
+
 func play_rotor_hit(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_rotor_hit:
 		_stream_rotor_hit = _generate_rotor_hit_stream()
@@ -218,6 +230,11 @@ func play_drone_hit(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_drone_hit:
 		_stream_drone_hit = _generate_drone_hit_stream()
 	play_sfx(_stream_drone_hit, pos)
+
+func play_bunny_death(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_bunny_death:
+		_stream_bunny_death = _generate_bunny_death_stream()
+	play_sfx(_stream_bunny_death, pos)
 
 func play_rotor_death(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_rotor_death:
@@ -377,6 +394,14 @@ func _generate_game_music() -> AudioStreamWAV:
 	stream.loop_end = int(22050.0 * 16.0)
 	return stream
 
+func _generate_bunny_hit_stream() -> AudioStreamWAV:
+	return _build_16bit_stream(0.06, func(t: float, _i: int) -> float:
+		var freq = lerpf(1200.0, 600.0, t / 0.06)
+		var env = 1.0 - (t / 0.06)
+		var val = 5000.0 if sin(TAU * freq * t) >= 0.0 else -5000.0
+		return val * env
+	)
+
 func _generate_rotor_hit_stream() -> AudioStreamWAV:
 	return _build_16bit_stream(0.08, func(t: float, _i: int) -> float:
 		var freq = lerpf(600.0, 200.0, t / 0.08)
@@ -398,6 +423,13 @@ func _generate_drone_hit_stream() -> AudioStreamWAV:
 		var env = 1.0 - (t / 0.1)
 		var val = 5000.0 if sin(TAU * freq * t) >= 0.0 else -5000.0
 		return val * env
+	)
+
+func _generate_bunny_death_stream() -> AudioStreamWAV:
+	return _build_16bit_stream(0.25, func(t: float, _i: int) -> float:
+		var freq = lerpf(800.0, 100.0, t / 0.25)
+		var amp = lerpf(7000.0, 0.0, t / 0.25)
+		return sin(TAU * freq * t) * amp
 	)
 
 func _generate_rotor_death_stream() -> AudioStreamWAV:
@@ -448,6 +480,20 @@ func _generate_demo_music_bunny() -> AudioStreamWAV:
 		var freq = 440.0 * pow(1.059463, semitone)
 		var wave = 1.0 if fmod(t * freq, 1.0) < 0.5 else -1.0
 		return wave * 6000.0 * maxf(0.0, 1.0 - fmod(t * 8.0, 1.0))
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+func _generate_demo_music_giant_biker() -> AudioStreamWAV:
+	var stream = _build_16bit_stream(4.0, func(t: float, _i: int) -> float:
+		var step_idx = int(t * 6.0)
+		var val = 0.0
+		var bass_freq = 65.41 if step_idx % 4 < 2 else 82.41
+		val += 7000.0 if sin(TAU * bass_freq * t) >= 0.0 else -7000.0
+		if step_idx % 2 == 0:
+			var rev = sin(TAU * lerpf(200.0, 30.0, fmod(t * 6.0, 1.0)) * fmod(t * 6.0, 1.0))
+			val += rev * 5000.0 * maxf(0.0, 1.0 - fmod(t * 6.0, 1.0) * 2.0)
+		return val
 	)
 	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
 	return stream

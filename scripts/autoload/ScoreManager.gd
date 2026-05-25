@@ -3,6 +3,8 @@ extends Node
 signal score_popped(position: Vector2, points: int, label: String)
 
 const SCORE_VALUES: Dictionary = {
+	bunny_kill = 50,
+	sasquatch_kill = 300,
 	rotor_kill = 50,
 	scav_kill = 100,
 	drone_kill = 200,

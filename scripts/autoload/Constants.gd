@@ -22,6 +22,7 @@ const MIN_WAVE_INTERVAL: float = 2.0
 const WAVE_INTERVAL_DECAY: float = 0.3
 
 # Enemies
+const BUNNY_SPEED_MULTIPLIER: float = 0.85
 const SCAV_SHOOT_INTERVAL: float = 2.5
 const DRONE_BOMB_INTERVAL: float = 3.0
 const ROTOR_SPEED_MULTIPLIER: float = 0.9
@@ -88,7 +89,8 @@ const CIVILIAN_PENALTY: int = 1
 # Boss
 const BOSS_SCORE_INTERVAL: int = 3000
 const BOSS_BUNNY_HP: int = 10
-const BOSS_SASQUATCH_HP: int = 15
+const BOSS_GIANT_BIKER_HP: int = 15
+const BOSS_SASQUATCH_HP: int = 5
 const BOSS_VOID_DRONE_HP: int = 20
 const BOSS_WAR_RIG_HP: int = 25
 const BOSS_SCORE: int = 1000
