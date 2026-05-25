@@ -72,7 +72,12 @@ const BLAST_RADIUS: float = 80.0
 
 # World / Camera
 const WORLD_SCALE: Vector2 = Vector2(1.0, 0.5)
-const CAMERA_Y_OFFSET: float = -100.0
+const CAMERA_Y_OFFSET: float = -220.0
+
+# Highway Perspective
+const HIGHWAY_PERSPECTIVE_MIN_SCALE: float = 0.28
+const HIGHWAY_PERSPECTIVE_STRENGTH: float = 0.65
+const HORIZON_Y_NORMALIZED: float = 0.12
 
 # Civilian
 const CIVILIAN_SPEED: float = 150.0

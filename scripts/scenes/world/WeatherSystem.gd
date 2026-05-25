@@ -74,7 +74,7 @@ func _init_gpu_particles() -> void:
 
 	_rain_particle_material = mat
 	_rain_particles.process_material = mat
-	_rain_particles.position = Vector2(0, -300)
+	_rain_particles.position = Vector2(0, -600)
 	add_child(_rain_particles)
 
 func _process(delta: float) -> void:
@@ -161,7 +161,7 @@ func _spawn_lightning_strike() -> void:
 		return
 	
 	var strike_x = player_ref.global_position.x + randf_range(-150, 150)
-	var strike_y = player_ref.global_position.y - 400
+	var strike_y = player_ref.global_position.y - 700
 	var strike_pos = Vector2(strike_x, strike_y)
 	
 	_create_lightning_bolt(strike_pos)
@@ -213,7 +213,7 @@ func _create_lightning_flash(pos: Vector2) -> Node:
 
 func _spawn_cloud() -> void:
 	var cloud = Node2D.new()
-	cloud.position = Vector2(randf_range(-100, 600), randf_range(-300, -100))
+	cloud.position = Vector2(randf_range(-100, 600), randf_range(-700, -350))
 	cloud.set_meta("speed", randf_range(15.0, 35.0))
 	
 	var cloud_body = Polygon2D.new()

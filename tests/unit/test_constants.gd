@@ -153,7 +153,7 @@ func test_world_scale():
 	assert_eq(Constants.WORLD_SCALE, Vector2(1.0, 0.5))
 
 func test_camera_y_offset():
-	assert_eq(Constants.CAMERA_Y_OFFSET, -100.0)
+	assert_eq(Constants.CAMERA_Y_OFFSET, -220.0)
 
 func test_civilian_speed():
 	assert_eq(Constants.CIVILIAN_SPEED, 150.0)

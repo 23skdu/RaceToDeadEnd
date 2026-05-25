@@ -41,6 +41,14 @@ static var _rect_mesh_cache: Dictionary = {}
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+# Perspective data (precomputed per row)
+var _persp_scale: Array[float] = []
+var _persp_y: Array[float] = []
+var _persp_total_height: float = CHUNK_PIXEL_HEIGHT
+
+func _init() -> void:
+	_compute_perspective()
+
 func _ready() -> void:
 	var img = Image.create(1, 1, false, Image.FORMAT_RGBA8)
 	img.fill(Color.WHITE)
@@ -166,6 +174,26 @@ func _pick_chunk_type() -> ChunkType:
 		return ChunkType.CONSTRUCTION
 	return ChunkType.BRIDGE
 
+func _compute_perspective() -> void:
+	_persp_scale.resize(CHUNK_HEIGHT)
+	_persp_y.resize(CHUNK_HEIGHT)
+	var raw_heights: Array[float] = []
+	raw_heights.resize(CHUNK_HEIGHT)
+	var total_raw = 0.0
+	for row in CHUNK_HEIGHT:
+		var t = float(row) / float(CHUNK_HEIGHT - 1)
+		var s = lerpf(Constants.HIGHWAY_PERSPECTIVE_MIN_SCALE, 1.0, t)
+		var h = float(TILE_SIZE.y) * s
+		raw_heights[row] = h
+		total_raw += h
+	var norm_factor = float(CHUNK_PIXEL_HEIGHT) / total_raw
+	var y_acc = 0.0
+	for row in CHUNK_HEIGHT:
+		_persp_scale[row] = raw_heights[row] / float(TILE_SIZE.y) * norm_factor
+		_persp_y[row] = (y_acc + raw_heights[row] * 0.5) * norm_factor
+		y_acc += raw_heights[row]
+	_persp_total_height = CHUNK_PIXEL_HEIGHT
+
 func _generate_chunk_tiles(chunk: Node2D, chunk_type: ChunkType) -> void:
 	var chunk_local = Node2D.new()
 	chunk_local.name = "Tiles"
@@ -194,11 +222,13 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			bg_color = Color(0.76, 0.64, 0.42)
 	var bg = Polygon2D.new()
 	var bg_half_w = half_w * (CHUNK_WIDTH + 1)
+	var top_scale = _persp_scale[0]
+	var bot_scale = _persp_scale[CHUNK_HEIGHT - 1]
 	bg.polygon = PackedVector2Array([
-		Vector2(-bg_half_w, -half_h),
-		Vector2(bg_half_w, -half_h),
-		Vector2(bg_half_w, CHUNK_PIXEL_HEIGHT + half_h),
-		Vector2(-bg_half_w, CHUNK_PIXEL_HEIGHT + half_h),
+		Vector2(-bg_half_w * top_scale, _persp_y[0] - half_h * top_scale),
+		Vector2(bg_half_w * top_scale, _persp_y[0] - half_h * top_scale),
+		Vector2(bg_half_w * bot_scale, _persp_y[CHUNK_HEIGHT - 1] + half_h * bot_scale),
+		Vector2(-bg_half_w * bot_scale, _persp_y[CHUNK_HEIGHT - 1] + half_h * bot_scale),
 	])
 	bg.color = bg_color
 	chunk_local.add_child(bg)
@@ -210,52 +240,55 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var obstacle_positions = []
 	
 	for row in CHUNK_HEIGHT:
+		var p_scale = _persp_scale[row]
+		var p_y = _persp_y[row]
 		for col in CHUNK_WIDTH:
 			var tile_variant = _get_tile_variant(chunk_type, row, col)
 			
-			var x_pos = (col - HALF_CHUNK) * TILE_SIZE.x
+			var x_pos = (col - HALF_CHUNK) * TILE_SIZE.x * p_scale
 			if row % 2 == 1:
-				x_pos += half_w
-			var y_pos = row * TILE_SIZE.y
+				x_pos += half_w * p_scale
+			var y_pos = p_y
 			
 			if col < LANE_START_COL or col > LANE_END_COL:
 				if chunk_type == ChunkType.BRIDGE:
 					var tile_color = Color(0.12, 0.11, 0.10)
-					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 				elif chunk_type == ChunkType.CONSTRUCTION:
 					var tile_color = Color(0.7, 0.5, 0.0)
-					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 				elif chunk_type == ChunkType.ICE:
 					var tile_color = Color(0.65, 0.88, 0.95, 0.45)
-					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 				else:
 					var tile_color = Color(0.76, 0.64, 0.42)
-					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 					
-					if randf() < 0.03:
-						var decor_type = randi() % 4
-						desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type})
+					if _rng.randf() < 0.03:
+						var decor_type = _rng.randi() % 4
+						desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type, "scale": p_scale})
 			else:
 				if chunk_type == ChunkType.ICE:
 					var tile_color = Color(0.45, 0.85, 1.0, 0.7)
 					if _rng.randf() < 0.15:
 						tile_color = Color(0.8, 0.95, 1.0, 0.85)
-					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 				elif chunk_type == ChunkType.BRIDGE:
 					var tile_color = Color(0.35, 0.32, 0.30)
-					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 				else:
 					var tile_color = Color(0.18, 0.18, 0.22)
-					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
+					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color, "scale": p_scale})
 					
 					if col > LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 2 == 0:
 						if row % 2 == 0:
-							stripe_positions.append({"pos": Vector2(x_pos, y_pos)})
+							stripe_positions.append({"pos": Vector2(x_pos, y_pos), "scale": p_scale})
 			
 			if tile_variant == 1 or tile_variant == 3:
 				obstacle_positions.append({
 					"pos": Vector2(x_pos, y_pos),
-					"color": Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0)
+					"color": Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0),
+					"scale": p_scale
 				})
 	
 	if lane_polygons.size() > 0:
@@ -265,7 +298,9 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		multimesh.mesh = _create_diamond_mesh()
 		multimesh.instance_count = lane_polygons.size()
 		for i in lane_polygons.size():
-			multimesh.set_instance_transform_2d(i, Transform2D(0.0, lane_polygons[i]["pos"]))
+			var ps = lane_polygons[i]["scale"]
+			var t = Transform2D(Vector2(ps, 0.0), Vector2(0.0, ps), lane_polygons[i]["pos"])
+			multimesh.set_instance_transform_2d(i, t)
 		lane_merged.multimesh = multimesh
 		lane_merged.modulate = lane_polygons[0]["color"]
 		chunk_local.add_child(lane_merged)
@@ -277,9 +312,12 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		emesh.mesh = _create_rect_mesh(Vector2(2, half_h * 0.9))
 		var edge_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
-			var y_pos = row * TILE_SIZE.y + half_h
-			edge_positions.append(Vector2((LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w, y_pos))
-			edge_positions.append(Vector2((LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w, y_pos))
+			var ps = _persp_scale[row]
+			var py = _persp_y[row]
+			var left_x = (LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x * ps
+			var right_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x * ps
+			edge_positions.append(Vector2(left_x - half_w * ps, py))
+			edge_positions.append(Vector2(right_x + half_w * ps, py))
 		emesh.instance_count = edge_positions.size()
 		for i in edge_positions.size():
 			emesh.set_instance_transform_2d(i, Transform2D(0.0, edge_positions[i]))
@@ -294,7 +332,9 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		multimesh.mesh = _create_diamond_mesh()
 		multimesh.instance_count = shoulder_polygons.size()
 		for i in shoulder_polygons.size():
-			multimesh.set_instance_transform_2d(i, Transform2D(0.0, shoulder_polygons[i]["pos"]))
+			var ps = shoulder_polygons[i]["scale"]
+			var t = Transform2D(Vector2(ps, 0.0), Vector2(0.0, ps), shoulder_polygons[i]["pos"])
+			multimesh.set_instance_transform_2d(i, t)
 		shoulder_merged.multimesh = multimesh
 		shoulder_merged.modulate = shoulder_polygons[0]["color"]
 		chunk_local.add_child(shoulder_merged)
@@ -306,7 +346,9 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		smesh.mesh = _create_rect_mesh(Vector2(4, half_h * 1.2))
 		smesh.instance_count = stripe_positions.size()
 		for i in stripe_positions.size():
-			smesh.set_instance_transform_2d(i, Transform2D(0.0, stripe_positions[i]["pos"]))
+			var ps = stripe_positions[i]["scale"]
+			var t = Transform2D(Vector2(ps, 0.0), Vector2(0.0, ps), stripe_positions[i]["pos"])
+			smesh.set_instance_transform_2d(i, t)
 		stripe_mmi.multimesh = smesh
 		stripe_mmi.modulate = Color(1.0, 1.0, 0.8)
 		chunk_local.add_child(stripe_mmi)
@@ -314,7 +356,9 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	for decor in desert_decorations:
 		var decor_node = _create_desert_decoration(decor["type"])
 		if decor_node:
+			var ds = decor["scale"]
 			decor_node.position = decor["pos"]
+			decor_node.scale = Vector2(ds, ds)
 			chunk_local.add_child(decor_node)
 			
 			if decor["type"] == 2 or decor["type"] == 3:
@@ -326,13 +370,14 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 				
 				var col_shape = CollisionShape2D.new()
 				var rect_shape = RectangleShape2D.new()
-				rect_shape.size = Vector2(20, 20)
+				rect_shape.size = Vector2(20, 20) * ds
 				col_shape.shape = rect_shape
 				crash_obstacle.add_child(col_shape)
 				
 				chunk_local.add_child(crash_obstacle)
 	
 	for obs in obstacle_positions:
+		var os = obs["scale"]
 		var obstacle = StaticBody2D.new()
 		obstacle.collision_layer = 1
 		obstacle.collision_mask = 1
@@ -340,7 +385,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		obstacle.add_to_group("obstacles")
 		
 		var col_poly = CollisionPolygon2D.new()
-		var sf = 0.85
+		var sf = 0.85 * os
 		col_poly.polygon = PackedVector2Array([
 			Vector2(0, -half_h * sf),
 			Vector2(half_w * sf, 0),
@@ -373,22 +418,25 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		cmesh.mesh = _create_rect_mesh(Vector2(1, half_h * 0.3))
 		var crack_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
+			var ps = _persp_scale[row]
+			var py = _persp_y[row]
 			for col in range(LANE_START_COL + 1, LANE_END_COL):
-				var lane_cx = (col - HALF_CHUNK) * TILE_SIZE.x
-				var y_pos = row * TILE_SIZE.y + half_h * 0.5
+				var lane_cx = (col - HALF_CHUNK) * TILE_SIZE.x * ps
+				var y_pos = py
 				if _rng.randf() < 0.12:
-					var x_offset = _rng.randf_range(-TILE_SIZE.x * 0.35, TILE_SIZE.x * 0.35)
+					var x_offset = _rng.randf_range(-TILE_SIZE.x * 0.35, TILE_SIZE.x * 0.35) * ps
 					crack_positions.append(Vector2(lane_cx + x_offset, y_pos))
 		if crack_positions.size() > 0:
 			cmesh.instance_count = crack_positions.size()
 			for i in crack_positions.size():
-				cmesh.set_instance_transform_2d(i, Transform2D(0.0, crack_positions[i]))
+				var t = Transform2D(Vector2(1.0, 0.0), Vector2(0.0, 1.0), crack_positions[i])
+				cmesh.set_instance_transform_2d(i, t)
 			crack_mmi.multimesh = cmesh
 			crack_mmi.modulate = Color(0.0, 0.0, 0.0, 0.15)
 			chunk_local.add_child(crack_mmi)
 
-	var left_rail_x = (LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w
-	var right_rail_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w
+	var raw_left_rail_x = (LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w
+	var raw_right_rail_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w
 	
 	var left_rail = Line2D.new()
 	left_rail.name = "LeftRail"
@@ -396,8 +444,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	left_rail.default_color = Constants.GUARDRAIL_COLOR if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var left_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
-		var y_pos = row * TILE_SIZE.y
-		left_points.append(Vector2(left_rail_x, y_pos))
+		var ri = mini(row, CHUNK_HEIGHT - 1)
+		left_points.append(Vector2(raw_left_rail_x * _persp_scale[ri], _persp_y[ri] if row < CHUNK_HEIGHT else CHUNK_PIXEL_HEIGHT))
 	left_rail.points = left_points
 	chunk_local.add_child(left_rail)
 	
@@ -407,8 +455,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	right_rail.default_color = Constants.GUARDRAIL_COLOR if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var right_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
-		var y_pos = row * TILE_SIZE.y
-		right_points.append(Vector2(right_rail_x, y_pos))
+		var ri = mini(row, CHUNK_HEIGHT - 1)
+		right_points.append(Vector2(raw_right_rail_x * _persp_scale[ri], _persp_y[ri] if row < CHUNK_HEIGHT else CHUNK_PIXEL_HEIGHT))
 	right_rail.points = right_points
 	chunk_local.add_child(right_rail)
 	
@@ -420,9 +468,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		pmesh.mesh = _create_rect_mesh(Vector2(2, 6))
 		var post_positions: Array[Vector2] = []
 		for row in range(0, CHUNK_HEIGHT + 1, 2):
-			var y_pos = row * TILE_SIZE.y + half_h
-			post_positions.append(Vector2(left_rail_x, y_pos))
-			post_positions.append(Vector2(right_rail_x, y_pos))
+			var ps = _persp_scale[mini(row, CHUNK_HEIGHT - 1)]
+			var py = _persp_y[mini(row, CHUNK_HEIGHT - 1)]
+			post_positions.append(Vector2(raw_left_rail_x * ps, py))
+			post_positions.append(Vector2(raw_right_rail_x * ps, py))
 		pmesh.instance_count = post_positions.size()
 		for i in post_positions.size():
 			pmesh.set_instance_transform_2d(i, Transform2D(0.0, post_positions[i]))
@@ -435,11 +484,17 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		ice_area.collision_layer = 0
 		ice_area.collision_mask = 1
 		var ice_col = CollisionPolygon2D.new()
+		var ice_top_s = _persp_scale[0]
+		var ice_bot_s = _persp_scale[CHUNK_HEIGHT - 1]
+		var ice_top_left = raw_left_rail_x * ice_top_s
+		var ice_top_right = raw_right_rail_x * ice_top_s
+		var ice_bot_left = raw_left_rail_x * ice_bot_s
+		var ice_bot_right = raw_right_rail_x * ice_bot_s
 		ice_col.polygon = PackedVector2Array([
-			Vector2(left_rail_x, 0),
-			Vector2(right_rail_x, 0),
-			Vector2(right_rail_x, CHUNK_PIXEL_HEIGHT),
-			Vector2(left_rail_x, CHUNK_PIXEL_HEIGHT)
+			Vector2(ice_top_left, _persp_y[0] - half_h * ice_top_s),
+			Vector2(ice_top_right, _persp_y[0] - half_h * ice_top_s),
+			Vector2(ice_bot_right, _persp_y[CHUNK_HEIGHT - 1] + half_h * ice_bot_s),
+			Vector2(ice_bot_left, _persp_y[CHUNK_HEIGHT - 1] + half_h * ice_bot_s)
 		])
 		ice_area.add_child(ice_col)
 		ice_area.body_entered.connect(_on_ice_entered)
@@ -449,34 +504,47 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	if chunk_type == ChunkType.BRIDGE:
 		var beam_every = 3
 		for beam_row in range(0, CHUNK_HEIGHT + 1, beam_every):
-			var beam_y = beam_row * TILE_SIZE.y
+			var ps = _persp_scale[mini(beam_row, CHUNK_HEIGHT - 1)]
+			var beam_y = _persp_y[mini(beam_row, CHUNK_HEIGHT - 1)] if beam_row < CHUNK_HEIGHT else CHUNK_PIXEL_HEIGHT
+			var beam_left_x = raw_left_rail_x * ps
+			var beam_right_x = raw_right_rail_x * ps
+			var beam_offset = 12.0 * ps
 			var beam = Line2D.new()
 			beam.width = 6.0
 			beam.default_color = Color(0.08, 0.08, 0.12)
 			beam.points = PackedVector2Array([
-				Vector2(left_rail_x - 12, beam_y),
-				Vector2(right_rail_x + 12, beam_y)
+				Vector2(beam_left_x - beam_offset, beam_y),
+				Vector2(beam_right_x + beam_offset, beam_y)
 			])
 			chunk_local.add_child(beam)
 			var beam_highlight = Line2D.new()
 			beam_highlight.width = 2.0
 			beam_highlight.default_color = Color(0.06, 0.06, 0.1)
 			beam_highlight.points = PackedVector2Array([
-				Vector2(left_rail_x - 12, beam_y + 2),
-				Vector2(right_rail_x + 12, beam_y + 2)
+				Vector2(beam_left_x - beam_offset, beam_y + 2 * ps),
+				Vector2(beam_right_x + beam_offset, beam_y + 2 * ps)
 			])
 			chunk_local.add_child(beam_highlight)
 		
 		var bridge_width = 48.0
+		var br_top_s = _persp_scale[0]
+		var br_bot_s = _persp_scale[CHUNK_HEIGHT - 1]
+		var br_top_left = raw_left_rail_x * br_top_s
+		var br_top_right = raw_right_rail_x * br_top_s
+		var br_bot_left = raw_left_rail_x * br_bot_s
+		var br_bot_right = raw_right_rail_x * br_bot_s
+		var br_top_y = _persp_y[0] - half_h * br_top_s
+		var br_bot_y = _persp_y[CHUNK_HEIGHT - 1] + half_h * br_bot_s
+		
 		var left_bridge = Area2D.new()
 		left_bridge.collision_layer = 0
 		left_bridge.collision_mask = 1
 		var left_col = CollisionPolygon2D.new()
 		left_col.polygon = PackedVector2Array([
-			Vector2(left_rail_x - bridge_width, 0),
-			Vector2(left_rail_x, 0),
-			Vector2(left_rail_x, CHUNK_PIXEL_HEIGHT),
-			Vector2(left_rail_x - bridge_width, CHUNK_PIXEL_HEIGHT)
+			Vector2(br_top_left - bridge_width * br_top_s, br_top_y),
+			Vector2(br_top_left, br_top_y),
+			Vector2(br_bot_left, br_bot_y),
+			Vector2(br_bot_left - bridge_width * br_bot_s, br_bot_y)
 		])
 		left_bridge.add_child(left_col)
 		left_bridge.body_entered.connect(_on_bridge_fall)
@@ -487,10 +555,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		right_bridge.collision_mask = 1
 		var right_col = CollisionPolygon2D.new()
 		right_col.polygon = PackedVector2Array([
-			Vector2(right_rail_x, 0),
-			Vector2(right_rail_x + bridge_width, 0),
-			Vector2(right_rail_x + bridge_width, CHUNK_PIXEL_HEIGHT),
-			Vector2(right_rail_x, CHUNK_PIXEL_HEIGHT)
+			Vector2(br_top_right, br_top_y),
+			Vector2(br_top_right + bridge_width * br_top_s, br_top_y),
+			Vector2(br_bot_right + bridge_width * br_bot_s, br_bot_y),
+			Vector2(br_bot_right, br_bot_y)
 		])
 		right_bridge.add_child(right_col)
 		right_bridge.body_entered.connect(_on_bridge_fall)

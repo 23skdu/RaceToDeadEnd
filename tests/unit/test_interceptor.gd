@@ -262,7 +262,7 @@ func test_ready_sets_z_index():
 
 func test_ready_sets_camera_offset():
 	var player = _create_player()
-	assert_eq(player.get_node("Camera2D").position.y, -100, "Camera should be offset upward")
+	assert_eq(player.get_node("Camera2D").position.y, -220, "Camera should be offset upward")
 
 
 

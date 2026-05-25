@@ -116,8 +116,6 @@ func _on_segment_completed(_segment: int) -> void:
 	elif tier >= 12:
 		weather.set_weather(weather.WeatherType.STORM)
 
-static var _cached_parallax_textures: Array[Texture2D] = []
-
 func _setup_parallax() -> void:
 	_parallax = ParallaxBackground.new()
 	_parallax.name = "ParallaxBackground"
@@ -125,33 +123,37 @@ func _setup_parallax() -> void:
 	add_child(_parallax)
 	move_child(_parallax, 0)
 
+	var vs = DisplayServer.window_get_size()
+
 	var layers = [
-		{ "scale": Vector2(0.1, 0.0), "color": Color(0.08, 0.08, 0.15), "label": "far" },
-		{ "scale": Vector2(0.3, 0.0), "color": Color(0.12, 0.1, 0.18), "label": "mid" },
-		{ "scale": Vector2(0.6, 0.0), "color": Color(0.18, 0.14, 0.22), "label": "near" },
+		{ "scale": Vector2(0.02, 0.0), "color_top": Color(0.02, 0.01, 0.05), "color_bot": Color(0.06, 0.04, 0.12), "label": "deep", "height": 1.5 },
+		{ "scale": Vector2(0.05, 0.0), "color_top": Color(0.05, 0.03, 0.10), "color_bot": Color(0.10, 0.07, 0.18), "label": "far", "height": 1.2 },
+		{ "scale": Vector2(0.1, 0.0), "color_top": Color(0.10, 0.06, 0.18), "color_bot": Color(0.25, 0.18, 0.30), "label": "mid", "height": 1.0 },
+		{ "scale": Vector2(0.3, 0.0), "color_top": Color(0.18, 0.12, 0.28), "color_bot": Color(0.40, 0.30, 0.42), "label": "near", "height": 0.7 },
 	]
-	if _cached_parallax_textures.is_empty():
-		for l in layers:
-			var img = Image.create(4, 256, false, Image.FORMAT_RGBA8)
-			for y in 256:
-				var t = float(y) / 255.0
-				var c = l.color.lerp(Color(l.color.r * 0.5, l.color.g * 0.5, l.color.b * 0.5, 1.0), t)
-				img.set_pixel(0, y, c)
-				img.set_pixel(1, y, c)
-				img.set_pixel(2, y, c)
-				img.set_pixel(3, y, c)
-			_cached_parallax_textures.append(ImageTexture.create_from_image(img))
-	for i in _cached_parallax_textures.size():
+	var textures: Array[Texture2D] = []
+	for li in layers.size():
+		var l = layers[li]
+		var tex_height = int(256.0 * l.height)
+		var img = Image.create(4, tex_height, false, Image.FORMAT_RGBA8)
+		for y in tex_height:
+			var t = float(y) / float(tex_height - 1)
+			var c = l.color_top.lerp(l.color_bot, t)
+			img.set_pixel(0, y, c)
+			img.set_pixel(1, y, c)
+			img.set_pixel(2, y, c)
+			img.set_pixel(3, y, c)
+		textures.append(ImageTexture.create_from_image(img))
+	for i in textures.size():
 		var l = layers[i]
 		var layer = ParallaxLayer.new()
 		layer.name = "Layer" + l.label.capitalize()
 		layer.motion_scale = l.scale
 		var sprite = Sprite2D.new()
-		sprite.texture = _cached_parallax_textures[i]
+		sprite.texture = textures[i]
 		sprite.centered = false
-		var vs = DisplayServer.window_get_size()
-		sprite.scale = Vector2(vs.x / 4.0, 3.0)
-		sprite.position = Vector2(0, -vs.y * 0.5)
+		sprite.scale = Vector2(vs.x / 4.0, float(vs.y) * l.height / float(textures[i].get_height()))
+		sprite.position = Vector2(0, -float(vs.y) * l.height)
 		layer.add_child(sprite)
 		_parallax.add_child(layer)
 
