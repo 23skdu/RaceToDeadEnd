@@ -196,7 +196,6 @@ func test_spawn_enemy_missing_scene():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s.enemy_scenes["missing"] = null
 	s._spawn_enemy("missing")
 	assert_true(true, "Should not crash with missing scene")
@@ -224,7 +223,6 @@ func _create_mock_player() -> Node2D:
 func test_ready_preloads_enemy_scenes():
 	var s = Spawner.new()
 	add_child_autofree(s)
-	s._ready()
 	assert_true(s.enemy_scenes.has("rotor"), "Should have rotor scene")
 	assert_true(s.enemy_scenes.has("scav"), "Should have scav scene")
 	assert_true(s.enemy_scenes.has("drone"), "Should have drone scene")
@@ -233,7 +231,6 @@ func test_spawn_wave_increments_counter():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	var initial_wave = s.current_wave
 	s._spawn_wave()
 	assert_eq(s.current_wave, initial_wave + 1, "Wave counter should increment")
@@ -242,7 +239,6 @@ func test_spawn_wave_emits_signal():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	watch_signals(s)
 	s._spawn_wave()
 	assert_signal_emitted(s, "wave_spawned", "Should emit wave_spawned signal")
@@ -251,7 +247,6 @@ func test_spawn_enemy_creates_rotor():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s._spawn_enemy("rotor")
 	var enemy_count = 0
 	for child in s.get_children():
@@ -263,7 +258,6 @@ func test_spawn_enemy_sets_lane_position():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s._spawn_enemy("rotor")
 	for child in s.get_children():
 		if child.has_method("init") and child is CharacterBody2D:
@@ -275,7 +269,6 @@ func test_on_enemy_destroyed_registers_score():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	GameManager.start_game()
 	s._on_enemy_destroyed(Vector2.ZERO, "rotor", Node2D.new())
 	assert_gt(GameManager.score, 0, "Should register score on enemy destroy")
@@ -284,7 +277,6 @@ func test_on_pickup_collected_ignores_non_player():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	var pickup = Area2D.new()
 	add_child_autofree(pickup)
 	s._on_pickup_collected("repair", pickup)
@@ -293,7 +285,6 @@ func test_on_pickup_collected_ignores_non_player():
 func test_spawn_enemy_null_player():
 	var s = Spawner.new()
 	add_child_autofree(s)
-	s._ready()
 	s.player = null
 	s._spawn_enemy("rotor")
 	assert_true(true, "Should not crash with null player")
@@ -321,7 +312,6 @@ func test_wave_spawned_signal_contains_wave_number():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	var captured = {wave = 0}
 	s.wave_spawned.connect(func(w): captured.wave = w)
 	s._spawn_wave()
@@ -363,7 +353,7 @@ func test_spawn_boss_creates_node():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	var found = false
@@ -377,7 +367,7 @@ func test_spawn_boss_emits_signal():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	watch_signals(s)
 	s._spawn_boss()
@@ -387,7 +377,7 @@ func test_spawn_boss_sets_lane_position():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	for child in s.get_children():
@@ -401,7 +391,7 @@ func test_spawn_boss_sets_player_ref():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	for child in s.get_children():
@@ -413,7 +403,7 @@ func test_spawn_boss_sets_spawner_ref():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	for child in s.get_children():
@@ -425,7 +415,7 @@ func test_spawn_boss_increments_counter():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	var before = s._bosses_spawned
 	s._spawn_boss()
@@ -435,7 +425,6 @@ func test_spawn_civilian_creates_child():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	var found = false
@@ -449,7 +438,6 @@ func test_spawn_civilian_connects_exited_safely():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	for child in s.get_children():
@@ -461,7 +449,6 @@ func test_spawn_civilian_connects_hit_by_player():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	for child in s.get_children():
@@ -473,7 +460,6 @@ func test_spawn_civilian_sets_position_offset():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	for child in s.get_children():
@@ -516,7 +502,6 @@ func test_on_civilian_hit_calls_register():
 	s.player = mock_player
 	add_child_autofree(mock_player)
 	add_child_autofree(s)
-	s._ready()
 	GameManager.start_game()
 	var health_before = GameManager.health
 	s._on_civilian_hit(MockCivilianNode.new())
@@ -526,7 +511,6 @@ func test_on_civilian_hit():
 	var s = Spawner.new()
 	s.player = PlayerWithDamage.new()
 	add_child_autofree(s)
-	s._ready()
 	GameManager.start_game()
 	s._on_civilian_hit(MockCivilianNode.new())
 	assert_true(true, "Should not crash when calling _on_civilian_hit")
@@ -535,7 +519,7 @@ func test_enemy_spawned_emitted_when_boss_spawns():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
+	s._bosses_spawned = 3
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	watch_signals(s)
 	s._spawn_boss()
@@ -545,22 +529,25 @@ func test_enemy_spawned_emitted_when_enemy_spawns():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._ready()
 	watch_signals(s)
 	s._spawn_enemy("rotor")
 	assert_signal_emitted(s, "enemy_spawned", "enemy_spawned should emit when enemy spawns")
+
+class CleanupMock extends Node2D:
+	@warning_ignore("unused_signal")
+	signal destroyed(pos: Vector2, enemy_type: String, enemy: Node)
+	var _spawner = null
 
 func test_cleanup_disconnects_destroyed_signal():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	var mock_enemy = Node2D.new()
-	mock_enemy.set_script(Enemy)
+	var mock_enemy = CleanupMock.new()
 	mock_enemy.global_position = Vector2(0, 1000)
 	mock_enemy._spawner = s
 	GameManager.enemy_list.append(mock_enemy)
 	s.add_child(mock_enemy)
-	s._ready()
+	mock_enemy.destroyed.connect(s._on_enemy_destroyed)
 	GameManager.state = GameManager.GameState.PLAYING
 	assert_true(mock_enemy.destroyed.is_connected(s._on_enemy_destroyed), "destroyed should be connected before cleanup")
 	s._process(0.5)
@@ -588,10 +575,12 @@ func test_spawner_uses_game_manager_enemy_list_only():
 
 func test_spawner_connects_game_started_signal():
 	var s = Spawner.new()
+	add_child_autofree(s)
 	assert_true(GameManager.game_started.is_connected(s._on_game_started), "Spawner should connect to game_started signal")
 
 func test_spawner_resets_wave_timer_on_game_start():
 	var s = Spawner.new()
+	add_child_autofree(s)
 	s.wave_timer = 0.0
 	GameManager.start_game()
 	assert_gt(s.wave_timer, 0.0, "Wave timer should be reset on game start")
@@ -613,6 +602,7 @@ func test_civilian_spawn_accumulator_skips_spawn_below_threshold():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
+	s.wave_timer = 5.0
 	s.civilian_chance = 0.5
 	GameManager.state = GameManager.GameState.PLAYING
 	s._civilian_spawn_accumulator = 0.0

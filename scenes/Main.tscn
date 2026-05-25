@@ -17,18 +17,14 @@ grow_vertical = 2
 color = Color(0.913726, 0.270588, 0.376471, 1)
 
 [node name="Background" type="TextureRect" parent="CanvasLayer"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
+anchors_preset = 0
+offset_left = 380.0
+offset_top = 200.0
+offset_right = 644.0
+offset_bottom = 464.0
 texture = ExtResource("2_bg")
-expand_mode = 1
-stretch_mode = 6
+expand_mode = 0
+stretch_mode = 1
 
 [node name="TitleLabel" type="Label" parent="CanvasLayer"]
 offset_left = 440.0

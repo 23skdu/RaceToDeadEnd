@@ -1,5 +1,7 @@
 extends GutTest
 
+const Helpers = preload("res://scripts/utils/Helpers.gd")
+
 func test_scale_sprite_to_viewport_no_crash():
 	var sprite = Sprite2D.new()
 	var img = Image.create(4, 4, false, Image.FORMAT_RGBA8)

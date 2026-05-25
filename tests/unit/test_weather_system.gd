@@ -310,7 +310,6 @@ func test_overlay_color_completes_on_transition_end():
 
 func test_lightning_flash_cleaned_after_tween():
 	var ws = _create_weather()
-	add_child_autofree(ws)
 	ws._set_weather(ws.WeatherType.STORM)
 	var flash = ws._create_lightning_flash(Vector2.ZERO)
 	ws.lightning_container.add_child(flash)
@@ -323,7 +322,6 @@ func test_lightning_flash_cleaned_after_tween():
 
 func test_lightning_bolt_cleaned_after_tween():
 	var ws = _create_weather()
-	add_child_autofree(ws)
 	ws._set_weather(ws.WeatherType.STORM)
 	var bolt = Line2D.new()
 	bolt.points = PackedVector2Array([Vector2.ZERO, Vector2(10, 10)])

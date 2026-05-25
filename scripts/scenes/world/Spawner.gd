@@ -39,7 +39,8 @@ func _ready() -> void:
 	enemy_scenes["boss_void_drone"] = preload("res://scenes/enemies/BossVoidDrone.tscn") if ResourceLoader.exists("res://scenes/enemies/BossVoidDrone.tscn") else null
 	if not GameManager.game_started.is_connected(_on_game_started):
 		GameManager.game_started.connect(_on_game_started)
-	spawn_minion_requested.connect(_on_spawn_minion_requested)
+	if not spawn_minion_requested.is_connected(_on_spawn_minion_requested):
+		spawn_minion_requested.connect(_on_spawn_minion_requested)
 
 func _on_game_started() -> void:
 	wave_timer = wave_interval
