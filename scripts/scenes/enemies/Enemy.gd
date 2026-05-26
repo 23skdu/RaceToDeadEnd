@@ -188,6 +188,9 @@ func on_pool_release() -> void:
 	sprite.scale = Vector2.ONE
 	sprite.modulate = Color.WHITE
 	velocity = Vector2.ZERO
+	# Re-enable collision so pooled enemies are not immune after first death
+	if collision:
+		collision.set_deferred(&"disabled", false)
 	if _spawner and destroyed.is_connected(_spawner._on_enemy_destroyed):
 		destroyed.disconnect(_spawner._on_enemy_destroyed)
 

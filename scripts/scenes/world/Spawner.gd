@@ -82,7 +82,8 @@ func _process(delta: float) -> void:
 		var e = GameManager.enemy_list[i]
 		if not is_instance_valid(e) or e.is_queued_for_deletion():
 			GameManager.enemy_list.remove_at(i)
-		elif e.global_position.y - player_y > Constants.CLEANUP_DISTANCE:
+		elif e.global_position.y - player_y > Constants.CLEANUP_DISTANCE \
+				or player_y - e.global_position.y > Constants.CLEANUP_DISTANCE:
 			GameManager.enemy_list.remove_at(i)
 			if e.has_signal("destroyed") and e.destroyed.is_connected(_on_enemy_destroyed):
 				e.destroyed.disconnect(_on_enemy_destroyed)
