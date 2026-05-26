@@ -84,7 +84,7 @@ func _ready() -> void:
 	
 	if player:
 		player.weapon_fired.connect(_on_player_weapon_fired)
-		player.weapon_switched.connect(func(idx): hud.update_weapon_display(idx, player.secondary_ammo[idx]))
+		player.weapon_switched.connect(func(idx): hud.update_weapons(idx, player.secondary_ammo))
 		player.boost_charge_updated.connect(hud.update_boost_charges)
 		player.boost_activated.connect(func(): hud.set_boost_active(true))
 		player.boost_depleted.connect(func(): hud.set_boost_active(false))
@@ -95,7 +95,7 @@ func _ready() -> void:
 		highway.bridge_fall.connect(player.on_bridge_fall)
 		
 		# Initial UI sync
-		hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
+		hud.update_weapons(player.current_weapon, player.secondary_ammo)
 		hud.update_boost_charges(player.boost_charges)
 		
 	if game_over and game_over.has_signal("restart_requested"):
@@ -248,19 +248,19 @@ func _on_player_weapon_fired(type: String, pos: Vector2, dir: Vector2) -> void:
 			bullet.scale = Vector2(1.8, 1.8)
 			bullet.modulate = Color(1.0, 0.25, 0.25)
 			bullet.hit_target.connect(_on_bullet_hit)
-			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
+			hud.update_weapons(player.current_weapon, player.secondary_ammo)
 			AudioManager.play_synth_laser(pos)
 		"mine":
 			var mine = ObjectPool.acquire("mine")
 			world.add_child(mine)
 			mine.init(pos)
-			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
+			hud.update_weapons(player.current_weapon, player.secondary_ammo)
 			AudioManager.play_synth_explosion(pos)
 		"emp":
 			var emp = ObjectPool.acquire("emp")
 			world.add_child(emp)
 			emp.init(pos)
-			hud.update_weapon_display(player.current_weapon, player.secondary_ammo[player.current_weapon])
+			hud.update_weapons(player.current_weapon, player.secondary_ammo)
 			AudioManager.play_synth_emp(pos)
 
 func _on_bullet_hit(body: Node) -> void:

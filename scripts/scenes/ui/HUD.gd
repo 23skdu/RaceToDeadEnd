@@ -10,6 +10,15 @@ extends CanvasLayer
 @onready var weapon_icon: ColorRect = $WeaponIcon
 @onready var ammo_label: Label = $AmmoLabel
 @onready var tier_label: Label = $TierLabel
+@onready var lives_label: Label = $LivesLabel
+
+@onready var weapons_container: HBoxContainer = $WeaponsContainer
+@onready var missile_panel: HBoxContainer = $WeaponsContainer/MissilePanel
+@onready var missile_label: Label = $WeaponsContainer/MissilePanel/Label
+@onready var mine_panel: HBoxContainer = $WeaponsContainer/MinePanel
+@onready var mine_label: Label = $WeaponsContainer/MinePanel/Label
+@onready var emp_panel: HBoxContainer = $WeaponsContainer/EmpPanel
+@onready var emp_label: Label = $WeaponsContainer/EmpPanel/Label
 
 var boost_indicators: Array[Control] = []
 var _multiplier_pulse_timer: float = 0.0
@@ -21,7 +30,13 @@ func _ready() -> void:
 	GameManager.multiplier_updated.connect(_on_multiplier_updated)
 	GameManager.multiplier_timer_updated.connect(_on_multiplier_timer_updated)
 	GameManager.difficulty_tier_changed.connect(_on_tier_changed)
+	GameManager.lives_updated.connect(_on_lives_updated)
 	boost_indicators.assign(boost_container.get_children())
+	_on_lives_updated(GameManager.lives)
+	if weapon_icon:
+		weapon_icon.visible = false
+	if ammo_label:
+		ammo_label.visible = false
 
 func _process(delta: float) -> void:
 	if multiplier_timer_bar.visible:
@@ -54,6 +69,9 @@ func _on_multiplier_timer_updated(time_left: float) -> void:
 func _on_tier_changed(tier: int) -> void:
 	tier_label.text = "TIER %d" % tier
 
+func _on_lives_updated(lives: int) -> void:
+	lives_label.text = "♥ %d" % lives
+
 func set_boost_active(active: bool) -> void:
 	_boost_active = active
 	if not active:
@@ -66,8 +84,31 @@ func update_boost_charges(charges: int) -> void:
 
 func update_weapon_display(weapon_index: int, ammo: int) -> void:
 	var wd = Constants.WEAPON_DATA
-	weapon_icon.modulate = wd[weapon_index % wd.size()].color
-	ammo_label.text = str(ammo)
+	if weapon_icon:
+		weapon_icon.modulate = wd[weapon_index % wd.size()].color
+	if ammo_label:
+		ammo_label.text = str(ammo)
+
+func update_weapons(active_index: int, ammo_list: Array) -> void:
+	var panels = [missile_panel, mine_panel, emp_panel]
+	var labels = [missile_label, mine_label, emp_label]
+	var prefixes = ["MSL: ", "MNE: ", "EMP: "]
+	
+	for i in range(panels.size()):
+		if i < panels.size() and panels[i] and labels[i]:
+			if i < ammo_list.size():
+				var ammo = ammo_list[i]
+				if ammo > 0:
+					panels[i].visible = true
+					labels[i].text = prefixes[i] + str(ammo)
+					if i == active_index:
+						panels[i].modulate.a = 1.0
+					else:
+						panels[i].modulate.a = 0.4
+				else:
+					panels[i].visible = false
+			else:
+				panels[i].visible = false
 
 func _on_game_over() -> void:
 	visible = false

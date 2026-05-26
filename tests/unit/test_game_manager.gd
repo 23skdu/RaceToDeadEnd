@@ -117,6 +117,7 @@ func test_add_health_negative():
 func test_add_health_clamp_zero():
 	var gm = get_gm()
 	gm.start_game()
+	gm.lives = 0
 	gm.add_health(-100)
 	assert_eq(gm.health, 0, "Health should clamp at 0")
 
@@ -130,8 +131,10 @@ func test_take_damage():
 func test_take_damage_triggers_game_over():
 	var gm = get_gm()
 	gm.start_game()
-	gm.take_damage(gm.max_health)
-	assert_eq(gm.state, gm.GameState.GAME_OVER, "State should be GAME_OVER")
+	# Must exhaust all lives (3) before game over fires
+	for _i in gm.max_lives:
+		gm.take_damage(gm.max_health)
+	assert_eq(gm.state, gm.GameState.GAME_OVER, "State should be GAME_OVER after all lives exhausted")
 
 func test_end_game_calculates_credits():
 	var gm = get_gm()
@@ -401,8 +404,10 @@ func test_take_damage_via_add_health():
 func test_add_health_to_zero_triggers_end_game():
 	var gm = get_gm()
 	gm.start_game()
-	gm.add_health(-gm.max_health)
-	assert_eq(gm.state, gm.GameState.GAME_OVER, "Health reaching zero should end game")
+	# Drain all lives first, then the final zero-health triggers game over
+	for _i in gm.max_lives:
+		gm.add_health(-gm.max_health)
+	assert_eq(gm.state, gm.GameState.GAME_OVER, "Health reaching zero after all lives exhausted should end game")
 
 func test_spend_credits_exact_amount():
 	var gm = get_gm()
@@ -566,3 +571,89 @@ func test_advance_segment_does_not_save_with_zero_credits():
 	assert_false(FileAccess.file_exists(save_path), "Save should not be created with zero credits and score")
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
+
+# --- Lives System Tests ---
+
+func test_start_game_sets_lives_to_max():
+	var gm = get_gm()
+	gm.start_game()
+	assert_eq(gm.lives, gm.max_lives, "lives should equal max_lives after start_game")
+	assert_eq(gm.lives, 3, "Default max_lives should be 3")
+
+func test_death_with_lives_remaining_does_not_trigger_game_over():
+	var gm = get_gm()
+	gm.start_game()
+	gm.take_damage(gm.max_health)
+	assert_ne(gm.state, gm.GameState.GAME_OVER, "Should NOT be game over when lives remain")
+
+func test_death_restores_full_health_when_lives_remain():
+	var gm = get_gm()
+	gm.start_game()
+	gm.take_damage(gm.max_health)
+	assert_eq(gm.health, gm.max_health, "Health should be fully restored after losing a life")
+
+func test_death_decrements_lives():
+	var gm = get_gm()
+	gm.start_game()
+	var lives_before = gm.lives
+	gm.take_damage(gm.max_health)
+	assert_eq(gm.lives, lives_before - 1, "Losing a life should decrement lives by 1")
+
+func test_multiple_deaths_decrement_lives_correctly():
+	var gm = get_gm()
+	gm.start_game()
+	gm.take_damage(gm.max_health)  # 3 -> 2
+	gm.take_damage(gm.max_health)  # 2 -> 1
+	assert_eq(gm.lives, 1, "Should have 1 life remaining after 2 deaths")
+
+func test_death_on_last_life_triggers_game_over():
+	var gm = get_gm()
+	gm.start_game()
+	gm.lives = 0  # Simulate being on last life (lives will go to 0 on next death)
+	gm.take_damage(gm.max_health)
+	assert_eq(gm.state, gm.GameState.GAME_OVER, "Game over should fire when lives == 0 on death")
+
+func test_game_over_after_exactly_max_lives_deaths():
+	var gm = get_gm()
+	gm.start_game()
+	# Die (max_lives) times: first (max_lives - 1) should respawn, last should game over
+	for i in gm.max_lives:
+		gm.take_damage(gm.max_health)
+		if i < gm.max_lives - 1:
+			assert_ne(gm.state, gm.GameState.GAME_OVER, "Should still be alive after death %d" % (i + 1))
+	assert_eq(gm.state, gm.GameState.GAME_OVER, "Should be game over after all lives exhausted")
+
+func test_lives_updated_signal_emitted_on_start():
+	var gm = get_gm()
+	watch_signals(gm)
+	gm.start_game()
+	assert_signal_emitted(gm, "lives_updated", "lives_updated should emit on start_game")
+
+func test_lives_updated_signal_emitted_on_death():
+	var gm = get_gm()
+	gm.start_game()
+	watch_signals(gm)
+	gm.take_damage(gm.max_health)
+	assert_signal_emitted(gm, "lives_updated", "lives_updated should emit when a life is lost")
+
+func test_lives_updated_signal_contains_correct_value():
+	var gm = get_gm()
+	gm.start_game()
+	var box = [-1]
+	gm.lives_updated.connect(func(l): box[0] = l)
+	gm.take_damage(gm.max_health)
+	assert_eq(box[0], gm.max_lives - 1, "Signal should carry the new lives count")
+
+func test_lives_not_decremented_for_non_lethal_damage():
+	var gm = get_gm()
+	gm.start_game()
+	var lives_before = gm.lives
+	gm.take_damage(1)  # non-lethal
+	assert_eq(gm.lives, lives_before, "Lives should not decrease for non-lethal damage")
+
+func test_start_game_resets_lives_to_max():
+	var gm = get_gm()
+	gm.start_game()
+	gm.lives = 1
+	gm.start_game()
+	assert_eq(gm.lives, gm.max_lives, "start_game should reset lives to max_lives")

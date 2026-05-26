@@ -111,3 +111,35 @@ func test_hud_set_boost_active_changes_modulate():
 	assert_false(hud._boost_active, "Boost active flag should be cleared")
 	for indicator in hud.boost_indicators:
 		assert_eq(indicator.modulate, Color.WHITE, "Indicators should return to white after boost deactivates")
+
+# --- Lives Label Tests ---
+
+func test_hud_lives_label_exists():
+	var hud = _create_hud()
+	assert_not_null(hud.lives_label, "HUD should have a lives_label node")
+
+func test_hud_lives_update():
+	var hud = _create_hud()
+	hud._on_lives_updated(2)
+	assert_true(hud.lives_label.text.contains("2"), "Lives label should show the current lives count")
+
+func test_hud_lives_update_zero():
+	var hud = _create_hud()
+	hud._on_lives_updated(0)
+	assert_true(hud.lives_label.text.contains("0"), "Lives label should show 0 when no lives remain")
+
+func test_hud_ready_connects_lives_signal():
+	var hud = _create_hud()
+	assert_true(GameManager.lives_updated.is_connected(hud._on_lives_updated), "Should connect lives_updated signal on ready")
+
+func test_hud_update_weapons_shows_only_available():
+	var hud = _create_hud()
+	hud.update_weapons(0, [3, 0, 1])
+	assert_true(hud.missile_panel.visible, "Missile panel should be visible since ammo > 0")
+	assert_false(hud.mine_panel.visible, "Mine panel should be hidden since ammo == 0")
+	assert_true(hud.emp_panel.visible, "EMP panel should be visible since ammo > 0")
+	assert_eq(hud.missile_panel.modulate.a, 1.0, "Active weapon panel should have full opacity")
+	assert_almost_eq(hud.emp_panel.modulate.a, 0.4, 0.01, "Inactive weapon panel should be translucent")
+	assert_true(hud.missile_label.text.contains("3"), "Missile label should show count 3")
+	assert_true(hud.emp_label.text.contains("1"), "EMP label should show count 1")
+

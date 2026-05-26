@@ -8,6 +8,7 @@ signal game_over(final_score: int)
 signal game_started
 signal segment_advanced(segment: int)
 signal multiplier_timer_updated(time_left: float)
+signal lives_updated(lives: int)
 
 enum GameState { MENU, PLAYING, PAUSED, GAME_OVER }
 
@@ -15,6 +16,8 @@ var state: GameState = GameState.MENU
 var score: int = 0
 var health: int = 5
 var max_health: int = 5
+var lives: int = 3
+var max_lives: int = 3
 var multiplier: int = 1
 var difficulty_tier: int = 1
 var current_segment: int = 0
@@ -36,7 +39,6 @@ var upgrade_levels: Dictionary = {
 var _difficulty_progress: float = 0.0
 var _multiplier_timer: float = 0.0
 var _base_multiplier: int = 1
-var _last_tier_threshold: int = 0
 
 var _score_ticker: Timer
 var current_speed: float = Constants.BASE_SPEED
@@ -76,6 +78,7 @@ func start_game() -> void:
 	_base_multiplier = 1
 	max_health = 4 + upgrade_levels.get("max_health", 1)
 	health = max_health
+	lives = max_lives
 	multiplier = 1
 	difficulty_tier = 1
 	current_segment = 0
@@ -83,6 +86,7 @@ func start_game() -> void:
 	speed_changed.emit(current_speed)
 	score_updated.emit(score)
 	health_updated.emit(health)
+	lives_updated.emit(lives)
 	multiplier_updated.emit(multiplier)
 	difficulty_tier_changed.emit(difficulty_tier)
 	game_started.emit()
@@ -106,7 +110,7 @@ func _check_difficulty_advance() -> void:
 	var new_tier = mini(1 + floori(_difficulty_progress / Constants.TIER_THRESHOLD), Constants.MAX_TIER)
 	if new_tier > difficulty_tier:
 		difficulty_tier = new_tier
-		current_speed = mini(Constants.BASE_SPEED + (difficulty_tier - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED)
+		current_speed = minf(Constants.BASE_SPEED + (difficulty_tier - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED)
 		difficulty_tier_changed.emit(difficulty_tier)
 		speed_changed.emit(current_speed)
 
@@ -114,7 +118,14 @@ func add_health(amount: int) -> void:
 	health = clampi(health + amount, 0, max_health)
 	health_updated.emit(health)
 	if health <= 0:
-		end_game()
+		# Consume a life
+		lives -= 1
+		lives_updated.emit(lives)
+		if lives > 0:
+			health = max_health
+			health_updated.emit(health)
+		else:
+			end_game()
 
 func take_damage(amount: int) -> void:
 	add_health(-amount)
