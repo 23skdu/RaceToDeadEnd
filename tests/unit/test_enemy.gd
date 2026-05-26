@@ -102,10 +102,10 @@ func test_take_damage_does_not_kill_above_zero():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
-	var destroy_count = 0
-	e.destroyed.connect(func(_pos, _type, _enemy): destroy_count += 1)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
 	e.take_damage(1)
-	assert_eq(destroy_count, 0, "Should not emit destroyed with remaining HP")
+	assert_eq(capture.count, 0, "Should not emit destroyed with remaining HP")
 
 func test_die_emits_correct_enemy_type():
 	var e = _create_enemy()
