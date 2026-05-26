@@ -15,23 +15,38 @@ func before_all():
 	Enemy = load("res://scripts/scenes/enemies/Enemy.gd")
 
 func test_enemy_type_enum():
-	assert_eq(Enemy.EnemyType.ROTOR, 0, "ROTOR = 0")
-	assert_eq(Enemy.EnemyType.SCAV, 1, "SCAV = 1")
-	assert_eq(Enemy.EnemyType.DRONE, 2, "DRONE = 2")
+	assert_eq(Enemy.EnemyType.BUNNY, 0, "BUNNY = 0")
+	assert_eq(Enemy.EnemyType.ROTOR, 1, "ROTOR = 1")
+	assert_eq(Enemy.EnemyType.SCAV, 2, "SCAV = 2")
+	assert_eq(Enemy.EnemyType.DRONE, 3, "DRONE = 3")
+	assert_eq(Enemy.EnemyType.SASQUATCH, 4, "SASQUATCH = 4")
 
 func test_type_names_constant():
-	assert_eq(Enemy.TYPE_NAMES.size(), 3, "Should have 3 type names")
-	assert_eq(Enemy.TYPE_NAMES[0], "rotor", "Type name 0 should be rotor")
-	assert_eq(Enemy.TYPE_NAMES[1], "scav", "Type name 1 should be scav")
+	assert_eq(Enemy.TYPE_NAMES.size(), 5, "Should have 5 type names")
+	assert_eq(Enemy.TYPE_NAMES[0], "bunny", "Type name 0 should be bunny")
+	assert_eq(Enemy.TYPE_NAMES[1], "rotor", "Type name 1 should be rotor")
+	assert_eq(Enemy.TYPE_NAMES[2], "scav", "Type name 2 should be scav")
+	assert_eq(Enemy.TYPE_NAMES[3], "drone", "Type name 3 should be drone")
+	assert_eq(Enemy.TYPE_NAMES[4], "sasquatch", "Type name 4 should be sasquatch")
 
 
+
+func test_init_bunny():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 3, player, 200.0)
+	assert_eq(e.hp, 1, "Bunny HP")
+	assert_almost_eq(e.speed, 200.0 * Constants.BUNNY_SPEED_MULTIPLIER, 0.001, "Bunny speed")
+	assert_eq(e.score_value, 50, "Bunny score")
+	assert_eq(e.lane, 3, "Lane should be set")
+	assert_eq(e.player, player, "Player reference should be set")
 
 func test_init_rotor():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	assert_eq(e.hp, 1, "Rotor HP")
-	assert_eq(e.speed, 200.0 * 0.9, "Rotor speed")
+	assert_almost_eq(e.speed, 200.0 * Constants.ROTOR_SPEED_MULTIPLIER, 0.001, "Rotor speed")
 	assert_eq(e.score_value, 50, "Rotor score")
 	assert_eq(e.player, player, "Player reference should be set")
 
@@ -40,7 +55,7 @@ func test_init_scav():
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.SCAV, 1, player, 200.0)
 	assert_eq(e.hp, 3, "Scav HP")
-	assert_eq(e.speed, 200.0 * 0.7, "Scav speed")
+	assert_almost_eq(e.speed, 200.0 * Constants.SCAV_SPEED_MULTIPLIER, 0.001, "Scav speed")
 	assert_eq(e.score_value, 100, "Scav score")
 	assert_eq(e.player, player, "Player reference should be set")
 
@@ -49,15 +64,24 @@ func test_init_drone():
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.DRONE, 2, player, 200.0)
 	assert_eq(e.hp, 2, "Drone HP")
-	assert_eq(e.speed, 200.0 * 0.5, "Drone speed")
+	assert_almost_eq(e.speed, 200.0 * Constants.DRONE_SPEED_MULTIPLIER, 0.001, "Drone speed")
 	assert_eq(e.score_value, 200, "Drone score")
+	assert_eq(e.player, player, "Player reference should be set")
+
+func test_init_sasquatch():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.SASQUATCH, 5, player, 200.0)
+	assert_eq(e.hp, Constants.BOSS_SASQUATCH_HP, "Sasquatch HP from constant")
+	assert_almost_eq(e.speed, 200.0 * 0.6, 0.001, "Sasquatch speed")
+	assert_eq(e.score_value, 300, "Sasquatch score")
 	assert_eq(e.player, player, "Player reference should be set")
 
 func test_init_uses_base_speed_not_player_speed():
 	var e = _create_enemy()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
-	assert_eq(e.speed, 180.0, "Speed should be based on base_speed, not player.current_speed")
+	assert_almost_eq(e.speed, 180.0, 0.001, "Speed should be based on base_speed, not player.current_speed")
 
 func test_take_damage_reduces_hp():
 	var e = _create_enemy()
@@ -131,6 +155,12 @@ func test_take_damage_overkill():
 
 func _create_enemy():
 	var scene = load("res://scenes/enemies/Rotor.tscn")
+	var e = scene.instantiate()
+	add_child_autofree(e)
+	return e
+
+func _create_bunny():
+	var scene = load("res://scenes/enemies/Bunny.tscn")
 	var e = scene.instantiate()
 	add_child_autofree(e)
 	return e
@@ -212,3 +242,193 @@ func test_on_pool_release_resets_sprite_scale():
 	e.sprite.scale = Vector2.ZERO
 	e.on_pool_release()
 	assert_eq(e.sprite.scale, Vector2.ONE, "Sprite scale should be reset to one after pool release")
+
+func test_on_pool_release_resets_stunned():
+	var e = _create_enemy()
+	e.stunned = true
+	e.stun_timer = 5.0
+	e.on_pool_release()
+	assert_false(e.stunned, "Stunned should be false after pool release")
+	assert_almost_eq(e.stun_timer, 0.0, 0.001, "Stun timer should be zero after pool release")
+
+func test_on_pool_release_resets_velocity():
+	var e = _create_enemy()
+	e.velocity = Vector2(100, 200)
+	e.on_pool_release()
+	assert_eq(e.velocity, Vector2.ZERO, "Velocity should be zero after pool release")
+
+func test_apply_stun_sets_stunned():
+	var e = _create_enemy()
+	e.apply_stun(2.0)
+	assert_true(e.stunned, "Should be stunned after apply_stun")
+	assert_almost_eq(e.stun_timer, 2.0, 0.001, "Stun timer should be set")
+
+func test_apply_stun_sets_sprite_modulate():
+	var e = _create_enemy()
+	e.apply_stun(1.0)
+	assert_almost_eq(e.sprite.modulate.r, 0.5, 0.01, "Modulate R should be 0.5 when stunned")
+	assert_almost_eq(e.sprite.modulate.g, 0.5, 0.01, "Modulate G should be 0.5 when stunned")
+	assert_almost_eq(e.sprite.modulate.b, 1.0, 0.01, "Modulate B should be 1.0 when stunned")
+
+func test_stun_expires_after_timer():
+	var e = _create_enemy()
+	e.apply_stun(0.01)
+	e._physics_process(1.0)
+	assert_false(e.stunned, "Stun should expire after delta > stun_timer")
+
+func test_hit_flash_timer_timeout_restores_white():
+	var e = _create_enemy()
+	e.sprite.modulate = Color.RED
+	e.stunned = false
+	e._on_hit_flash_timer_timeout()
+	assert_eq(e.sprite.modulate, Color.WHITE, "Modulate should be white after hit-flash timeout")
+
+func test_hit_flash_timer_timeout_does_not_override_stun():
+	var e = _create_enemy()
+	e.apply_stun(5.0)
+	var stun_color = e.sprite.modulate
+	e._on_hit_flash_timer_timeout()
+	assert_eq(e.sprite.modulate, stun_color, "Modulate should not change when stunned")
+
+func test_can_damage_player_default_true():
+	var e = _create_enemy()
+	assert_true(e.can_damage_player, "can_damage_player should default to true")
+
+func test_boss_key_default_empty():
+	var e = _create_enemy()
+	assert_eq(e.boss_key, "", "boss_key should default to empty string")
+
+func test_die_uses_boss_key_when_set():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
+	e.boss_key = "boss_rotor"
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
+	e.take_damage(100)
+	assert_eq(capture.type, "boss_rotor", "Should use boss_key when set")
+
+func test_bunny_texture_is_not_null():
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	assert_not_null(e.sprite.texture, "Bunny should have a texture after init")
+
+func test_bunny_texture_is_64x64():
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	var img = e.sprite.texture.get_image()
+	assert_eq(img.get_width(), 64, "Bunny texture should be 64px wide")
+	assert_eq(img.get_height(), 64, "Bunny texture should be 64px tall")
+
+func test_bunny_texture_has_transparent_corners():
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	var img = e.sprite.texture.get_image()
+	assert_eq(img.get_pixel(0, 0).a, 0.0, "Bunny texture top-left corner should be transparent")
+	assert_eq(img.get_pixel(63, 63).a, 0.0, "Bunny texture bottom-right corner should be transparent")
+
+func test_bunny_texture_has_red_eyes():
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	var img = e.sprite.texture.get_image()
+	# Eye pixels at (25,30) should be red
+	var eye_px = img.get_pixel(25, 30)
+	assert_gt(eye_px.r, 0.7, "Eye pixel should be predominantly red")
+	assert_lt(eye_px.g, 0.3, "Eye pixel should have low green")
+	assert_lt(eye_px.b, 0.3, "Eye pixel should have low blue")
+
+func test_bunny_texture_cached_across_instances():
+	var e1 = _create_bunny()
+	var player = Node2D.new()
+	e1.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	var tex1 = e1.sprite.texture
+	var e2 = _create_bunny()
+	e2.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	var tex2 = e2.sprite.texture
+	assert_true(tex1 == tex2, "Bunny texture should be the same cached instance")
+
+func test_bunny_hit_plays_sound():
+	_stop_all_sfx()
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	e.take_damage(1)
+	var playing = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing += 1
+	assert_gt(playing, 0, "Bunny hit sound should play")
+
+func test_bunny_death_plays_sound():
+	_stop_all_sfx()
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	e.take_damage(1)
+	var playing = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing += 1
+	assert_gt(playing, 0, "Bunny death sound should play")
+
+func test_bunny_die_emits_correct_type():
+	var e = _create_bunny()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
+	e.take_damage(1)
+	assert_eq(capture.type, "bunny", "Destroyed signal should emit 'bunny'")
+
+func test_sasquatch_hit_plays_sound():
+	_stop_all_sfx()
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.SASQUATCH, 0, player, 200.0)
+	e.take_damage(1)
+	var playing = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing += 1
+	assert_gt(playing, 0, "Sasquatch hit sound should play")
+
+func test_sasquatch_die_plays_sound():
+	_stop_all_sfx()
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.SASQUATCH, 0, player, 200.0)
+	e.take_damage(Constants.BOSS_SASQUATCH_HP)
+	var playing = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing += 1
+	assert_gt(playing, 0, "Sasquatch death sound should play")
+
+func test_sasquatch_die_emits_correct_type():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	e.init(Enemy.EnemyType.SASQUATCH, 0, player, 200.0)
+	var capture = SignalCapture.new()
+	e.destroyed.connect(capture.capture)
+	e.take_damage(Constants.BOSS_SASQUATCH_HP)
+	assert_eq(capture.type, "sasquatch", "Destroyed signal should emit 'sasquatch'")
+
+func test_enemy_added_to_group():
+	var e = _create_enemy()
+	assert_true(e.is_in_group("enemy"), "Enemy should be in 'enemy' group after _ready")
+
+func test_enemy_collision_layer():
+	var e = _create_enemy()
+	assert_eq(e.collision_layer, 2, "Enemy collision_layer should be 2")
+
+func test_init_sets_spawner():
+	var e = _create_enemy()
+	var player = Node2D.new()
+	var spawner = Node.new()
+	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0, spawner)
+	assert_eq(e._spawner, spawner, "Spawner should be set via init")
+	spawner.free()

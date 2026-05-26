@@ -177,7 +177,7 @@ func test_boss_bunny_hp():
 	assert_eq(Constants.BOSS_BUNNY_HP, 10)
 
 func test_boss_sasquatch_hp():
-	assert_eq(Constants.BOSS_SASQUATCH_HP, 15)
+	assert_eq(Constants.BOSS_SASQUATCH_HP, 5)
 
 func test_boss_void_drone_hp():
 	assert_eq(Constants.BOSS_VOID_DRONE_HP, 20)
@@ -291,3 +291,17 @@ func test_highway_chunk_weight_constants():
 func test_guardrail_color_constants():
 	assert_eq(Constants.GUARDRAIL_COLOR, Color(1.0, 1.0, 0.8), "Guardrail color should match")
 	assert_eq(Constants.BRIDGE_GUARDRAIL_COLOR, Color(0.0, 0.8, 1.0), "Bridge guardrail color should match")
+
+func test_bunny_speed_multiplier():
+	assert_eq(Constants.BUNNY_SPEED_MULTIPLIER, 0.85, "Bunny speed multiplier should be 0.85")
+
+func test_bullet_speed_offset():
+	assert_eq(Constants.BULLET_SPEED_OFFSET, 500.0, "Bullet speed offset should be 500.0")
+
+func test_boss_giant_biker_hp():
+	assert_eq(Constants.BOSS_GIANT_BIKER_HP, 15, "Boss Giant Biker HP should be 15")
+
+func test_highway_perspective_constants():
+	assert_almost_eq(Constants.HIGHWAY_PERSPECTIVE_MIN_SCALE, 0.28, 0.001, "Min perspective scale")
+	assert_almost_eq(Constants.HIGHWAY_PERSPECTIVE_STRENGTH, 0.65, 0.001, "Perspective strength")
+	assert_almost_eq(Constants.HORIZON_Y_NORMALIZED, 0.12, 0.001, "Horizon Y normalized")

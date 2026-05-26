@@ -58,7 +58,7 @@ func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float,
 			speed = base_speed * Constants.DRONE_SPEED_MULTIPLIER
 			score_value = 200
 		EnemyType.SASQUATCH:
-			hp = Constants.SASQUATCH_HP
+			hp = Constants.BOSS_SASQUATCH_HP
 			speed = base_speed * 0.6
 			score_value = 300
 	_update_sprite()
@@ -67,32 +67,7 @@ func _update_sprite() -> void:
 	match enemy_type:
 		EnemyType.BUNNY:
 			if not _bunny_texture:
-				var img = Image.create(48, 48, false, Image.FORMAT_RGBA8)
-				img.fill(Color(0.0, 0.0, 0.0, 0.0))
-				for x in range(48):
-					for y in range(48):
-						var dx = x - 24
-						var dy = y - 24
-						var d = sqrt(dx * dx + dy * dy)
-						if d < 20.0:
-							img.set_pixel(x, y, Color(1.0, 0.55, 0.65, 1.0))
-				# Ears
-				for x in range(16, 22):
-					for y in range(2, 16):
-						var ex = x - 19
-						var ey = y - 9
-						if ex * ex + ey * ey < 25:
-							img.set_pixel(x, y, Color(1.0, 0.55, 0.65, 1.0))
-				for x in range(26, 32):
-					for y in range(2, 16):
-						var ex = x - 29
-						var ey = y - 9
-						if ex * ex + ey * ey < 25:
-							img.set_pixel(x, y, Color(1.0, 0.55, 0.65, 1.0))
-				# Eyes (menacing red)
-				img.set_pixel(20, 16, Color(1.0, 0.0, 0.0, 1.0))
-				img.set_pixel(28, 16, Color(1.0, 0.0, 0.0, 1.0))
-				_bunny_texture = ImageTexture.create_from_image(img)
+				_bunny_texture = _create_bunny_texture()
 			sprite.texture = _bunny_texture
 		EnemyType.ROTOR:
 			sprite.texture = ROTOR_TEXTURE
@@ -109,6 +84,82 @@ func _update_sprite() -> void:
 
 func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
+
+static func _create_bunny_texture() -> ImageTexture:
+	# 64x64 pixel-art bunny, transparent background
+	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.0, 0.0, 0.0, 0.0))
+
+	var fur       = Color(0.95, 0.95, 0.97, 1.0)   # near-white fur
+	var inner_ear = Color(1.00, 0.60, 0.70, 1.0)   # pink inner ear
+	var eye_red   = Color(0.90, 0.10, 0.10, 1.0)   # menacing red eyes
+	var nose_pink = Color(1.00, 0.45, 0.60, 1.0)   # pink nose
+	var outline   = Color(0.35, 0.30, 0.35, 1.0)   # dark outline
+
+	# Helper: filled ellipse
+	var fill_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color) -> void:
+		for px in range(int(cx - rx - 1), int(cx + rx + 2)):
+			for py in range(int(cy - ry - 1), int(cy + ry + 2)):
+				if px < 0 or px >= 64 or py < 0 or py >= 64:
+					continue
+				var nx = (px - cx) / rx
+				var ny = (py - cy) / ry
+				if nx * nx + ny * ny <= 1.0:
+					img.set_pixel(px, py, col)
+
+	# Helper: outline ellipse (1px border)
+	var outline_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color) -> void:
+		for px in range(int(cx - rx - 2), int(cx + rx + 3)):
+			for py in range(int(cy - ry - 2), int(cy + ry + 3)):
+				if px < 0 or px >= 64 or py < 0 or py >= 64:
+					continue
+				var nx = (px - cx) / (rx + 1.0)
+				var ny = (py - cy) / (ry + 1.0)
+				if nx * nx + ny * ny <= 1.0:
+					if img.get_pixel(px, py).a < 0.5:
+						img.set_pixel(px, py, col)
+
+	# --- Left ear (tall oval) ---
+	fill_ellipse.call(22, 16, 5.0, 13.0, outline)
+	fill_ellipse.call(22, 16, 3.5, 11.0, fur)
+	fill_ellipse.call(22, 17, 2.0, 8.0, inner_ear)
+
+	# --- Right ear (tall oval) ---
+	fill_ellipse.call(42, 16, 5.0, 13.0, outline)
+	fill_ellipse.call(42, 16, 3.5, 11.0, fur)
+	fill_ellipse.call(42, 17, 2.0, 8.0, inner_ear)
+
+	# --- Body (oval, below head) ---
+	outline_ellipse.call(32, 50, 11.0, 9.0, outline)
+	fill_ellipse.call(32, 50, 10.0, 8.0, fur)
+
+	# --- Head (round) ---
+	outline_ellipse.call(32, 34, 14.0, 13.0, outline)
+	fill_ellipse.call(32, 34, 13.0, 12.0, fur)
+
+	# --- Eyes: 2x2 red pixels each ---
+	for dx in [0, 1]:
+		for dy in [0, 1]:
+			img.set_pixel(25 + dx, 30 + dy, eye_red)
+			img.set_pixel(38 + dx, 30 + dy, eye_red)
+
+	# --- Nose (small pink oval) ---
+	fill_ellipse.call(32, 38, 2.5, 1.8, nose_pink)
+
+	# --- Mouth: small V shape ---
+	img.set_pixel(30, 41, outline)
+	img.set_pixel(31, 42, outline)
+	img.set_pixel(32, 41, outline)
+	img.set_pixel(33, 42, outline)
+	img.set_pixel(34, 41, outline)
+
+	# --- Whisker dots (subtle) ---
+	var whisker_col = Color(0.70, 0.70, 0.72, 0.8)
+	for wd in [0, 1, 2]:
+		img.set_pixel(16 + wd * 2, 38, whisker_col)
+		img.set_pixel(46 - wd * 2, 38, whisker_col)
+
+	return ImageTexture.create_from_image(img)
 
 func _physics_process(delta: float) -> void:
 	if stunned:
