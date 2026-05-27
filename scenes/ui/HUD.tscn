@@ -52,6 +52,16 @@ max_value = 100
 visible = false
 modulate = Color(1, 0.8, 0, 1)
 
+[node name="BoostLabel" type="Label" parent="."]
+offset_left = 1100.0
+offset_top = 655.0
+offset_right = 1260.0
+offset_bottom = 680.0
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+text = "BOOST"
+
 [node name="BoostContainer" type="HBoxContainer" parent="."]
 offset_left = 1100.0
 offset_top = 680.0

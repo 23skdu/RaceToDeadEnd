@@ -1,0 +1,125 @@
+[gd_scene load_steps=2 format=3 uid="uid://c1nterceptorinfo"]
+
+[ext_resource type="Script" path="res://scripts/scenes/ui/InterceptorInfo.gd" id="1_v8yp2"]
+
+[node name="InterceptorInfo" type="CanvasLayer"]
+layer = 30
+script = ExtResource("1_v8yp2")
+
+[node name="Panel" type="ColorRect" parent="."]
+offset_left = 80.0
+offset_top = 20.0
+offset_right = 1200.0
+offset_bottom = 700.0
+color = Color(0.1, 0.1, 0.15, 0.95)
+
+[node name="TitleLabel" type="Label" parent="Panel"]
+offset_left = 360.0
+offset_top = 20.0
+offset_right = 760.0
+offset_bottom = 70.0
+theme_override_colors/font_color = Color(0.2, 0.6, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "INTERCEPTOR INFO"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="Panel"]
+offset_left = 30.0
+offset_top = 80.0
+offset_right = 1090.0
+offset_bottom = 600.0
+
+[node name="Controls" type="VBoxContainer" parent="Panel/TabContainer"]
+layout_mode = 2
+
+[node name="ControlsTitle" type="Label" parent="Panel/TabContainer/Controls"]
+offset_right = 100.0
+offset_bottom = 30.0
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "MOVEMENT"
+
+[node name="MovementText" type="Label" parent="Panel/TabContainer/Controls"]
+offset_top = 30.0
+offset_right = 1060.0
+offset_bottom = 100.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 1
+text = "W / Up Arrow = Accelerate\nS / Down Arrow = Brake / Reverse\nA / Left Arrow = Move Left\nD / Right Arrow = Move Right"
+
+[node name="WeaponsTitle" type="Label" parent="Panel/TabContainer/Controls"]
+offset_top = 110.0
+offset_right = 100.0
+offset_bottom = 140.0
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "WEAPONS"
+
+[node name="WeaponsText" type="Label" parent="Panel/TabContainer/Controls"]
+offset_top = 140.0
+offset_right = 1060.0
+offset_bottom = 350.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 1
+text = "Space / A Button = Primary Fire (rapid-fire machine gun)\nQ / Y Button = Cycle weapon (Missile -> Mine -> EMP)\n\nShift / B Button = Fire selected secondary weapon\n\nHoming Missile (red): Fires a missile that homes onto the nearest enemy. 3 dmg.\n\nProximity Mine (yellow): Drops a mine behind you. Arms after 0.5s. Deals 2 dmg on contact.\n\nEMP Blast (cyan): Expanding energy wave that stuns all enemies for 2s. Deals 1 dmg.\n\nE = Fire EMP directly (no need to cycle)\nM = Drop Mine directly (no need to cycle)"
+
+[node name="BoostTitle" type="Label" parent="Panel/TabContainer/Controls"]
+offset_top = 360.0
+offset_right = 100.0
+offset_bottom = 390.0
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "BOOST"
+
+[node name="BoostText" type="Label" parent="Panel/TabContainer/Controls"]
+offset_top = 390.0
+offset_right = 1060.0
+offset_bottom = 470.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 1
+text = "Tab / X Button = Activate boost. 2x speed for 1.5s. Invincible while boosting.\n3 charges by default. Each charge takes 8s to recharge.\nUpgrade boost capacity in the Garage for more charges."
+
+[node name="BackButton" type="Button" parent="Panel"]
+offset_left = 420.0
+offset_top = 615.0
+offset_right = 620.0
+offset_bottom = 665.0
+text = "BACK"
+
+[node name="Hazards" type="VBoxContainer" parent="Panel/TabContainer"]
+
+[node name="HazardsTitle" type="Label" parent="Panel/TabContainer/Hazards"]
+offset_right = 100.0
+offset_bottom = 30.0
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "HIGHWAY HAZARDS"
+
+[node name="HazardsText" type="Label" parent="Panel/TabContainer/Hazards"]
+offset_top = 30.0
+offset_right = 1060.0
+offset_bottom = 250.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 1
+text = "Debris / Construction Barrels = Obstacles in the road. Collision deals 1 dmg.\n\nDeadly Obstacles (rocks, wrecked cars) = Instant kill if hit without boost. Can be destroyed while boosting.\n\nIce Surface = Slippery handling. Lateral movement is much slower and less responsive.\n\nBridge Sections = Gaps on the sides. Falling off deals 2 dmg and teleports you back.\n\nAcid Rain (Tier 8+) = Deals 1 dmg every 2s automatically.\n\nLightning (Tier 12+) = Random strikes deal 1 dmg if within range."
+
+[node name="EnemiesTitle" type="Label" parent="Panel/TabContainer/Hazards"]
+offset_top = 260.0
+offset_right = 100.0
+offset_bottom = 290.0
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "ENEMIES"
+
+[node name="EnemiesText" type="Label" parent="Panel/TabContainer/Hazards"]
+offset_top = 290.0
+offset_right = 1060.0
+offset_bottom = 490.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 1
+text = "Bunny = Bounces toward your lane. Contact = 1 dmg.\nRotor = Weaves side-to-side, follows your X position. Contact = 1 dmg.\nScav = Flanks you, shoots bullets, rams at close range. 1 dmg.\nDrone = Hovers above, drops timed bombs. Bomb = 2 dmg.\n\nPickups (from destroyed enemies): Repair (heal 1 HP), Ammo (+1 to all weapons), Boost (+1 charge), Multiplier (2x score for 10s)."

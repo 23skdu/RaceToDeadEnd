@@ -41,6 +41,7 @@ func test_main_ready_connects_buttons():
 	watch_signals(main)
 	assert_true(main.start_button.pressed.is_connected(main._on_start_pressed), "Start button should be connected")
 	assert_true(main.garage_button.pressed.is_connected(main._on_garage_pressed), "Garage button should be connected")
+	assert_true(main.info_button.pressed.is_connected(main._on_info_pressed), "Info button should be connected")
 	assert_true(main.options_button.pressed.is_connected(main._on_options_pressed), "Options button should be connected")
 	assert_true(main.quit_button.pressed.is_connected(main._on_quit_pressed), "Quit button should be connected")
 
@@ -102,17 +103,28 @@ func test_main_options_back_callback_queues_free():
 	options.back_to_menu_requested.emit()
 	assert_true(options.is_queued_for_deletion(), "Options should queue free on back")
 
-func test_controls_label_not_duplicated():
+func test_main_info_instantiates_scene():
 	var main = _create_main()
-	main._add_controls_label()
-	var label_count = 0
-	for child in main.get_node("CanvasLayer").get_children():
-		if child.name == "ControlsLabel":
-			label_count += 1
-	assert_eq(label_count, 1, "Should have exactly one controls label")
-	main._add_controls_label()
-	label_count = 0
-	for child in main.get_node("CanvasLayer").get_children():
-		if child.name == "ControlsLabel":
-			label_count += 1
-	assert_eq(label_count, 1, "Should still have exactly one controls label after second call")
+	main._on_info_pressed()
+	var info_found = false
+	for child in main.get_children():
+		if child.has_signal("back_to_menu_requested"):
+			info_found = true
+			child.queue_free()
+			break
+	assert_true(info_found, "InterceptorInfo scene should be instantiated")
+
+func test_main_info_back_callback_queues_free():
+	var main = _create_main()
+	main._on_info_pressed()
+	var info = null
+	for child in main.get_children():
+		if child.has_signal("back_to_menu_requested"):
+			info = child
+			break
+	assert_true(info != null, "InterceptorInfo should exist")
+	info.back_to_menu_requested.emit()
+	assert_true(info.is_queued_for_deletion(), "InterceptorInfo should queue free on back")
+
+func test_main_info_scene_path():
+	assert_true(ResourceLoader.exists("res://scenes/ui/InterceptorInfo.tscn"), "InterceptorInfo scene should exist")

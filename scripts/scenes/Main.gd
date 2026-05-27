@@ -2,12 +2,14 @@ extends Node
 
 @onready var start_button: Button = $CanvasLayer/StartButton
 @onready var garage_button: Button = $CanvasLayer/GarageButton
+@onready var info_button: Button = $CanvasLayer/InfoButton
 @onready var options_button: Button = $CanvasLayer/OptionsButton
 @onready var quit_button: Button = $CanvasLayer/QuitButton
 
 func _ready() -> void:
 	start_button.pressed.connect(_on_start_pressed)
 	garage_button.pressed.connect(_on_garage_pressed)
+	info_button.pressed.connect(_on_info_pressed)
 	options_button.pressed.connect(_on_options_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	GameManager.state = GameManager.GameState.MENU
@@ -25,20 +27,11 @@ func _ready() -> void:
 		bg.offset_bottom = 0
 		bg.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		bg.grow_vertical = Control.GROW_DIRECTION_BOTH
-	
-	_add_controls_label()
 
-func _add_controls_label() -> void:
-	if $CanvasLayer.has_node("ControlsLabel"):
-		return
-	var label = Label.new()
-	label.name = "ControlsLabel"
-	label.text = "CONTROLS\nKeyboard: WASD/Arrows to Move, Space/Shift to Fire\nWeapons: E for EMP, M for Mines, Q to Cycle\nController: D-Pad/Left Stick to Move, A/B to Fire, Y to Cycle"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	label.offset_bottom = -20
-	label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 0.8))
-	$CanvasLayer.add_child(label)
+func _on_info_pressed() -> void:
+	var info = preload("res://scenes/ui/InterceptorInfo.tscn").instantiate()
+	add_child(info)
+	info.back_to_menu_requested.connect(func(): info.queue_free())
 
 func _on_start_pressed() -> void:
 	TransitionLayer.change_scene("res://scenes/Game.tscn")

@@ -88,17 +88,20 @@ func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
 static func _create_bunny_texture() -> ImageTexture:
-	# 64x64 pixel-art bunny, transparent background
 	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.0, 0.0, 0.0, 0.0))
 
-	var fur       = Color(0.95, 0.95, 0.97, 1.0)   # near-white fur
-	var inner_ear = Color(1.00, 0.60, 0.70, 1.0)   # pink inner ear
-	var eye_red   = Color(0.90, 0.10, 0.10, 1.0)   # menacing red eyes
-	var nose_pink = Color(1.00, 0.45, 0.60, 1.0)   # pink nose
-	var outline   = Color(0.35, 0.30, 0.35, 1.0)   # dark outline
+	var dark_green    = Color(0.06, 0.28, 0.06, 1.0)
+	var camo_dark     = Color(0.12, 0.38, 0.10, 1.0)
+	var camo_med      = Color(0.20, 0.50, 0.15, 1.0)
+	var camo_light    = Color(0.30, 0.55, 0.18, 1.0)
+	var camo_olive    = Color(0.25, 0.45, 0.12, 1.0)
+	var glow_green    = Color(0.0, 1.0, 0.2, 1.0)
+	var eye_glow      = Color(0.3, 1.0, 0.4, 1.0)
+	var inner_ear_col = Color(0.0, 0.8, 0.1, 1.0)
 
-	# Helper: filled ellipse
+	var camo_colors = [camo_dark, camo_med, camo_light, camo_olive]
+
 	var fill_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color) -> void:
 		for px in range(int(cx - rx - 1), int(cx + rx + 2)):
 			for py in range(int(cy - ry - 1), int(cy + ry + 2)):
@@ -109,7 +112,17 @@ static func _create_bunny_texture() -> ImageTexture:
 				if nx * nx + ny * ny <= 1.0:
 					img.set_pixel(px, py, col)
 
-	# Helper: outline ellipse (1px border)
+	var fill_ellipse_camo = func(cx: int, cy: int, rx: float, ry: float) -> void:
+		for px in range(int(cx - rx - 1), int(cx + rx + 2)):
+			for py in range(int(cy - ry - 1), int(cy + ry + 2)):
+				if px < 0 or px >= 64 or py < 0 or py >= 64:
+					continue
+				var nx = (px - cx) / rx
+				var ny = (py - cy) / ry
+				if nx * nx + ny * ny <= 1.0:
+					var idx = (px * 7 + py * 13) % camo_colors.size()
+					img.set_pixel(px, py, camo_colors[idx])
+
 	var outline_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color) -> void:
 		for px in range(int(cx - rx - 2), int(cx + rx + 3)):
 			for py in range(int(cy - ry - 2), int(cy + ry + 3)):
@@ -121,42 +134,53 @@ static func _create_bunny_texture() -> ImageTexture:
 					if img.get_pixel(px, py).a < 0.5:
 						img.set_pixel(px, py, col)
 
-	# --- Left ear (tall oval) ---
-	fill_ellipse.call(22, 16, 5.0, 13.0, outline)
-	fill_ellipse.call(22, 16, 3.5, 11.0, fur)
-	fill_ellipse.call(22, 17, 2.0, 8.0, inner_ear)
+	var glow_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color, thickness: float) -> void:
+		for px in range(int(cx - rx - thickness - 1), int(cx + rx + thickness + 2)):
+			for py in range(int(cy - ry - thickness - 1), int(cy + ry + thickness + 2)):
+				if px < 0 or px >= 64 or py < 0 or py >= 64:
+					continue
+				var nx = (px - cx) / (rx + thickness)
+				var ny = (py - cy) / (ry + thickness)
+				if nx * nx + ny * ny <= 1.0:
+					nx = (px - cx) / rx
+					ny = (py - cy) / ry
+					if nx * nx + ny * ny > 1.0:
+						var dist = min(1.0, sqrt(nx * nx + ny * ny) - 1.0)
+						var alpha = clamp((1.0 - dist / thickness) * 0.5, 0.0, 0.5)
+						if img.get_pixel(px, py).a < alpha:
+							img.set_pixel(px, py, Color(col.r, col.g, col.b, alpha))
 
-	# --- Right ear (tall oval) ---
-	fill_ellipse.call(42, 16, 5.0, 13.0, outline)
-	fill_ellipse.call(42, 16, 3.5, 11.0, fur)
-	fill_ellipse.call(42, 17, 2.0, 8.0, inner_ear)
+	glow_ellipse.call(32, 34, 16.0, 15.0, glow_green, 3.5)
+	glow_ellipse.call(32, 50, 13.0, 11.0, glow_green, 3.5)
+	glow_ellipse.call(22, 16, 7.0, 15.0, glow_green, 3.0)
+	glow_ellipse.call(42, 16, 7.0, 15.0, glow_green, 3.0)
 
-	# --- Body (oval, below head) ---
-	outline_ellipse.call(32, 50, 11.0, 9.0, outline)
-	fill_ellipse.call(32, 50, 10.0, 8.0, fur)
+	fill_ellipse.call(22, 16, 5.0, 13.0, dark_green)
+	fill_ellipse.call(42, 16, 5.0, 13.0, dark_green)
+	outline_ellipse.call(32, 50, 11.0, 9.0, dark_green)
+	outline_ellipse.call(32, 34, 14.0, 13.0, dark_green)
 
-	# --- Head (round) ---
-	outline_ellipse.call(32, 34, 14.0, 13.0, outline)
-	fill_ellipse.call(32, 34, 13.0, 12.0, fur)
+	fill_ellipse_camo.call(22, 16, 3.5, 11.0)
+	fill_ellipse.call(22, 17, 2.0, 8.0, inner_ear_col)
+	fill_ellipse_camo.call(42, 16, 3.5, 11.0)
+	fill_ellipse.call(42, 17, 2.0, 8.0, inner_ear_col)
+	fill_ellipse_camo.call(32, 50, 10.0, 8.0)
+	fill_ellipse_camo.call(32, 34, 13.0, 12.0)
 
-	# --- Eyes: 2x2 red pixels each ---
 	for dx in [0, 1]:
 		for dy in [0, 1]:
-			img.set_pixel(25 + dx, 30 + dy, eye_red)
-			img.set_pixel(38 + dx, 30 + dy, eye_red)
+			img.set_pixel(25 + dx, 30 + dy, eye_glow)
+			img.set_pixel(38 + dx, 30 + dy, eye_glow)
 
-	# --- Nose (small pink oval) ---
-	fill_ellipse.call(32, 38, 2.5, 1.8, nose_pink)
+	fill_ellipse.call(32, 38, 2.5, 1.8, glow_green)
 
-	# --- Mouth: small V shape ---
-	img.set_pixel(30, 41, outline)
-	img.set_pixel(31, 42, outline)
-	img.set_pixel(32, 41, outline)
-	img.set_pixel(33, 42, outline)
-	img.set_pixel(34, 41, outline)
+	img.set_pixel(30, 41, dark_green)
+	img.set_pixel(31, 42, dark_green)
+	img.set_pixel(32, 41, dark_green)
+	img.set_pixel(33, 42, dark_green)
+	img.set_pixel(34, 41, dark_green)
 
-	# --- Whisker dots (subtle) ---
-	var whisker_col = Color(0.70, 0.70, 0.72, 0.8)
+	var whisker_col = Color(0.0, 0.8, 0.2, 0.8)
 	for wd in [0, 1, 2]:
 		img.set_pixel(16 + wd * 2, 38, whisker_col)
 		img.set_pixel(46 - wd * 2, 38, whisker_col)
