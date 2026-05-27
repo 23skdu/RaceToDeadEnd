@@ -100,6 +100,22 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _apply_binding(action: String, idx: int, event: InputEvent) -> void:
+	# Conflict resolution: check if this event is already bound to any other action
+	for other_action in ACTIONS:
+		if other_action == action:
+			continue
+		var other_events = InputMap.action_get_events(other_action)
+		var changed = false
+		for i in range(other_events.size() - 1, -1, -1):
+			if _is_same_event(other_events[i], event):
+				other_events.remove_at(i)
+				changed = true
+		if changed:
+			InputMap.action_erase_events(other_action)
+			for e in other_events:
+				InputMap.action_add_event(other_action, e)
+			binding_changed.emit(other_action)
+
 	var events = InputMap.action_get_events(action)
 	if idx < events.size():
 		events[idx] = event
@@ -111,6 +127,15 @@ func _apply_binding(action: String, idx: int, event: InputEvent) -> void:
 	save_bindings()
 	binding_changed.emit(action)
 	_rebuild()
+
+func _is_same_event(e1: InputEvent, e2: InputEvent) -> bool:
+	if e1 is InputEventKey and e2 is InputEventKey:
+		return e1.physical_keycode == e2.physical_keycode
+	if e1 is InputEventJoypadButton and e2 is InputEventJoypadButton:
+		return e1.button_index == e2.button_index
+	if e1 is InputEventJoypadMotion and e2 is InputEventJoypadMotion:
+		return e1.axis == e2.axis and sign(e1.axis_value) == sign(e2.axis_value)
+	return false
 
 func _on_clear_pressed(action: String, idx: int) -> void:
 	var events = InputMap.action_get_events(action)
@@ -132,9 +157,9 @@ func save_bindings() -> void:
 		var events = InputMap.action_get_events(action)
 		var serialized: Array[String] = []
 		for e in events:
-			var str = _serialize_event(e)
-			if str:
-				serialized.append(str)
+			var ser = _serialize_event(e)
+			if ser:
+				serialized.append(ser)
 		config.set_value("bindings", action, serialized)
 	config.save(SAVE_PATH)
 

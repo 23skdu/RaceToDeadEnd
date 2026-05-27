@@ -9,7 +9,7 @@ const CLEANUP_DISTANCE: float = 450.0
 const BASE_SPEED: float = 200.0
 
 # Difficulty
-const TIER_THRESHOLD: int = 1000
+const TIER_THRESHOLD: int = 3000
 const MAX_TIER: int = 20
 const SEGMENT_DIFFICULTY_BONUS: float = 200.0
 const SCORE_RATE: int = 10
@@ -88,13 +88,13 @@ const CIVILIAN_PENALTY: int = 1
 
 # Boss
 const BOSS_SCORE_INTERVAL: int = 3000
-const BOSS_BUNNY_HP: int = 10
-const BOSS_GIANT_BIKER_HP: int = 15
-const BOSS_SASQUATCH_HP: int = 5
-const BOSS_VOID_DRONE_HP: int = 20
-const BOSS_WAR_RIG_HP: int = 25
+const BOSS_BUNNY_HP: int = 25
+const BOSS_GIANT_BIKER_HP: int = 35
+const BOSS_SASQUATCH_HP: int = 15
+const BOSS_VOID_DRONE_HP: int = 45
+const BOSS_WAR_RIG_HP: int = 60
 const BOSS_SCORE: int = 1000
-const BOSS_ATTACK_INTERVAL: float = 2.0
+const BOSS_ATTACK_INTERVAL: float = 1.5
 
 # Visual
 const SPRITE_BASE_SIZE: float = 64.0

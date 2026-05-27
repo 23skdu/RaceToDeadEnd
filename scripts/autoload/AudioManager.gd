@@ -14,7 +14,10 @@ var _stream_hurt: AudioStreamWAV
 var _stream_boost: AudioStreamWAV
 var _stream_emp: AudioStreamWAV
 var _stream_menu_music: AudioStreamWAV
-var _stream_game_music: AudioStreamWAV
+var _stream_game_music_bunny: AudioStreamWAV
+var _stream_game_music_biker: AudioStreamWAV
+var _stream_game_music_sasquatch: AudioStreamWAV
+var _stream_game_music_void: AudioStreamWAV
 var _stream_crash: AudioStreamWAV
 var _stream_bounce: AudioStreamWAV
 
@@ -118,10 +121,28 @@ func play_menu_music() -> void:
 		play_music(_stream_menu_music)
 
 func play_game_music() -> void:
-	if not _stream_game_music:
-		_stream_game_music = _generate_game_music()
-	if music_player.stream != _stream_game_music:
-		play_music(_stream_game_music)
+	var stream: AudioStreamWAV = null
+	var bosses_killed = GameManager.bosses_killed
+	
+	if bosses_killed == 0:
+		if not _stream_game_music_bunny:
+			_stream_game_music_bunny = _generate_game_music_bunny()
+		stream = _stream_game_music_bunny
+	elif bosses_killed == 1:
+		if not _stream_game_music_biker:
+			_stream_game_music_biker = _generate_game_music_biker()
+		stream = _stream_game_music_biker
+	elif bosses_killed == 2:
+		if not _stream_game_music_sasquatch:
+			_stream_game_music_sasquatch = _generate_game_music_sasquatch()
+		stream = _stream_game_music_sasquatch
+	else:
+		if not _stream_game_music_void:
+			_stream_game_music_void = _generate_game_music_void()
+		stream = _stream_game_music_void
+		
+	if music_player.stream != stream:
+		play_music(stream)
 
 func play_music(stream: AudioStream) -> void:
 	if not stream:
@@ -563,5 +584,198 @@ func _generate_demo_music_war_rig() -> AudioStreamWAV:
 		return (v1 + v2 + v3) * 2500.0
 	)
 	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+func _generate_game_music_bunny() -> AudioStreamWAV:
+	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
+		var bpm = 150.0
+		var beat_duration = 60.0 / bpm
+		var step_duration = beat_duration / 4.0
+		var step_idx = int(t / step_duration)
+		var step_t = fmod(t, step_duration)
+		var val = 0.0
+
+		var chord_progression = [
+			65.41, 65.41, 73.42, 73.42,
+			82.41, 82.41, 98.00, 98.00
+		]
+		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
+		var bass_freq = chord_progression[measure_idx]
+
+		# Bouncy bass line
+		if step_idx % 2 == 0:
+			var bass_env = maxf(0.0, 1.0 - (step_t / step_duration))
+			var bass_wave = 1.0 if sin(TAU * bass_freq * t) > 0 else -1.0
+			val += bass_wave * 2500.0 * bass_env
+
+		# Cute arpeggio melody
+		var arp_notes = [0, 4, 7, 11, 12, 11, 7, 4]
+		var semitone = arp_notes[step_idx % arp_notes.size()]
+		var arp_freq = bass_freq * 2.0 * pow(1.059463, semitone)
+		var arp_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.75)))
+		var arp_wave = 1.0 if fmod(t * arp_freq, 1.0) < 0.3 else -1.0
+		val += arp_wave * 2000.0 * arp_env
+
+		# Bouncy Kick Drum
+		if step_idx % 4 == 0:
+			var kick_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.2)))
+			var kick_pitch = lerpf(180.0, 45.0, step_t / (step_duration * 1.2))
+			var kick_wave = sin(TAU * kick_pitch * step_t)
+			val += kick_wave * 5500.0 * kick_env
+
+		# Snare
+		if (step_idx + 4) % 8 == 0:
+			var snare_env = maxf(0.0, 1.0 - (step_t / step_duration))
+			var noise = _rng.randf() * 2.0 - 1.0
+			val += noise * 3000.0 * snare_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(22050.0 * 16.0)
+	return stream
+
+func _generate_game_music_biker() -> AudioStreamWAV:
+	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
+		var bpm = 140.0
+		var beat_duration = 60.0 / bpm
+		var step_duration = beat_duration / 4.0
+		var step_idx = int(t / step_duration)
+		var step_t = fmod(t, step_duration)
+		var val = 0.0
+
+		var chord_progression = [
+			49.00, 49.00, 58.27, 58.27,
+			41.20, 41.20, 43.65, 43.65
+		]
+		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
+		var bass_freq = chord_progression[measure_idx]
+
+		# Heavy distorted bass (sawtooth wave with clipping)
+		var saw = fmod(t * bass_freq, 1.0) * 2.0 - 1.0
+		var dist_bass = clampf(saw * 3.0, -1.0, 1.0)
+		val += dist_bass * 3500.0
+
+		# Metal power chord riffs
+		if step_idx % 8 < 6:
+			var chord_saw1 = fmod(t * bass_freq * 2.0, 1.0) * 2.0 - 1.0
+			var chord_saw2 = fmod(t * bass_freq * 3.0, 1.0) * 2.0 - 1.0
+			var chord_dist = clampf((chord_saw1 + chord_saw2) * 2.0, -1.0, 1.0)
+			var chord_env = maxf(0.0, 1.0 - (fmod(t, step_duration * 2.0) / (step_duration * 2.0)))
+			val += chord_dist * 3000.0 * chord_env
+
+		# Intense Kick Drum
+		if step_idx % 4 == 0 or step_idx % 8 == 2:
+			var kick_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.0)))
+			var kick_pitch = lerpf(120.0, 30.0, step_t / (step_duration * 1.0))
+			var kick_wave = sin(TAU * kick_pitch * step_t)
+			val += kick_wave * 6000.0 * kick_env
+
+		# Loud Metal Snare
+		if (step_idx + 4) % 8 == 0:
+			var snare_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.5)))
+			var noise = _rng.randf() * 2.0 - 1.0
+			val += noise * 4500.0 * snare_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(22050.0 * 16.0)
+	return stream
+
+func _generate_game_music_sasquatch() -> AudioStreamWAV:
+	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
+		var bpm = 120.0
+		var beat_duration = 60.0 / bpm
+		var step_duration = beat_duration / 4.0
+		var step_idx = int(t / step_duration)
+		var step_t = fmod(t, step_duration)
+		var val = 0.0
+
+		var chord_progression = [
+			43.65, 43.65, 49.00, 49.00,
+			36.71, 36.71, 38.89, 38.89
+		]
+		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
+		var bass_freq = chord_progression[measure_idx]
+
+		# Slow pulsing deep bass
+		var bass_env = maxf(0.0, 1.0 - (step_t / (step_duration * 2.0)))
+		var bass_wave = sin(TAU * bass_freq * t)
+		val += bass_wave * 4000.0 * bass_env
+
+		# Tribal wooden percussion sounds
+		if step_idx % 3 == 0:
+			var wood_freq = 300.0 + sin(t * 15.0) * 100.0
+			var wood_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.5)))
+			var wood_wave = sin(TAU * wood_freq * step_t)
+			val += wood_wave * 2500.0 * wood_env
+
+		# Deep thunderous Kick
+		if step_idx % 4 == 0:
+			var kick_env = maxf(0.0, 1.0 - (step_t / (step_duration * 2.0)))
+			var kick_pitch = lerpf(80.0, 20.0, step_t / (step_duration * 2.0))
+			var kick_wave = sin(TAU * kick_pitch * step_t)
+			val += kick_wave * 7000.0 * kick_env
+
+		# Tribal Shaker
+		if step_idx % 2 == 1:
+			var shaker_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.4)))
+			var noise = _rng.randf() * 2.0 - 1.0
+			val += noise * 1800.0 * shaker_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(22050.0 * 16.0)
+	return stream
+
+func _generate_game_music_void() -> AudioStreamWAV:
+	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
+		var bpm = 135.0
+		var beat_duration = 60.0 / bpm
+		var step_duration = beat_duration / 4.0
+		var step_idx = int(t / step_duration)
+		var step_t = fmod(t, step_duration)
+		var val = 0.0
+
+		var chord_progression = [
+			73.42, 73.42, 87.31, 87.31,
+			65.41, 65.41, 58.27, 58.27
+		]
+		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
+		var bass_freq = chord_progression[measure_idx]
+
+		# Resonance sweeping space wave
+		var sweep = sin(TAU * 0.1 * t) * 0.5 + 0.5
+		var sweep_freq = lerpf(200.0, 1200.0, sweep)
+		var pulse_freq = bass_freq * 4.0
+		if sin(TAU * sweep_freq * t) > 0.0:
+			var wave = sin(TAU * pulse_freq * t)
+			val += wave * 2500.0
+
+		# Deep bass
+		var bass_wave = 1.0 if sin(TAU * bass_freq * t) > 0 else -1.0
+		var bass_env = maxf(0.0, 1.0 - (step_t / step_duration))
+		val += bass_wave * 2500.0 * bass_env
+
+		# Cyber Kick
+		if step_idx % 4 == 0:
+			var kick_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.5)))
+			var kick_pitch = lerpf(220.0, 40.0, step_t / (step_duration * 1.5))
+			var kick_wave = sin(TAU * kick_pitch * step_t)
+			val += kick_wave * 5000.0 * kick_env
+
+		# Space snare
+		if (step_idx + 4) % 8 == 0:
+			var snare_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.2)))
+			var noise = _rng.randf() * 2.0 - 1.0
+			var snare_wave = noise * 3000.0 + sin(TAU * 180.0 * step_t) * 1500.0
+			val += snare_wave * snare_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(22050.0 * 16.0)
 	return stream
 

@@ -54,7 +54,7 @@ func _on_spawn_minion_requested(enemy_type: String, count: int) -> void:
 		_spawn_enemy(enemy_type)
 
 func _process(delta: float) -> void:
-	if GameManager.state != GameManager.GameState.PLAYING:
+	if GameManager.state != GameManager.GameState.PLAYING or GameManager.boss_active:
 		return
 		
 	if not player or not is_instance_valid(player):
@@ -119,6 +119,10 @@ func _spawn_boss() -> void:
 		boss_key = "boss_void_drone"
 		
 	_bosses_spawned += 1
+	GameManager.boss_active = true
+	GameManager.current_speed = 0.0
+	GameManager.speed_changed.emit(0.0)
+	
 	if not player:
 		return
 	var boss = ObjectPool.acquire(boss_key)
@@ -260,6 +264,9 @@ func _on_enemy_destroyed(pos: Vector2, enemy_type: String, enemy: Node) -> void:
 	_drop_pickup(pos)
 	enemy_destroyed.emit(enemy)
 	if enemy_type in ["boss_bunny", "boss_giant_biker", "boss_void_drone", "boss"]:
+		GameManager.boss_active = false
+		GameManager.current_speed = minf(Constants.BASE_SPEED + (GameManager.difficulty_tier - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED)
+		GameManager.speed_changed.emit(GameManager.current_speed)
 		boss_defeated.emit(enemy_type)
 
 func _drop_pickup(position: Vector2) -> void:

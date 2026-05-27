@@ -27,7 +27,7 @@ func test_base_speed():
 	assert_eq(Constants.BASE_SPEED, 200.0)
 
 func test_tier_threshold():
-	assert_eq(Constants.TIER_THRESHOLD, 1000)
+	assert_eq(Constants.TIER_THRESHOLD, 3000)
 
 func test_max_tier():
 	assert_eq(Constants.MAX_TIER, 20)
@@ -171,22 +171,22 @@ func test_boss_score_interval():
 	assert_eq(Constants.BOSS_SCORE_INTERVAL, 3000)
 
 func test_boss_war_rig_hp():
-	assert_eq(Constants.BOSS_WAR_RIG_HP, 25)
+	assert_eq(Constants.BOSS_WAR_RIG_HP, 60)
 
 func test_boss_bunny_hp():
-	assert_eq(Constants.BOSS_BUNNY_HP, 10)
+	assert_eq(Constants.BOSS_BUNNY_HP, 25)
 
 func test_boss_sasquatch_hp():
-	assert_eq(Constants.BOSS_SASQUATCH_HP, 5)
+	assert_eq(Constants.BOSS_SASQUATCH_HP, 15)
 
 func test_boss_void_drone_hp():
-	assert_eq(Constants.BOSS_VOID_DRONE_HP, 20)
+	assert_eq(Constants.BOSS_VOID_DRONE_HP, 45)
 
 func test_boss_score():
 	assert_eq(Constants.BOSS_SCORE, 1000)
 
 func test_boss_attack_interval():
-	assert_eq(Constants.BOSS_ATTACK_INTERVAL, 2.0)
+	assert_eq(Constants.BOSS_ATTACK_INTERVAL, 1.5)
 
 func test_sprite_base_size():
 	assert_eq(Constants.SPRITE_BASE_SIZE, 64.0)
@@ -299,7 +299,7 @@ func test_bullet_speed_offset():
 	assert_eq(Constants.BULLET_SPEED_OFFSET, 500.0, "Bullet speed offset should be 500.0")
 
 func test_boss_giant_biker_hp():
-	assert_eq(Constants.BOSS_GIANT_BIKER_HP, 15, "Boss Giant Biker HP should be 15")
+	assert_eq(Constants.BOSS_GIANT_BIKER_HP, 35, "Boss Giant Biker HP should be 35")
 
 func test_highway_perspective_constants():
 	assert_almost_eq(Constants.HIGHWAY_PERSPECTIVE_MIN_SCALE, 0.28, 0.001, "Min perspective scale")

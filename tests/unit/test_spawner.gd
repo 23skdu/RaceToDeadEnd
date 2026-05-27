@@ -15,6 +15,7 @@ func before_each():
 	GameManager.difficulty_tier = 1
 	GameManager.score = 0
 	GameManager.bosses_killed = 3
+	GameManager.boss_active = false
 
 
 func test_wave_interval_default():
@@ -327,7 +328,6 @@ class MockBossNode extends Node2D:
 	var player = null
 	@warning_ignore("unused_private_class_variable")
 	var _spawner = null
-	var _is_mock = true
 
 class MockCivilianNode extends Node2D:
 	@warning_ignore("unused_signal")
@@ -335,7 +335,6 @@ class MockCivilianNode extends Node2D:
 	@warning_ignore("unused_signal")
 	signal hit_by_player
 	var _init_called = false
-	var _is_mock = true
 	func init(_lane, _speed, _dir, _player):
 		_init_called = true
 
@@ -533,6 +532,7 @@ func test_enemy_spawned_emitted_when_enemy_spawns():
 class CleanupMock extends Node2D:
 	@warning_ignore("unused_signal")
 	signal destroyed(pos: Vector2, enemy_type: String, enemy: Node)
+	@warning_ignore("unused_private_class_variable")
 	var _spawner = null
 
 func test_cleanup_disconnects_destroyed_signal():

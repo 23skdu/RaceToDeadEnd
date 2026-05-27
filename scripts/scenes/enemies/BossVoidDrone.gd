@@ -103,6 +103,8 @@ func _physics_process(delta: float) -> void:
 	if attack_timer >= Constants.BOSS_ATTACK_INTERVAL * 1.5:
 		attack_timer = 0.0
 		_spawn_drones()
+		
+	move_and_slide()
 
 func _spawn_drones() -> void:
 	if _spawner and _spawner.has_signal("spawn_minion_requested"):

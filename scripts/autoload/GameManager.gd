@@ -26,6 +26,7 @@ var high_score: int = 0
 
 var enemy_list: Array[Node] = []
 var bosses_killed: int = 0
+var boss_active: bool = false
 
 var upgrade_levels: Dictionary = {
 	max_health = 1,
@@ -82,6 +83,7 @@ func start_game() -> void:
 	multiplier = 1
 	difficulty_tier = 1
 	current_segment = 0
+	boss_active = false
 	current_speed = Constants.BASE_SPEED
 	speed_changed.emit(current_speed)
 	score_updated.emit(score)
@@ -195,8 +197,9 @@ func _add_input_mappings() -> void:
 	_add_key_mapping("brake", KEY_DOWN)
 	
 	# Explicit weapon binds
-	_add_key_mapping("fire_emp", KEY_E)
-	_add_key_mapping("drop_mine", KEY_M)
+	_add_key_mapping("fire_emp", KEY_F)
+	_add_key_mapping("drop_mine", KEY_V)
+	_add_key_mapping("cycle_weapon", KEY_R)
 	_add_key_mapping("primary_fire", KEY_SPACE)
 
 func _add_key_mapping(action: String, keycode: int) -> void:

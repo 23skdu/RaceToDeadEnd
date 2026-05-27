@@ -47,6 +47,7 @@ var slippery: bool = false
 var speed_input: float = 0.0
 var max_forward_y: float = 0.0
 var wheel_tread_offset: float = 0.0
+var _camera_y: float = 0.0
 
 var last_left_tap_time: float = 0.0
 var last_right_tap_time: float = 0.0
@@ -93,6 +94,7 @@ func _ready() -> void:
 	
 	target_x = _lane_to_x(current_lane)
 	position.x = target_x
+	_camera_y = position.y
 	_update_boost_ui()
 	if not get_viewport().size_changed.is_connected(_scale_sprite):
 		get_viewport().size_changed.connect(_scale_sprite)
@@ -109,31 +111,30 @@ func _physics_process(delta: float) -> void:
 	if boost_active:
 		effective_speed = speed * Constants.BOOST_SPEED_MULTIPLIER
 	elif speed_input > 0:
-		effective_speed = Constants.ACCEL_SPEED
+		effective_speed = speed + 100.0
 	elif speed_input < 0:
-		effective_speed = Constants.REVERSE_SPEED
+		effective_speed = speed - 100.0
 	else:
 		effective_speed = speed
 		
-	max_forward_y = minf(max_forward_y, position.y)
+	_camera_y -= speed * delta
 	
 	velocity.y = -effective_speed
-	
-	# Restrict reversing tightly (approx 50 pixels) to prevent scrolling backwards past the camera
-	if velocity.y > 0 and position.y >= max_forward_y + 50.0:
-		velocity.y = 0.0
-		position.y = max_forward_y + 50.0
 		
 	var x_diff = target_x - position.x
 	
 	if abs(x_diff) > 2.0:
 		var lateral_coeff = 2.5 if slippery else 10.0
-		velocity.x = move_toward(velocity.x, x_diff * 8.0, abs(effective_speed) * delta * lateral_coeff)
+		var lateral_speed = maxf(abs(effective_speed), Constants.BASE_SPEED)
+		velocity.x = move_toward(velocity.x, x_diff * 8.0, lateral_speed * delta * lateral_coeff)
 	else:
 		velocity.x = 0.0
 		position.x = target_x
 		
 	move_and_slide()
+	
+	# Clamp player's global Y position to keep them on screen relative to camera
+	position.y = clampf(position.y, _camera_y - 700.0, _camera_y + 400.0)
 	
 	# Dampen sideways sliding forces on collision to prevent violent bounces
 	if get_slide_collision_count() > 0:
@@ -146,6 +147,7 @@ func _physics_process(delta: float) -> void:
 	
 	if has_node("Camera2D"):
 		$Camera2D.position.x = -position.x
+		$Camera2D.position.y = (_camera_y + Constants.CAMERA_Y_OFFSET) - position.y
 	
 	wheel_tread_offset = fmod(wheel_tread_offset + effective_speed * delta, 30.0)
 	queue_redraw()

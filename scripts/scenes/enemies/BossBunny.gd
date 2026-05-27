@@ -141,6 +141,8 @@ func _physics_process(delta: float) -> void:
 	if attack_timer >= Constants.BOSS_ATTACK_INTERVAL:
 		attack_timer = 0.0
 		_spawn_baby_bunny()
+		
+	move_and_slide()
 
 func _spawn_baby_bunny() -> void:
 	var bomb = ObjectPool.acquire("baby_bunny_bomb")

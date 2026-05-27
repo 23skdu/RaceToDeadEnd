@@ -32,11 +32,21 @@ func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if stunned:
 		return
+		
+	# Try to stay ahead of the player
+	if player:
+		var target_y = player.global_position.y - 350.0
+		velocity.y = (target_y - global_position.y) * 2.0
+	else:
+		velocity.y = speed
+		
 	_check_phase()
 	attack_timer += delta
 	if attack_timer >= Constants.BOSS_ATTACK_INTERVAL:
 		attack_timer = 0.0
 		_execute_attack()
+		
+	move_and_slide()
 
 func _check_phase() -> void:
 	var max_hp = Constants.BOSS_WAR_RIG_HP

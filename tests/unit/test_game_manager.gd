@@ -97,10 +97,10 @@ func test_add_score_min_multiplier():
 func test_add_score_advances_difficulty_at_1000():
 	var gm = get_gm()
 	gm.start_game()
-	gm.add_score(999)
-	assert_eq(gm.difficulty_tier, 1, "Tier should still be 1 at 999")
+	gm.add_score(Constants.TIER_THRESHOLD - 1)
+	assert_eq(gm.difficulty_tier, 1, "Tier should still be 1 below threshold")
 	gm.add_score(1)
-	assert_eq(gm.difficulty_tier, 2, "Tier should advance to 2 at 1000")
+	assert_eq(gm.difficulty_tier, 2, "Tier should advance to 2 at threshold")
 
 func test_add_health():
 	var gm = get_gm()
@@ -167,17 +167,17 @@ func test_advance_segment():
 func test_advance_segment_advances_difficulty_every_5():
 	var gm = get_gm()
 	gm.start_game()
-	for i in range(5):
+	var segments_needed = int(Constants.TIER_THRESHOLD / Constants.SEGMENT_DIFFICULTY_BONUS)
+	for i in range(segments_needed):
 		gm.advance_segment()
-	assert_eq(gm.difficulty_tier, 2, "Tier should advance after 5 segments")
+	assert_eq(gm.difficulty_tier, 2, "Tier should advance after threshold is reached")
 
 func test_advance_difficulty_caps_at_20():
 	var gm = get_gm()
 	gm.start_game()
-	for i in range(95):
-		gm._difficulty_progress += 200.0
-		gm._check_difficulty_advance()
-	assert_eq(gm.difficulty_tier, 20, "Tier should cap at 20")
+	gm._difficulty_progress = Constants.MAX_TIER * Constants.TIER_THRESHOLD
+	gm._check_difficulty_advance()
+	assert_eq(gm.difficulty_tier, Constants.MAX_TIER, "Tier should cap at MAX_TIER")
 
 func test_spend_credits_success():
 	var gm = get_gm()
