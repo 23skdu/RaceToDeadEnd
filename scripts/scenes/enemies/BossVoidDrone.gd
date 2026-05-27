@@ -13,7 +13,7 @@ func _reset_state() -> void:
 	speed = 80.0
 	attack_timer = 0.0
 	
-	if not sprite.texture:
+	if sprite and not sprite.texture:
 		var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)
 		img.fill(Color(0.2, 0.0, 0.4, 1.0))
 		sprite.texture = ImageTexture.create_from_image(img)

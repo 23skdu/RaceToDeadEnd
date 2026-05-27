@@ -61,7 +61,7 @@ func take_damage(_amount: int = 1) -> void:
 	hit_by_player.emit()
 
 func on_pool_acquire() -> void:
-	if not sprite.texture:
+	if sprite and not sprite.texture:
 		_generate_sprite_texture()
 	_protect_bonus_awarded = false
 	_player = null

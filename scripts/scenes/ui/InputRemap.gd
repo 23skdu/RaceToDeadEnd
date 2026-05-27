@@ -17,6 +17,8 @@ var _rows: Array[Dictionary] = []
 @onready var action_list: VBoxContainer = $ActionList
 
 func _ready() -> void:
+	if not action_list:
+		return
 	_build_action_list()
 
 func _build_action_list() -> void:

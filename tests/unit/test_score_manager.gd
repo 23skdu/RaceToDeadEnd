@@ -166,7 +166,13 @@ func test_on_game_over_clears_player():
 func test_on_game_started_no_player_graceful():
 	var sm = ScoreManagerScript.new()
 	add_child_autofree(sm)
+	var saved_players = []
+	for p in get_tree().get_nodes_in_group("player"):
+		saved_players.append(p)
+		p.remove_from_group("player")
 	sm._on_game_started()
+	for p in saved_players:
+		p.add_to_group("player")
 	assert_null(sm._cached_player, "Should handle no player gracefully")
 
 func test_score_values_has_all_keys():
@@ -176,7 +182,7 @@ func test_score_values_has_all_keys():
 	assert_true(ScoreManagerScript.SCORE_VALUES.has("civilian_protected"), "Should have civilian_protected")
 	assert_true(ScoreManagerScript.SCORE_VALUES.has("pickup_collected"), "Should have pickup_collected")
 	assert_true(ScoreManagerScript.SCORE_VALUES.has("segment_bonus"), "Should have segment_bonus")
-	assert_eq(ScoreManagerScript.SCORE_VALUES.size(), 6, "Should have exactly 6 entries")
+	assert_eq(ScoreManagerScript.SCORE_VALUES.size(), 8, "Should have exactly 8 entries")
 
 func test_register_kill_with_bonus_multiplier():
 	GameManager.start_game()

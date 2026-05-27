@@ -1,5 +1,10 @@
 extends GutTest
 
+var EnemyScript
+
+func before_all():
+	EnemyScript = load("res://scripts/scenes/enemies/Enemy.gd")
+
 func test_bullet_damage_enemy():
 	var BulletScene = load("res://scenes/weapons/Bullet.tscn")
 	GameManager.state = GameManager.GameState.PLAYING
@@ -11,9 +16,8 @@ func test_bullet_damage_enemy():
 	var EnemyScene = load("res://scenes/enemies/Rotor.tscn")
 	var enemy = EnemyScene.instantiate()
 	add_child_autofree(enemy)
-	enemy.init(Vector2(0, -50), null)
+	enemy.init(EnemyScript.EnemyType.ROTOR, 0, null, 200.0)
 
-	assert_true(enemy.health > 0, "Enemy should have health before damage")
+	assert_true(enemy.hp > 0, "Enemy should have health before damage")
 	bullet.body_entered.emit(enemy)
-	await get_tree().process_frame
-	assert_lt(enemy.health, enemy.max_health, "Enemy should take damage from bullet")
+	assert_eq(enemy.hp, 0, "Enemy should have 0 hp after damage")

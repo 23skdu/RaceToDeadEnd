@@ -141,13 +141,12 @@ func test_lightning_bolt_has_points():
 	var start = Vector2(0, -400)
 	ws._create_lightning_bolt(start)
 	await ws.get_tree().process_frame
-	var container = ws.get_node_or_null("LightningContainer")
-	if container:
-		var bolts = []
-		for child in container.get_children():
-			if child is Line2D:
-				bolts.append(child)
-		assert_gt(bolts.size(), 0, "Should have lightning bolts")
+	assert_not_null(ws.lightning_container, "LightningContainer should exist")
+	var bolts = []
+	for child in ws.lightning_container.get_children():
+		if child is Line2D:
+			bolts.append(child)
+	assert_gt(bolts.size(), 0, "Should have lightning bolts")
 
 func test_lightning_flash_created():
 	var ws = _create_weather()

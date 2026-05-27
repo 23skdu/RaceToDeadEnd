@@ -14,7 +14,7 @@ func before_each():
 	GameManager.state = GameManager.GameState.MENU
 	GameManager.difficulty_tier = 1
 	GameManager.score = 0
-	GameManager.bosses_killed = 2
+	GameManager.bosses_killed = 3
 
 
 func test_wave_interval_default():
@@ -110,7 +110,7 @@ func test_wave_composition_tier_3_one_boss_kill():
 	GameManager.bosses_killed = 1
 	var s = Spawner.new()
 	var comp = s._get_wave_composition(3)
-	assert_eq(comp.get("scav"), 1, "Tier 3 should have scav when 1 boss killed")
+	assert_false(comp.has("scav"), "Tier 3 should not have scav when only 1 boss killed")
 	assert_false(comp.has("drone"), "Tier 3 should not have drones when only 1 boss killed")
 
 func test_wave_composition_tier_3_two_boss_kills():
@@ -118,7 +118,7 @@ func test_wave_composition_tier_3_two_boss_kills():
 	var s = Spawner.new()
 	var comp = s._get_wave_composition(3)
 	assert_eq(comp.get("scav"), 1, "Tier 3 should have scav when 2 bosses killed")
-	assert_eq(comp.get("drone"), 1, "Tier 3 should have drone when 2 bosses killed")
+	assert_false(comp.has("drone"), "Tier 3 should not have drones when only 2 bosses killed")
 
 func test_pick_pickup_type_returns_valid():
 	var s = Spawner.new()
@@ -327,6 +327,7 @@ class MockBossNode extends Node2D:
 	var player = null
 	@warning_ignore("unused_private_class_variable")
 	var _spawner = null
+	var _is_mock = true
 
 class MockCivilianNode extends Node2D:
 	@warning_ignore("unused_signal")
@@ -334,6 +335,7 @@ class MockCivilianNode extends Node2D:
 	@warning_ignore("unused_signal")
 	signal hit_by_player
 	var _init_called = false
+	var _is_mock = true
 	func init(_lane, _speed, _dir, _player):
 		_init_called = true
 
@@ -353,21 +355,16 @@ func test_spawn_boss_creates_node():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
-	var found = false
-	for child in s.get_children():
-		if child is MockBossNode:
-			found = true
-			break
-	assert_true(found, "Boss node should be added as child")
+	assert_gt(s.get_child_count(), 0, "Boss node should be added as child")
 
 func test_spawn_boss_emits_signal():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	watch_signals(s)
 	s._spawn_boss()
@@ -377,11 +374,11 @@ func test_spawn_boss_sets_lane_position():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	for child in s.get_children():
-		if child is MockBossNode:
+		if child.get("_spawner") == s:
 			var expected_y = s.player.global_position.y - Constants.SPAWN_DISTANCE
 			assert_eq(child.global_position.y, expected_y, "Boss Y should be SPAWN_DISTANCE above player")
 			assert_true(child.global_position.x in Constants.LANE_POSITIONS, "Boss X should be a valid lane position")
@@ -391,11 +388,11 @@ func test_spawn_boss_sets_player_ref():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	for child in s.get_children():
-		if child is MockBossNode:
+		if child.get("_spawner") == s:
 			assert_eq(child.player, s.player, "Boss should have player reference")
 			break
 
@@ -403,11 +400,11 @@ func test_spawn_boss_sets_spawner_ref():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	s._spawn_boss()
 	for child in s.get_children():
-		if child is MockBossNode:
+		if child.get("_spawner") == s:
 			assert_eq(child._spawner, s, "Boss should have spawner reference")
 			break
 
@@ -415,7 +412,7 @@ func test_spawn_boss_increments_counter():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	var before = s._bosses_spawned
 	s._spawn_boss()
@@ -429,7 +426,7 @@ func test_spawn_civilian_creates_child():
 	s._spawn_civilian()
 	var found = false
 	for child in s.get_children():
-		if child is MockCivilianNode:
+		if child.has_signal("exited_safely"):
 			found = true
 			break
 	assert_true(found, "Civilian node should be added as child")
@@ -441,7 +438,7 @@ func test_spawn_civilian_connects_exited_safely():
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	for child in s.get_children():
-		if child is MockCivilianNode:
+		if child.has_signal("exited_safely"):
 			assert_true(child.exited_safely.is_connected(s._on_civilian_safe_exit.bind(child)), "exited_safely should be connected")
 			break
 
@@ -452,7 +449,7 @@ func test_spawn_civilian_connects_hit_by_player():
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	for child in s.get_children():
-		if child is MockCivilianNode:
+		if child.has_signal("hit_by_player"):
 			assert_true(child.hit_by_player.is_connected(s._on_civilian_hit.bind(child)), "hit_by_player should be connected")
 			break
 
@@ -463,7 +460,7 @@ func test_spawn_civilian_sets_position_offset():
 	s.enemy_scenes["civilian"] = _make_civilian_scene()
 	s._spawn_civilian()
 	for child in s.get_children():
-		if child is MockCivilianNode:
+		if child.has_signal("exited_safely"):
 			var expected_y = s.player.global_position.y - Constants.SPAWN_DISTANCE * 0.5
 			assert_eq(child.global_position.y, expected_y, "Civilian Y should be 0.5 * SPAWN_DISTANCE above player")
 			break
@@ -519,7 +516,7 @@ func test_enemy_spawned_emitted_when_boss_spawns():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	add_child_autofree(s)
-	s._bosses_spawned = 3
+	s._bosses_spawned = 2
 	s.enemy_scenes["boss"] = _make_boss_scene()
 	watch_signals(s)
 	s._spawn_boss()

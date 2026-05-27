@@ -103,7 +103,6 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 			"boost": fb_visual.color = Color(0.2, 0.8, 1.0)
 			"multiplier": fb_visual.color = Color(1.0, 0.3, 1.0)
 	_pickup_pool_data[fallback] = {"type": pickup_type, "callback": on_collected}
-	add_child(fallback)
 	return fallback
 
 func _get_pickup_visual(pickup: Area2D) -> Polygon2D:
@@ -131,6 +130,7 @@ func acquire(pool_name: String) -> Node:
 			var pscene = load(_scene_paths[pool_name]) as PackedScene
 			if pscene:
 				create_pool(pool_name, pscene, 4)
+				_scene_cache[pool_name] = pscene
 			else:
 				push_warning("Pool '%s' scene not found" % pool_name)
 				return null
@@ -156,7 +156,6 @@ func acquire(pool_name: String) -> Node:
 		_scene_cache[pool_name] = load(_scene_paths[pool_name])
 	var fallback = _scene_cache[pool_name].instantiate()
 	fallback.set_meta("_in_pool", false)
-	add_child(fallback)
 	if fallback.has_method("on_pool_acquire"):
 		fallback.on_pool_acquire()
 	return fallback

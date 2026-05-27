@@ -75,7 +75,7 @@ func test_fallback_item_added_to_pool_parent():
 	ObjectPool.create_pool("test_fallback_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	var item1 = ObjectPool.acquire("test_fallback_parent")
 	var item2 = ObjectPool.acquire("test_fallback_parent")
-	assert_eq(item2.get_parent(), ObjectPool, "Fallback item should be added to ObjectPool")
+	assert_null(item2.get_parent(), "Fallback item should have no parent (caller reparents)")
 
 func test_pool_scene_path_stored():
 	ObjectPool.create_pool("test_scene_path", preload("res://scenes/weapons/Bullet.tscn"), 1)
