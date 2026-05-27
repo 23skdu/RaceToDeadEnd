@@ -243,3 +243,8 @@ func test_process_game_over_restart_timer_accept():
 	game._game_over_restart_timer = 1.5
 	game._process(0.1)
 	assert_true(true, "Game over _process should handle ui_accept check without crash")
+
+func test_game_viewport_resize_adjusts_world_scale():
+	var game = _create_game()
+	game._on_viewport_size_changed()
+	assert_eq(game.world.scale, Constants.WORLD_SCALE, "World scale should match Constants.WORLD_SCALE at default viewport width")

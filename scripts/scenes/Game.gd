@@ -39,6 +39,10 @@ func _ready() -> void:
 	_setup_parallax()
 	world.scale = Constants.WORLD_SCALE
 	world.set_y_sort_enabled(true)
+	
+	if not get_viewport().size_changed.is_connected(_on_viewport_size_changed):
+		get_viewport().size_changed.connect(_on_viewport_size_changed)
+	_on_viewport_size_changed()
 
 	var env_res = load("res://assets/environments/game_env.tres")
 	if env_res:
@@ -343,3 +347,10 @@ func _on_boss_defeated(boss_type: String) -> void:
 func _on_demo_finished() -> void:
 	get_tree().paused = false
 	AudioManager.play_game_music()
+
+func _on_viewport_size_changed() -> void:
+	var viewport_rect = get_viewport().get_visible_rect()
+	if viewport_rect.size.x <= 0:
+		return
+	var scale_factor = viewport_rect.size.x / 1280.0
+	world.scale = Constants.WORLD_SCALE * scale_factor

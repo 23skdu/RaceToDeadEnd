@@ -66,6 +66,7 @@ func _ready() -> void:
 	add_to_group("player")
 	_scale_sprite()
 	$Camera2D.position.y = Constants.CAMERA_Y_OFFSET
+	$Camera2D.position_smoothing_enabled = false
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
 	var missile_level = GameManager.upgrade_levels.get("missile_ammo", 1)
 	var mine_level = GameManager.upgrade_levels.get("mine_ammo", 1)
@@ -133,6 +134,9 @@ func _physics_process(delta: float) -> void:
 		position.x = target_x
 		
 	move_and_slide()
+	
+	if has_node("Camera2D"):
+		$Camera2D.position.x = -position.x
 	
 	wheel_tread_offset = fmod(wheel_tread_offset + effective_speed * delta, 30.0)
 	queue_redraw()

@@ -539,3 +539,9 @@ func test_interceptor_viewport_resize_recalibrates_scale():
 	player.sprite.scale = Vector2(0.5, 0.5)
 	player._scale_sprite()
 	assert_eq(player.sprite.scale, size_before, "Sprite scale should reset to correct viewport-based proportions on resize call")
+
+func test_interceptor_camera_stays_centered_horizontally():
+	var player = _create_player()
+	player.position.x = 200.0
+	player._physics_process(0.1)
+	assert_eq(player.get_node("Camera2D").position.x, -player.position.x, "Camera local X should offset player X to keep it centered on highway")
