@@ -524,3 +524,18 @@ func test_interceptor_collision_plays_crash_sound():
 		if p.playing:
 			playing_count += 1
 	assert_gt(playing_count, 0, "Crash sound should play on take damage")
+
+func test_interceptor_collision_shape_rescaling():
+	var player = _create_player()
+	player._scale_sprite()
+	var initial_size = player.collision.shape.size
+	assert_almost_eq(initial_size.x, 28.0 * (player.sprite.scale.y / 0.875), 0.01, "Collision width should scale with sprite scale")
+	assert_almost_eq(initial_size.y, 40.0 * (player.sprite.scale.y / 0.875), 0.01, "Collision height should scale with sprite scale")
+
+func test_interceptor_viewport_resize_recalibrates_scale():
+	var player = _create_player()
+	player._scale_sprite()
+	var size_before = player.sprite.scale
+	player.sprite.scale = Vector2(0.5, 0.5)
+	player._scale_sprite()
+	assert_eq(player.sprite.scale, size_before, "Sprite scale should reset to correct viewport-based proportions on resize call")

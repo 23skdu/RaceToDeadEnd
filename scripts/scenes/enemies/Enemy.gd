@@ -34,6 +34,8 @@ func _ready() -> void:
 	collision_layer = 2
 	z_index = 1
 	add_to_group("enemy")
+	if not get_viewport().size_changed.is_connected(_scale_sprite):
+		get_viewport().size_changed.connect(_scale_sprite)
 
 func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float, spawner: Node = null) -> void:
 	enemy_type = type

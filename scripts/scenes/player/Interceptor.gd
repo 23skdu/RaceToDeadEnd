@@ -93,6 +93,8 @@ func _ready() -> void:
 	target_x = _lane_to_x(current_lane)
 	position.x = target_x
 	_update_boost_ui()
+	if not get_viewport().size_changed.is_connected(_scale_sprite):
+		get_viewport().size_changed.connect(_scale_sprite)
 
 func _on_speed_changed(new_speed: float) -> void:
 	speed = new_speed
@@ -321,7 +323,7 @@ func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, 120.0, Constants.SPRITE_BASE_VIEWPORT)
 	if collision and collision.shape:
 		collision.shape = collision.shape.duplicate()
-		collision.shape.size = Vector2(28, 40) * (120.0 / 84.0)
+		collision.shape.size = Vector2(28, 40) * (sprite.scale.y / 0.875)
 
 func _draw() -> void:
 	var wheel_color = Color(0.12, 0.12, 0.15, 1.0)
@@ -330,7 +332,7 @@ func _draw() -> void:
 	
 	var w_width = 16.0
 	var w_height = 30.0
-	var x_offset = 32.0 * sprite.scale.x
+	var x_offset = 20.0 * sprite.scale.x
 	var y_front = -24.0 * sprite.scale.y
 	var y_rear = 24.0 * sprite.scale.y
 	
