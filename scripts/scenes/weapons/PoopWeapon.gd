@@ -10,10 +10,52 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	$VisibleOnScreenNotifier2D.screen_exited.connect(_on_visible_on_screen_notifier_screen_exited)
 	
-	if not $Sprite2D.texture:
-		var img = Image.create(16, 16, false, Image.FORMAT_RGBA8)
-		img.fill(Color(0.4, 0.25, 0.1, 1.0))
-		$Sprite2D.texture = ImageTexture.create_from_image(img)
+	if not $Sprite2D.texture or $Sprite2D.texture is PlaceholderTexture2D:
+		$Sprite2D.texture = _create_poop_texture()
+
+static func _create_poop_texture() -> ImageTexture:
+	var img = Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.0, 0.0, 0.0, 0.0))
+
+	var brown_dark = Color(0.40, 0.20, 0.08, 1.0)
+	var brown_med = Color(0.50, 0.26, 0.12, 1.0)
+	var brown_light = Color(0.60, 0.32, 0.16, 1.0)
+	var highlight = Color(0.72, 0.44, 0.25, 1.0)
+	var toxic_green = Color(0.2, 0.85, 0.1, 0.85)
+
+	var fill_ellipse = func(cx: float, cy: float, rx: float, ry: float, col: Color) -> void:
+		var x_start = clampi(int(cx - rx - 1), 0, 15)
+		var x_end = clampi(int(cx + rx + 1), 0, 15)
+		var y_start = clampi(int(cy - ry - 1), 0, 15)
+		var y_end = clampi(int(cy + ry + 1), 0, 15)
+		for px in range(x_start, x_end + 1):
+			for py in range(y_start, y_end + 1):
+				var nx = (px - cx) / rx
+				var ny = (py - cy) / ry
+				if nx * nx + ny * ny <= 1.0:
+					img.set_pixel(px, py, col)
+
+	# 1. Base Swirl layer
+	fill_ellipse.call(8.0, 12.0, 6.5, 3.2, brown_dark)
+	# 2. Middle Swirl layer
+	fill_ellipse.call(8.0, 8.5, 4.5, 2.8, brown_med)
+	# 3. Top Peak layer
+	fill_ellipse.call(8.0, 5.0, 2.5, 2.2, brown_light)
+	fill_ellipse.call(8.0, 3.5, 1.2, 1.2, highlight)
+
+	# Highlights to define curved layers
+	img.set_pixel(5, 11, highlight)
+	img.set_pixel(6, 11, highlight)
+	img.set_pixel(6, 7, highlight)
+	img.set_pixel(7, 7, highlight)
+
+	# Toxic floating gas particles
+	img.set_pixel(2, 4, toxic_green)
+	img.set_pixel(13, 6, toxic_green)
+	img.set_pixel(3, 10, toxic_green)
+	img.set_pixel(12, 11, toxic_green)
+
+	return ImageTexture.create_from_image(img)
 
 func init(pos: Vector2, dir: Vector2, _player_owned: bool = false) -> void:
 	global_position = pos

@@ -181,7 +181,6 @@ func _generate_chunk_tiles_into(parent: Node2D, chunk_type: ChunkType) -> void:
 	_build_tiles_into(parent, chunk_type)
 
 func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
-	var half_w = TILE_SIZE.x / 2.0
 	var half_h = TILE_SIZE.y / 2.0
 	
 	var bg_color: Color
@@ -280,6 +279,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			if tile_variant == 1 or tile_variant == 3:
 				obstacle_positions.append({
 					"pos": Vector2(x_pos, y_pos),
+					"type": "barrel" if tile_variant == 3 else "rock",
 					"color": Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0)
 				})
 	
@@ -364,31 +364,133 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		obstacle.position = obs["pos"]
 		obstacle.add_to_group("obstacles")
 		
-		var col_poly = CollisionPolygon2D.new()
-		var sf = 0.85
-		col_poly.polygon = PackedVector2Array([
-			Vector2(0, -half_h * sf),
-			Vector2(half_w * sf, 0),
-			Vector2(0, half_h * sf),
-			Vector2(-half_w * sf, 0)
-		])
-		obstacle.add_child(col_poly)
+		# Replace diamond wedge with a Circle Collider to fix severe bouncing
+		var col_shape = CollisionShape2D.new()
+		var circle = CircleShape2D.new()
+		circle.radius = 12.0
+		col_shape.shape = circle
+		obstacle.add_child(col_shape)
 		
-		var visual = Polygon2D.new()
-		visual.polygon = col_poly.polygon
-		visual.color = obs["color"]
-		obstacle.add_child(visual)
-		
-		var highlight = Polygon2D.new()
-		highlight.polygon = PackedVector2Array([
-			Vector2(0, -half_h * sf * 0.5),
-			Vector2(half_w * sf * 0.5, 0),
-			Vector2(0, half_h * sf * 0.5),
-			Vector2(-half_w * sf * 0.5, 0)
-		])
-		highlight.color = Color(1.0, 1.0, 1.0, 0.5)
-		obstacle.add_child(highlight)
-		
+		if obs["type"] == "barrel":
+			# --- 1. Construction Barrel ( VIBRANT ORANGE / REFLECTIVE STRIPES ) ---
+			# Barrel Base
+			var base = Polygon2D.new()
+			base.polygon = PackedVector2Array([
+				Vector2(-12, 11), Vector2(12, 11),
+				Vector2(10, 14), Vector2(-10, 14)
+			])
+			base.color = Color(0.12, 0.12, 0.14)
+			obstacle.add_child(base)
+			
+			# Orange Barrel Body
+			var body = Polygon2D.new()
+			body.polygon = PackedVector2Array([
+				Vector2(-10, -14), Vector2(10, -14),
+				Vector2(11, 11), Vector2(-11, 11)
+			])
+			body.color = Color(1.0, 0.4, 0.0) # Bright safety orange
+			obstacle.add_child(body)
+			
+			# Horizontal Stripe 1 (White Reflective)
+			var stripe1 = Polygon2D.new()
+			stripe1.polygon = PackedVector2Array([
+				Vector2(-10.2, -6), Vector2(10.2, -6),
+				Vector2(10.5, -1), Vector2(-10.5, -1)
+			])
+			stripe1.color = Color(0.95, 0.95, 0.98)
+			obstacle.add_child(stripe1)
+			
+			# Horizontal Stripe 2 (White Reflective)
+			var stripe2 = Polygon2D.new()
+			stripe2.polygon = PackedVector2Array([
+				Vector2(-10.6, 3), Vector2(10.6, 3),
+				Vector2(10.9, 8), Vector2(-10.9, 8)
+			])
+			stripe2.color = Color(0.95, 0.95, 0.98)
+			obstacle.add_child(stripe2)
+			
+			# Ridges on the orange parts
+			var ridge = Line2D.new()
+			ridge.width = 1.5
+			ridge.default_color = Color(0.6, 0.25, 0.0)
+			ridge.points = PackedVector2Array([Vector2(-10.4, 1), Vector2(10.4, 1)])
+			obstacle.add_child(ridge)
+			
+			# Flashing red light unit
+			var light_base = Polygon2D.new()
+			light_base.polygon = PackedVector2Array([
+				Vector2(-4, -14), Vector2(4, -14),
+				Vector2(3, -19), Vector2(-3, -19)
+			])
+			light_base.color = Color(0.2, 0.2, 0.2)
+			obstacle.add_child(light_base)
+			
+			# Red light bulb
+			var bulb = Polygon2D.new()
+			bulb.polygon = PackedVector2Array([
+				Vector2(-2, -19), Vector2(2, -19),
+				Vector2(3, -24), Vector2(0, -26), Vector2(-3, -24)
+			])
+			bulb.color = Color(1.0, 0.0, 0.1)
+			obstacle.add_child(bulb)
+			
+			# Dynamic blinking glow layer on top
+			var flash_glow = Polygon2D.new()
+			flash_glow.polygon = PackedVector2Array([
+				Vector2(0, -28), Vector2(6, -24), Vector2(0, -20), Vector2(-6, -24)
+			])
+			flash_glow.color = Color(1.0, 0.2, 0.2, 0.8)
+			
+			# Procedural blink script to toggle visibility at 1.67 Hz
+			var blink_script = GDScript.new()
+			blink_script.source_code = "extends Polygon2D\nvar time = 0.0\nfunc _process(delta):\n\ttime += delta\n\tvisible = fmod(time, 0.6) < 0.3\n"
+			blink_script.reload()
+			flash_glow.set_script(blink_script)
+			obstacle.add_child(flash_glow)
+			
+		else:
+			# --- 2. Debris Rock ( SHADED GRAY CRACKED BOULDER ) ---
+			# Main Rock Polygon (Organic wavy shape)
+			var rock_poly = Polygon2D.new()
+			rock_poly.polygon = PackedVector2Array([
+				Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
+				Vector2(4, -14), Vector2(13, -6), Vector2(15, 8),
+				Vector2(5, 13), Vector2(-6, 13)
+			])
+			rock_poly.color = Color(0.48, 0.48, 0.5) # Slate gray rock
+			obstacle.add_child(rock_poly)
+			
+			# Rock Shadow facet (Bottom-Right)
+			var rock_shadow = Polygon2D.new()
+			rock_shadow.polygon = PackedVector2Array([
+				Vector2(0, -13), Vector2(4, -14), Vector2(13, -6),
+				Vector2(15, 8), Vector2(5, 13), Vector2(-3, 6)
+			])
+			rock_shadow.color = Color(0.35, 0.35, 0.38) # Cast shadow
+			obstacle.add_child(rock_shadow)
+			
+			# Rock Highlight facet (Top-Left Specular)
+			var rock_lite = Polygon2D.new()
+			rock_lite.polygon = PackedVector2Array([
+				Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
+				Vector2(0, -13), Vector2(-5, 0)
+			])
+			rock_lite.color = Color(0.62, 0.62, 0.65) # Catch light
+			obstacle.add_child(rock_lite)
+			
+			# Rock internal crack lines
+			var crack = Line2D.new()
+			crack.width = 1.5
+			crack.default_color = Color(0.2, 0.2, 0.22)
+			crack.points = PackedVector2Array([Vector2(-4, -12), Vector2(-2, -3), Vector2(3, 4)])
+			obstacle.add_child(crack)
+			
+			var crack2 = Line2D.new()
+			crack2.width = 1.0
+			crack2.default_color = Color(0.2, 0.2, 0.22)
+			crack2.points = PackedVector2Array([Vector2(-2, -3), Vector2(-10, 2)])
+			obstacle.add_child(crack2)
+			
 		chunk_local.add_child(obstacle)
 	
 	if lane_polygons.size() > 0 and chunk_type != ChunkType.ICE and chunk_type != ChunkType.BRIDGE:
@@ -472,11 +574,103 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		chunk_local.add_child(ice_area)
 	
 	if chunk_type == ChunkType.BRIDGE:
+		# 1. Concrete deck joints across lanes for modular concrete look
+		for row in range(0, CHUNK_HEIGHT + 1, 2):
+			var joint_y = row * TILE_SIZE.y
+			var joint = Line2D.new()
+			joint.width = 1.5
+			joint.default_color = Color(0.05, 0.05, 0.07, 0.5)
+			joint.points = PackedVector2Array([Vector2(-480, joint_y), Vector2(480, joint_y)])
+			chunk_local.add_child(joint)
+
+		# 2. repeating diagonal X-trusses on outer shoulders (girder structure)
+		var truss_color = Color(0.25, 0.28, 0.35, 1.0) # steel blue-gray
+		var truss_dark = Color(0.12, 0.14, 0.18, 1.0)
+		for row in range(0, CHUNK_HEIGHT):
+			var y1 = row * TILE_SIZE.y
+			var y2 = (row + 1) * TILE_SIZE.y
+			
+			# Left shoulder X-truss
+			var lx1 = left_rail_x - 30
+			var lx2 = left_rail_x - 5
+			var lt1 = Line2D.new()
+			lt1.width = 2.5
+			lt1.default_color = truss_color
+			lt1.points = PackedVector2Array([Vector2(lx1, y1), Vector2(lx2, y2)])
+			chunk_local.add_child(lt1)
+			
+			var lt2 = Line2D.new()
+			lt2.width = 2.5
+			lt2.default_color = truss_color
+			lt2.points = PackedVector2Array([Vector2(lx2, y1), Vector2(lx1, y2)])
+			chunk_local.add_child(lt2)
+			
+			# Right shoulder X-truss
+			var rx1 = right_rail_x + 5
+			var rx2 = right_rail_x + 30
+			var rt1 = Line2D.new()
+			rt1.width = 2.5
+			rt1.default_color = truss_color
+			rt1.points = PackedVector2Array([Vector2(rx1, y1), Vector2(rx2, y2)])
+			chunk_local.add_child(rt1)
+			
+			var rt2 = Line2D.new()
+			rt2.width = 2.5
+			rt2.default_color = truss_color
+			rt2.points = PackedVector2Array([Vector2(rx2, y1), Vector2(rx1, y2)])
+			chunk_local.add_child(rt2)
+			
+			# Longitudinal steel edge beams
+			if row == 0:
+				var left_edge = Line2D.new()
+				left_edge.width = 4.0
+				left_edge.default_color = truss_dark
+				left_edge.points = PackedVector2Array([Vector2(lx1, 0), Vector2(lx1, CHUNK_PIXEL_HEIGHT)])
+				chunk_local.add_child(left_edge)
+				
+				var right_edge = Line2D.new()
+				right_edge.width = 4.0
+				right_edge.default_color = truss_dark
+				right_edge.points = PackedVector2Array([Vector2(rx2, 0), Vector2(rx2, CHUNK_PIXEL_HEIGHT)])
+				chunk_local.add_child(right_edge)
+
+		# 3. Structural Concrete Pillars at chunk boundaries
+		for py in [0.0, CHUNK_PIXEL_HEIGHT]:
+			var lp = Polygon2D.new()
+			lp.polygon = PackedVector2Array([
+				Vector2(left_rail_x - 35, py - 6), Vector2(left_rail_x - 2, py - 6),
+				Vector2(left_rail_x - 2, py + 6), Vector2(left_rail_x - 35, py + 6)
+			])
+			lp.color = Color(0.35, 0.35, 0.38)
+			chunk_local.add_child(lp)
+			
+			var rp = Polygon2D.new()
+			rp.polygon = PackedVector2Array([
+				Vector2(right_rail_x + 2, py - 6), Vector2(right_rail_x + 35, py - 6),
+				Vector2(right_rail_x + 35, py + 6), Vector2(right_rail_x + 2, py + 6)
+			])
+			rp.color = Color(0.35, 0.35, 0.38)
+			chunk_local.add_child(rp)
+
+		# 4. Safety Guardrail thin steel cables
+		var left_cable = Line2D.new()
+		left_cable.width = 1.0
+		left_cable.default_color = Color(0.75, 0.85, 0.95, 0.7)
+		left_cable.points = PackedVector2Array([Vector2(left_rail_x - 4, 0), Vector2(left_rail_x - 4, CHUNK_PIXEL_HEIGHT)])
+		chunk_local.add_child(left_cable)
+		
+		var right_cable = Line2D.new()
+		right_cable.width = 1.0
+		right_cable.default_color = Color(0.75, 0.85, 0.95, 0.7)
+		right_cable.points = PackedVector2Array([Vector2(right_rail_x + 4, 0), Vector2(right_rail_x + 4, CHUNK_PIXEL_HEIGHT)])
+		chunk_local.add_child(right_cable)
+
+		# 5. horizontal cross girder support beams
 		var beam_every = 3
 		for beam_row in range(0, CHUNK_HEIGHT + 1, beam_every):
 			var beam_y = beam_row * TILE_SIZE.y
 			var beam = Line2D.new()
-			beam.width = 6.0
+			beam.width = 5.0
 			beam.default_color = Color(0.08, 0.08, 0.12)
 			beam.points = PackedVector2Array([
 				Vector2(left_rail_x - 12, beam_y),
@@ -484,11 +678,11 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			])
 			chunk_local.add_child(beam)
 			var beam_highlight = Line2D.new()
-			beam_highlight.width = 2.0
-			beam_highlight.default_color = Color(0.06, 0.06, 0.1)
+			beam_highlight.width = 1.5
+			beam_highlight.default_color = Color(0.2, 0.22, 0.28)
 			beam_highlight.points = PackedVector2Array([
-				Vector2(left_rail_x - 12, beam_y + 2),
-				Vector2(right_rail_x + 12, beam_y + 2)
+				Vector2(left_rail_x - 12, beam_y + 1),
+				Vector2(right_rail_x + 12, beam_y + 1)
 			])
 			chunk_local.add_child(beam_highlight)
 		

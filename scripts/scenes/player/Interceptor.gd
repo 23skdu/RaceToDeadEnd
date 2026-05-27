@@ -135,6 +135,15 @@ func _physics_process(delta: float) -> void:
 		
 	move_and_slide()
 	
+	# Dampen sideways sliding forces on collision to prevent violent bounces
+	if get_slide_collision_count() > 0:
+		for i in get_slide_collision_count():
+			var col = get_slide_collision(i)
+			var normal = col.get_normal()
+			if abs(normal.x) > 0.3:
+				velocity.x = 0.0
+				position.x = move_toward(position.x, target_x, 50.0 * delta)
+	
 	if has_node("Camera2D"):
 		$Camera2D.position.x = -position.x
 	
@@ -310,7 +319,6 @@ func _update_boost_trail() -> void:
 			if _trail_points.size() > TRAIL_LENGTH:
 				_trail_points.resize(TRAIL_LENGTH)
 		_trail_line.points = PackedVector2Array(_trail_points)
-		var alpha_step = 0.6 / max(_trail_points.size(), 1)
 		var gradient = Gradient.new()
 		var colors: PackedColorArray = []
 		for j in range(_trail_points.size()):

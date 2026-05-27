@@ -95,3 +95,41 @@ func test_boss_void_drone_spawns_drones() -> void:
 	boss._physics_process(0.1)
 	
 	assert_true(drone_spawned[0], "BossVoidDrone should request drone spawns")
+
+func test_boss_textures_bypass_placeholders() -> void:
+	var bunny = preload("res://scenes/enemies/BossBunny.tscn").instantiate()
+	add_child_autofree(bunny)
+	assert_not_null(bunny.sprite.texture, "BossBunny texture should be generated")
+	assert_false(bunny.sprite.texture is PlaceholderTexture2D, "BossBunny texture should not be PlaceholderTexture2D")
+	assert_eq(bunny.sprite.texture.get_width(), 128, "BossBunny texture width should be 128")
+
+	var biker = preload("res://scenes/enemies/BossGiantBiker.tscn").instantiate()
+	add_child_autofree(biker)
+	assert_not_null(biker.sprite.texture, "BossGiantBiker texture should be generated")
+	assert_false(biker.sprite.texture is PlaceholderTexture2D, "BossGiantBiker texture should not be PlaceholderTexture2D")
+	assert_eq(biker.sprite.texture.get_width(), 128, "BossGiantBiker texture width should be 128")
+
+	var drone = preload("res://scenes/enemies/BossVoidDrone.tscn").instantiate()
+	add_child_autofree(drone)
+	assert_not_null(drone.sprite.texture, "BossVoidDrone texture should be generated")
+	assert_false(drone.sprite.texture is PlaceholderTexture2D, "BossVoidDrone texture should not be PlaceholderTexture2D")
+	assert_eq(drone.sprite.texture.get_width(), 128, "BossVoidDrone texture width should be 128")
+
+	var sasquatch = preload("res://scenes/enemies/BossSasquatch.tscn").instantiate()
+	add_child_autofree(sasquatch)
+	assert_not_null(sasquatch.sprite.texture, "BossSasquatch texture should be generated")
+	assert_eq(sasquatch.sprite.texture.get_width(), 128, "BossSasquatch texture width should be 128")
+
+func test_weapon_textures_bypass_placeholders() -> void:
+	var bomb = preload("res://scenes/weapons/BabyBunnyBomb.tscn").instantiate()
+	add_child_autofree(bomb)
+	assert_not_null(bomb.sprite.texture, "BabyBunnyBomb texture should be generated")
+	assert_false(bomb.sprite.texture is PlaceholderTexture2D, "BabyBunnyBomb texture should not be PlaceholderTexture2D")
+	assert_eq(bomb.sprite.texture.get_width(), 32, "BabyBunnyBomb texture width should be 32")
+
+	var poop = preload("res://scenes/weapons/PoopWeapon.tscn").instantiate()
+	add_child_autofree(poop)
+	var p_sprite = poop.get_node("Sprite2D")
+	assert_not_null(p_sprite.texture, "PoopWeapon texture should be generated")
+	assert_false(p_sprite.texture is PlaceholderTexture2D, "PoopWeapon texture should not be PlaceholderTexture2D")
+	assert_eq(p_sprite.texture.get_width(), 16, "PoopWeapon texture width should be 16")

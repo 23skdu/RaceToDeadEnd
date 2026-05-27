@@ -106,7 +106,7 @@ func test_game_over_restart_delay_allows_after_cooldown():
 	assert_gte(game._game_over_restart_timer, 1.5, "Should allow restart after 1.5s")
 
 func test_ready_creates_pools():
-	var game = _create_game()
+	var _game = _create_game()
 	assert_true(ObjectPool.has_pool("bullet"), "Bullet pool should exist")
 	assert_true(ObjectPool.has_pool("mine"), "Mine pool should exist")
 	assert_true(ObjectPool.has_pool("emp"), "EMP pool should exist")
@@ -119,7 +119,7 @@ func test_ready_creates_pools():
 	assert_true(ObjectPool.has_pool("pickup"), "Pickup pool should exist")
 
 func test_ready_starts_game():
-	var game = _create_game()
+	var _game = _create_game()
 	assert_eq(GameManager.state, GameManager.GameState.PLAYING, "Game should be PLAYING after _ready")
 
 func test_ready_connects_spawner_signals():
