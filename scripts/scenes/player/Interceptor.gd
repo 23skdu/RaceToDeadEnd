@@ -46,6 +46,7 @@ var invincible_timer: float = 0.0
 var slippery: bool = false
 var speed_input: float = 0.0
 var max_forward_y: float = 0.0
+var wheel_tread_offset: float = 0.0
 
 var last_left_tap_time: float = 0.0
 var last_right_tap_time: float = 0.0
@@ -131,6 +132,9 @@ func _physics_process(delta: float) -> void:
 		
 	move_and_slide()
 	
+	wheel_tread_offset = fmod(wheel_tread_offset + effective_speed * delta, 30.0)
+	queue_redraw()
+	
 	_update_boost_trail()
 	
 	for i in get_slide_collision_count():
@@ -139,12 +143,18 @@ func _physics_process(delta: float) -> void:
 		if collider and is_instance_valid(collider):
 			if collider.is_in_group("deadly_obstacles"):
 				if not boost_active:
+					if not invincible:
+						AudioManager.play_synth_crash(global_position)
 					GameManager.take_damage(GameManager.max_health)
 			elif collider.is_in_group("obstacles") or collider is StaticBody2D:
 				if not boost_active:
+					if not invincible:
+						AudioManager.play_synth_crash(global_position)
 					take_damage(1)
 			elif collider.is_in_group("enemy"):
 				if not boost_active:
+					if not invincible:
+						AudioManager.play_synth_crash(global_position)
 					take_damage(1)
 
 func _handle_input(_delta: float) -> void:
@@ -308,7 +318,35 @@ func _update_boost_trail() -> void:
 		_trail_line.points = PackedVector2Array()
 
 func _scale_sprite() -> void:
-	HelpersUtil.scale_sprite_to_viewport(sprite, 84.0, Constants.SPRITE_BASE_VIEWPORT)
+	HelpersUtil.scale_sprite_to_viewport(sprite, 120.0, Constants.SPRITE_BASE_VIEWPORT)
+	if collision and collision.shape:
+		collision.shape = collision.shape.duplicate()
+		collision.shape.size = Vector2(28, 40) * (120.0 / 84.0)
+
+func _draw() -> void:
+	var wheel_color = Color(0.12, 0.12, 0.15, 1.0)
+	var tread_color = Color(0.35, 0.35, 0.4, 1.0)
+	var rim_color = Color(0.7, 0.7, 0.7, 1.0)
+	
+	var w_width = 16.0
+	var w_height = 30.0
+	var x_offset = 32.0 * sprite.scale.x
+	var y_front = -24.0 * sprite.scale.y
+	var y_rear = 24.0 * sprite.scale.y
+	
+	var wheel_positions = [
+		Vector2(-x_offset - w_width/2.0, y_front - w_height/2.0),
+		Vector2(x_offset - w_width/2.0, y_front - w_height/2.0),
+		Vector2(-x_offset - w_width/2.0, y_rear - w_height/2.0),
+		Vector2(x_offset - w_width/2.0, y_rear - w_height/2.0)
+	]
+	
+	for pos in wheel_positions:
+		draw_rect(Rect2(pos, Vector2(w_width, w_height)), wheel_color, true)
+		draw_rect(Rect2(pos + Vector2(2, 4), Vector2(w_width - 4, w_height - 8)), rim_color, true)
+		for j in range(4):
+			var tread_y = pos.y + fmod(wheel_tread_offset + j * (w_height / 4.0), w_height)
+			draw_line(Vector2(pos.x, tread_y), Vector2(pos.x + w_width, tread_y), tread_color, 2.5)
 
 func add_boost() -> void:
 	if boost_charges < max_boost_charges:

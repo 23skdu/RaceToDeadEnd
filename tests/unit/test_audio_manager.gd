@@ -423,3 +423,41 @@ func test_play_sfx_skips_when_lower_priority():
 			assert_eq(AudioManager._player_priorities[i], 10, "Low priority sound should not preempt higher priority players")
 			received = true
 		assert_true(received, "Player priorities should still be 10")
+
+func test_audio_manager_caches_crash_stream():
+	assert_null(AudioManager._stream_crash, "Crash stream should be null until first play")
+	AudioManager.play_synth_crash(Vector2.ZERO)
+	assert_true(AudioManager._stream_crash != null, "Crash stream should be cached after play")
+
+func test_audio_manager_play_synth_crash_uses_cached():
+	AudioManager.play_synth_crash(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Crash SFX should play")
+
+func test_generate_crash_stream():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	var stream = am._generate_crash_stream()
+	assert_true(stream != null, "Should generate crash stream")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Crash should be 16-bit")
+
+func test_audio_manager_caches_bounce_stream():
+	assert_null(AudioManager._stream_bounce, "Bounce stream should be null until first play")
+	AudioManager.play_synth_bounce(Vector2.ZERO)
+	assert_true(AudioManager._stream_bounce != null, "Bounce stream should be cached after play")
+
+func test_audio_manager_play_synth_bounce_uses_cached():
+	AudioManager.play_synth_bounce(Vector2.ZERO)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_true(playing_count > 0, "Bounce SFX should play")
+
+func test_generate_bounce_stream():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	var stream = am._generate_bounce_stream()
+	assert_true(stream != null, "Should generate bounce stream")
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Bounce should be 16-bit")

@@ -37,6 +37,8 @@ var _chunk_buffers: Dictionary = {}
 var _buffer_in_use: Dictionary = {}
 
 static var _diamond_mesh_cache: ArrayMesh = null
+static var _diamond_mesh_lane_cache: ArrayMesh = null
+static var _diamond_mesh_shoulder_cache: ArrayMesh = null
 static var _rect_mesh_cache: Dictionary = {}
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -193,7 +195,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		_:
 			bg_color = Color(0.76, 0.64, 0.42)
 	var bg = Polygon2D.new()
-	var bg_half_w = half_w * (CHUNK_WIDTH + 1)
+	var bg_half_w = 640.0
 	bg.polygon = PackedVector2Array([
 		Vector2(-bg_half_w, -half_h),
 		Vector2(bg_half_w, -half_h),
@@ -213,9 +215,31 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		for col in CHUNK_WIDTH:
 			var tile_variant = _get_tile_variant(chunk_type, row, col)
 			
-			var x_pos = (col - HALF_CHUNK) * TILE_SIZE.x
-			if row % 2 == 1:
-				x_pos += half_w
+			var x_pos: float = 0.0
+			if col < LANE_START_COL:
+				var sh_col_w = 160.0 / 3.0
+				x_pos = -640.0 + col * sh_col_w + sh_col_w / 2.0
+				if row % 2 == 1:
+					x_pos += sh_col_w / 2.0
+					if x_pos >= -480.0:
+						x_pos -= 160.0
+			elif col > LANE_END_COL:
+				var sh_col_w = 160.0 / 3.0
+				var right_col_idx = col - 11
+				x_pos = 480.0 + right_col_idx * sh_col_w + sh_col_w / 2.0
+				if row % 2 == 1:
+					x_pos += sh_col_w / 2.0
+					if x_pos >= 640.0:
+						x_pos -= 160.0
+			else:
+				var lane_idx = col - 3
+				var lane_w = 120.0
+				x_pos = -480.0 + lane_idx * lane_w + lane_w / 2.0
+				if row % 2 == 1:
+					x_pos += lane_w / 2.0
+					if x_pos >= 480.0:
+						x_pos -= 960.0
+						
 			var y_pos = row * TILE_SIZE.y
 			
 			if col < LANE_START_COL or col > LANE_END_COL:
@@ -250,7 +274,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 					
 					if col > LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 2 == 0:
 						if row % 2 == 0:
-							stripe_positions.append({"pos": Vector2(x_pos, y_pos)})
+							var stripe_x = -480.0 + (col - LANE_START_COL) * 120.0
+							stripe_positions.append({"pos": Vector2(stripe_x, y_pos)})
 			
 			if tile_variant == 1 or tile_variant == 3:
 				obstacle_positions.append({
@@ -262,7 +287,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		var lane_merged = MultiMeshInstance2D.new()
 		lane_merged.texture = white_texture
 		var multimesh = MultiMesh.new()
-		multimesh.mesh = _create_diamond_mesh()
+		multimesh.mesh = _create_diamond_mesh_lane()
 		multimesh.instance_count = lane_polygons.size()
 		for i in lane_polygons.size():
 			multimesh.set_instance_transform_2d(i, Transform2D(0.0, lane_polygons[i]["pos"]))
@@ -278,8 +303,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		var edge_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
 			var y_pos = row * TILE_SIZE.y + half_h
-			edge_positions.append(Vector2((LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w, y_pos))
-			edge_positions.append(Vector2((LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w, y_pos))
+			edge_positions.append(Vector2(-480.0, y_pos))
+			edge_positions.append(Vector2(480.0, y_pos))
 		emesh.instance_count = edge_positions.size()
 		for i in edge_positions.size():
 			emesh.set_instance_transform_2d(i, Transform2D(0.0, edge_positions[i]))
@@ -291,7 +316,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		var shoulder_merged = MultiMeshInstance2D.new()
 		shoulder_merged.texture = white_texture
 		var multimesh = MultiMesh.new()
-		multimesh.mesh = _create_diamond_mesh()
+		multimesh.mesh = _create_diamond_mesh_shoulder()
 		multimesh.instance_count = shoulder_polygons.size()
 		for i in shoulder_polygons.size():
 			multimesh.set_instance_transform_2d(i, Transform2D(0.0, shoulder_polygons[i]["pos"]))
@@ -374,10 +399,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		var crack_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
 			for col in range(LANE_START_COL + 1, LANE_END_COL):
-				var lane_cx = (col - HALF_CHUNK) * TILE_SIZE.x
+				var lane_cx = -480.0 + (col - 3) * 120.0 + 60.0
 				var y_pos = row * TILE_SIZE.y + half_h * 0.5
 				if _rng.randf() < 0.12:
-					var x_offset = _rng.randf_range(-TILE_SIZE.x * 0.35, TILE_SIZE.x * 0.35)
+					var x_offset = _rng.randf_range(-120.0 * 0.35, 120.0 * 0.35)
 					crack_positions.append(Vector2(lane_cx + x_offset, y_pos))
 		if crack_positions.size() > 0:
 			cmesh.instance_count = crack_positions.size()
@@ -387,8 +412,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			crack_mmi.modulate = Color(0.0, 0.0, 0.0, 0.15)
 			chunk_local.add_child(crack_mmi)
 
-	var left_rail_x = (LANE_START_COL - HALF_CHUNK) * TILE_SIZE.x - half_w
-	var right_rail_x = (LANE_END_COL - HALF_CHUNK) * TILE_SIZE.x + half_w
+	var left_rail_x = -480.0
+	var right_rail_x = 480.0
 	
 	var left_rail = Line2D.new()
 	left_rail.name = "LeftRail"
@@ -467,7 +492,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			])
 			chunk_local.add_child(beam_highlight)
 		
-		var bridge_width = 48.0
+		var bridge_width = 160.0
 		var left_bridge = Area2D.new()
 		left_bridge.collision_layer = 0
 		left_bridge.collision_mask = 1
@@ -551,6 +576,62 @@ func _create_diamond_mesh() -> ArrayMesh:
 	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	_diamond_mesh_cache = mesh
+	return mesh
+
+func _create_diamond_mesh_lane() -> ArrayMesh:
+	if _diamond_mesh_lane_cache:
+		return _diamond_mesh_lane_cache
+	var mesh = ArrayMesh.new()
+	var half_w = 120.0 / 2.0
+	var half_h = TILE_SIZE.y / 2.0
+	var vertices = PackedVector2Array([
+		Vector2(0, -half_h),
+		Vector2(half_w, 0),
+		Vector2(0, half_h),
+		Vector2(-half_w, 0)
+	])
+	var uvs = PackedVector2Array([
+		Vector2(0.5, 0.0),
+		Vector2(1.0, 0.5),
+		Vector2(0.5, 1.0),
+		Vector2(0.0, 0.5)
+	])
+	var indices = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var arrays = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_diamond_mesh_lane_cache = mesh
+	return mesh
+
+func _create_diamond_mesh_shoulder() -> ArrayMesh:
+	if _diamond_mesh_shoulder_cache:
+		return _diamond_mesh_shoulder_cache
+	var mesh = ArrayMesh.new()
+	var half_w = (160.0 / 3.0) / 2.0
+	var half_h = TILE_SIZE.y / 2.0
+	var vertices = PackedVector2Array([
+		Vector2(0, -half_h),
+		Vector2(half_w, 0),
+		Vector2(0, half_h),
+		Vector2(-half_w, 0)
+	])
+	var uvs = PackedVector2Array([
+		Vector2(0.5, 0.0),
+		Vector2(1.0, 0.5),
+		Vector2(0.5, 1.0),
+		Vector2(0.0, 0.5)
+	])
+	var indices = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var arrays = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_diamond_mesh_shoulder_cache = mesh
 	return mesh
 
 func _create_desert_decoration(type: int) -> Node2D:

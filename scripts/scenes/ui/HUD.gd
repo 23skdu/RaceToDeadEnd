@@ -38,6 +38,15 @@ func _ready() -> void:
 	if ammo_label:
 		ammo_label.visible = false
 
+	# Dynamically instantiate TopWeatherBorder
+	var weather_border_script = load("res://scripts/scenes/ui/TopWeatherBorder.gd")
+	if weather_border_script:
+		var wb = Control.new()
+		wb.set_script(weather_border_script)
+		wb.name = "TopWeatherBorder"
+		add_child(wb)
+		move_child(wb, 0)
+
 func _process(delta: float) -> void:
 	if multiplier_timer_bar.visible:
 		_multiplier_pulse_timer += delta

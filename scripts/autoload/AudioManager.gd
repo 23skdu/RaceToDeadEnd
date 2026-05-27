@@ -15,6 +15,8 @@ var _stream_boost: AudioStreamWAV
 var _stream_emp: AudioStreamWAV
 var _stream_menu_music: AudioStreamWAV
 var _stream_game_music: AudioStreamWAV
+var _stream_crash: AudioStreamWAV
+var _stream_bounce: AudioStreamWAV
 
 var _stream_bunny_hit: AudioStreamWAV
 var _stream_rotor_hit: AudioStreamWAV
@@ -251,6 +253,16 @@ func play_drone_death(pos: Vector2 = Vector2.ZERO) -> void:
 		_stream_drone_death = _generate_drone_death_stream()
 	play_sfx(_stream_drone_death, pos)
 
+func play_synth_crash(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_crash:
+		_stream_crash = _generate_crash_stream()
+	play_sfx(_stream_crash, pos)
+
+func play_synth_bounce(pos: Vector2 = Vector2.ZERO) -> void:
+	if not _stream_bounce:
+		_stream_bounce = _generate_bounce_stream()
+	play_sfx(_stream_bounce, pos)
+
 func play_lightning_strike(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_lightning:
 		_stream_lightning = _generate_lightning_stream()
@@ -469,6 +481,23 @@ func _generate_lightning_stream() -> AudioStreamWAV:
 		if fmod(t * 15.0, 1.0) < 0.2:
 			val += _rng.randf() * 5000.0 - 2500.0
 		return val
+	)
+
+func _generate_crash_stream() -> AudioStreamWAV:
+	return _build_16bit_stream(0.3, func(t: float, _i: int) -> float:
+		var amp = lerpf(11000.0, 0.0, t / 0.3)
+		var noise = _rng.randf_range(-amp, amp)
+		var freq = lerpf(400.0, 80.0, t / 0.3)
+		var metal = sin(TAU * freq * t) * amp * 0.5
+		return noise + metal
+	)
+
+func _generate_bounce_stream() -> AudioStreamWAV:
+	return _build_16bit_stream(0.1, func(t: float, _i: int) -> float:
+		var freq = lerpf(300.0, 600.0, t / 0.1)
+		var env = 1.0 - (t / 0.1)
+		var val = sin(TAU * freq * t) * 4000.0
+		return val * env
 	)
 
 func _generate_demo_music_bunny() -> AudioStreamWAV:

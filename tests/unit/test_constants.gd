@@ -2,17 +2,17 @@ extends GutTest
 
 func test_lane_positions():
 	assert_eq(Constants.LANE_POSITIONS.size(), 8)
-	assert_eq(Constants.LANE_POSITIONS[0], -168.0)
-	assert_eq(Constants.LANE_POSITIONS[1], -120.0)
-	assert_eq(Constants.LANE_POSITIONS[2], -72.0)
-	assert_eq(Constants.LANE_POSITIONS[3], -24.0)
-	assert_eq(Constants.LANE_POSITIONS[4], 24.0)
-	assert_eq(Constants.LANE_POSITIONS[5], 72.0)
-	assert_eq(Constants.LANE_POSITIONS[6], 120.0)
-	assert_eq(Constants.LANE_POSITIONS[7], 168.0)
+	assert_eq(Constants.LANE_POSITIONS[0], -420.0)
+	assert_eq(Constants.LANE_POSITIONS[1], -300.0)
+	assert_eq(Constants.LANE_POSITIONS[2], -180.0)
+	assert_eq(Constants.LANE_POSITIONS[3], -60.0)
+	assert_eq(Constants.LANE_POSITIONS[4], 60.0)
+	assert_eq(Constants.LANE_POSITIONS[5], 180.0)
+	assert_eq(Constants.LANE_POSITIONS[6], 300.0)
+	assert_eq(Constants.LANE_POSITIONS[7], 420.0)
 
 func test_lane_width():
-	assert_eq(Constants.LANE_WIDTH, 48.0)
+	assert_eq(Constants.LANE_WIDTH, 120.0)
 
 func test_lane_count():
 	assert_eq(Constants.LANE_COUNT, 8)

@@ -143,3 +143,10 @@ func test_hud_update_weapons_shows_only_available():
 	assert_true(hud.missile_label.text.contains("3"), "Missile label should show count 3")
 	assert_true(hud.emp_label.text.contains("1"), "EMP label should show count 1")
 
+func test_hud_top_weather_border_instantiated():
+	var hud = _create_hud()
+	var wb = hud.get_node_or_null("TopWeatherBorder")
+	assert_not_null(wb, "TopWeatherBorder node should be dynamically instantiated in HUD")
+	assert_true(wb is Control, "TopWeatherBorder should be a Control node")
+	assert_eq(wb.current_weather, "clear", "Default weather should be clear")
+

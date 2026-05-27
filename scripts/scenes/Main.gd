@@ -13,6 +13,19 @@ func _ready() -> void:
 	GameManager.state = GameManager.GameState.MENU
 	AudioManager.play_menu_music()
 	
+	var bg: TextureRect = $CanvasLayer/Background
+	if bg:
+		bg.anchor_left = 0.1
+		bg.anchor_top = 0.1
+		bg.anchor_right = 0.9
+		bg.anchor_bottom = 0.9
+		bg.offset_left = 0
+		bg.offset_top = 0
+		bg.offset_right = 0
+		bg.offset_bottom = 0
+		bg.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		bg.grow_vertical = Control.GROW_DIRECTION_BOTH
+	
 	_add_controls_label()
 
 func _add_controls_label() -> void:

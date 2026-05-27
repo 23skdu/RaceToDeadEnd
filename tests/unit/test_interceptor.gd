@@ -45,24 +45,24 @@ func test_weapon_types_from_constants():
 
 func test_lane_to_x():
 	var player = _create_player()
-	assert_eq(player._lane_to_x(0), -168.0, "Lane 0 X position")
-	assert_eq(player._lane_to_x(1), -120.0, "Lane 1 X position")
-	assert_eq(player._lane_to_x(2), -72.0, "Lane 2 X position")
-	assert_eq(player._lane_to_x(3), -24.0, "Lane 3 X position")
-	assert_eq(player._lane_to_x(4), 24.0, "Lane 4 X position")
-	assert_eq(player._lane_to_x(5), 72.0, "Lane 5 X position")
-	assert_eq(player._lane_to_x(6), 120.0, "Lane 6 X position")
-	assert_eq(player._lane_to_x(7), 168.0, "Lane 7 X position")
-	assert_eq(Constants.LANE_POSITIONS[0], -168.0, "Constants lane 0")
-	assert_eq(Constants.LANE_POSITIONS[7], 168.0, "Constants lane 7")
+	assert_eq(player._lane_to_x(0), -420.0, "Lane 0 X position")
+	assert_eq(player._lane_to_x(1), -300.0, "Lane 1 X position")
+	assert_eq(player._lane_to_x(2), -180.0, "Lane 2 X position")
+	assert_eq(player._lane_to_x(3), -60.0, "Lane 3 X position")
+	assert_eq(player._lane_to_x(4), 60.0, "Lane 4 X position")
+	assert_eq(player._lane_to_x(5), 180.0, "Lane 5 X position")
+	assert_eq(player._lane_to_x(6), 300.0, "Lane 6 X position")
+	assert_eq(player._lane_to_x(7), 420.0, "Lane 7 X position")
+	assert_eq(Constants.LANE_POSITIONS[0], -420.0, "Constants lane 0")
+	assert_eq(Constants.LANE_POSITIONS[7], 420.0, "Constants lane 7")
 
 func test_lane_to_x_clamps_negative():
 	var player = _create_player()
-	assert_eq(player._lane_to_x(-1), -168.0, "Negative lane should clamp to 0")
+	assert_eq(player._lane_to_x(-1), -420.0, "Negative lane should clamp to 0")
 
 func test_lane_to_x_clamps_above_max():
 	var player = _create_player()
-	assert_eq(player._lane_to_x(10), 168.0, "Oversized lane should clamp to max")
+	assert_eq(player._lane_to_x(10), 420.0, "Oversized lane should clamp to max")
 
 func test_initial_state():
 	var player = _create_player()
@@ -503,3 +503,24 @@ func test_boost_trail_clears_when_not_boosting():
 	player._update_boost_trail()
 	assert_eq(player._trail_points.size(), 0, "Trail points should be cleared when not boosting")
 	assert_eq(player._trail_line.points.size(), 0, "Trail line should be empty when not boosting")
+
+func test_interceptor_wheels_exist_and_rotate():
+	var player = _create_player()
+	assert_eq(player.wheel_tread_offset, 0.0, "Initial tread offset should be 0")
+	player.speed = 200.0
+	player._physics_process(0.1)
+	assert_gt(player.wheel_tread_offset, 0.0, "Tread offset should increase after movement")
+
+func test_interceptor_collision_plays_crash_sound():
+	var player = _create_player()
+	for p in AudioManager.sfx_players:
+		p.stop()
+	var gm = _TestHelper.create_game_manager()
+	add_child_autofree(gm)
+	gm.start_game()
+	player.take_damage(1)
+	var playing_count = 0
+	for p in AudioManager.sfx_players:
+		if p.playing:
+			playing_count += 1
+	assert_gt(playing_count, 0, "Crash sound should play on take damage")
