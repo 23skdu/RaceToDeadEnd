@@ -10,6 +10,7 @@ func _ready() -> void:
 	
 	if not sprite.texture or sprite.texture is PlaceholderTexture2D:
 		sprite.texture = _create_baby_bunny_bomb_texture()
+	apply_pulsating_eyes_shader()
 
 static func _create_baby_bunny_bomb_texture() -> ImageTexture:
 	var img = Image.create(32, 32, false, Image.FORMAT_RGBA8)

@@ -71,6 +71,7 @@ func _update_sprite() -> void:
 			if not _bunny_texture:
 				_bunny_texture = _create_bunny_texture()
 			sprite.texture = _bunny_texture
+			apply_pulsating_eyes_shader()
 		EnemyType.ROTOR:
 			sprite.texture = ROTOR_TEXTURE
 		EnemyType.SCAV:
@@ -87,6 +88,24 @@ func _update_sprite() -> void:
 func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
+func apply_pulsating_eyes_shader() -> void:
+	var eye_shader = Shader.new()
+	eye_shader.code = """
+shader_type canvas_item;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	if (c.r > 0.8 && c.g < 0.2 && c.b < 0.2 && c.a > 0.0) {
+		float pulse = sin(TIME * 6.0) * 0.5 + 0.5;
+		COLOR = vec4(mix(c.rgb, vec3(1.0, 0.6, 0.6), pulse), c.a);
+	} else {
+		COLOR = c;
+	}
+}
+"""
+	var mat = ShaderMaterial.new()
+	mat.shader = eye_shader
+	sprite.material = mat
+
 static func _create_bunny_texture() -> ImageTexture:
 	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.0, 0.0, 0.0, 0.0))
@@ -97,7 +116,7 @@ static func _create_bunny_texture() -> ImageTexture:
 	var camo_light    = Color(0.30, 0.55, 0.18, 1.0)
 	var camo_olive    = Color(0.25, 0.45, 0.12, 1.0)
 	var glow_green    = Color(0.0, 1.0, 0.2, 1.0)
-	var eye_glow      = Color(0.3, 1.0, 0.4, 1.0)
+	var eye_glow      = Color(1.0, 0.0, 0.1, 1.0)
 	var inner_ear_col = Color(0.0, 0.8, 0.1, 1.0)
 
 	var camo_colors = [camo_dark, camo_med, camo_light, camo_olive]

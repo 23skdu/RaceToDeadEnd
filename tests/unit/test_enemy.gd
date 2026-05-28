@@ -330,14 +330,14 @@ func test_bunny_texture_has_transparent_corners():
 	assert_eq(img.get_pixel(0, 0).a, 0.0, "Bunny texture top-left corner should be transparent")
 	assert_eq(img.get_pixel(63, 63).a, 0.0, "Bunny texture bottom-right corner should be transparent")
 
-func test_bunny_texture_has_green_eyes():
+func test_bunny_texture_has_red_eyes():
 	var e = _create_bunny()
 	var player = Node2D.new()
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	var img = e.sprite.texture.get_image()
-	# Eye pixels at (25,30) should be glowing green
+	# Eye pixels at (25,30) should be glowing red
 	var eye_px = img.get_pixel(25, 30)
-	assert_gt(eye_px.g, 0.7, "Eye pixel should be predominantly green")
+	assert_gt(eye_px.r, 0.7, "Eye pixel should be predominantly red")
 
 func test_bunny_texture_cached_across_instances():
 	var e1 = _create_bunny()

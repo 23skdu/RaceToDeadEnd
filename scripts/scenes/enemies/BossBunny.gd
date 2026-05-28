@@ -15,6 +15,7 @@ func _reset_state() -> void:
 	
 	if not sprite.texture or sprite.texture is PlaceholderTexture2D:
 		sprite.texture = _create_boss_bunny_texture()
+	apply_pulsating_eyes_shader()
 
 static func _create_boss_bunny_texture() -> ImageTexture:
 	var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)
@@ -26,7 +27,7 @@ static func _create_boss_bunny_texture() -> ImageTexture:
 	var steel_gray = Color(0.45, 0.48, 0.52, 1.0)
 	var steel_dark = Color(0.25, 0.26, 0.30, 1.0)
 	var glow_red = Color(1.0, 0.0, 0.15, 1.0)
-	var glow_eye = Color(1.0, 0.3, 0.4, 1.0)
+	var glow_eye = Color(1.0, 0.0, 0.1, 1.0)
 
 	var camo_colors = [camo_dark, camo_med, camo_light]
 

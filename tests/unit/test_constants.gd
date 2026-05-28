@@ -111,7 +111,7 @@ func test_accel_speed():
 	assert_eq(Constants.ACCEL_SPEED, 300.0)
 
 func test_reverse_speed():
-	assert_eq(Constants.REVERSE_SPEED, 100.0)
+	assert_eq(Constants.REVERSE_SPEED, 400.0)
 
 func test_multiplier_duration():
 	assert_eq(Constants.MULTIPLIER_DURATION, 10.0)
@@ -189,7 +189,7 @@ func test_boss_attack_interval():
 	assert_eq(Constants.BOSS_ATTACK_INTERVAL, 1.5)
 
 func test_sprite_base_size():
-	assert_eq(Constants.SPRITE_BASE_SIZE, 64.0)
+	assert_eq(Constants.SPRITE_BASE_SIZE, 57.6)
 
 func test_sprite_base_viewport():
 	assert_eq(Constants.SPRITE_BASE_VIEWPORT, 1280.0)

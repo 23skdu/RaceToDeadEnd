@@ -46,7 +46,7 @@ const BOOST_RECHARGE_TIME: float = 8.0
 const PRIMARY_FIRE_COOLDOWN: float = 0.1
 const DOUBLE_TAP_DELAY: float = 0.25
 const ACCEL_SPEED: float = 300.0
-const REVERSE_SPEED: float = 100.0
+const REVERSE_SPEED: float = 400.0
 
 # Multiplier
 const MULTIPLIER_DURATION: float = 10.0
@@ -97,7 +97,7 @@ const BOSS_SCORE: int = 1000
 const BOSS_ATTACK_INTERVAL: float = 1.5
 
 # Visual
-const SPRITE_BASE_SIZE: float = 64.0
+const SPRITE_BASE_SIZE: float = 57.6
 const SPRITE_BASE_VIEWPORT: float = 1280.0
 const GUARDRAIL_WIDTH: float = 3.0
 const SCAV_FLANK_OFFSET: float = 64.0

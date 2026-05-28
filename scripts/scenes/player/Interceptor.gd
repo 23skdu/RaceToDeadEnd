@@ -111,9 +111,9 @@ func _physics_process(delta: float) -> void:
 	if boost_active:
 		effective_speed = speed * Constants.BOOST_SPEED_MULTIPLIER
 	elif speed_input > 0:
-		effective_speed = speed + 100.0
+		effective_speed = speed + Constants.ACCEL_SPEED
 	elif speed_input < 0:
-		effective_speed = speed - 100.0
+		effective_speed = speed - Constants.REVERSE_SPEED
 	else:
 		effective_speed = speed
 		
@@ -334,7 +334,7 @@ func _update_boost_trail() -> void:
 		_trail_line.points = PackedVector2Array()
 
 func _scale_sprite() -> void:
-	HelpersUtil.scale_sprite_to_viewport(sprite, 120.0, Constants.SPRITE_BASE_VIEWPORT)
+	HelpersUtil.scale_sprite_to_viewport(sprite, 108.0, Constants.SPRITE_BASE_VIEWPORT)
 	if collision and collision.shape:
 		collision.shape = collision.shape.duplicate()
 		collision.shape.size = Vector2(28, 40) * (sprite.scale.y / 0.875)

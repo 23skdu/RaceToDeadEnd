@@ -35,7 +35,7 @@ func test_constants():
 	assert_eq(Constants.BOOST_RECHARGE_TIME, 8.0, "Boost recharge time")
 	assert_eq(Constants.DOUBLE_TAP_DELAY, 0.25, "Double tap delay")
 	assert_eq(Constants.ACCEL_SPEED, 300.0, "Acceleration speed")
-	assert_eq(Constants.REVERSE_SPEED, 100.0, "Reverse speed")
+	assert_eq(Constants.REVERSE_SPEED, 400.0, "Reverse speed")
 
 func test_weapon_types_from_constants():
 	assert_eq(Constants.WEAPON_DATA.size(), 3, "Should have 3 weapon data entries")
@@ -272,7 +272,7 @@ func test_accelerate_sets_forward_speed():
 	Input.action_press("accelerate")
 	player._physics_process(0.1)
 	Input.action_release("accelerate")
-	assert_eq(player.velocity.y, -300.0, "Accelerate should give 300 px/s forward")
+	assert_eq(player.velocity.y, -500.0, "Accelerate should give 500 px/s forward")
 
 func test_reverse_sets_backward_speed():
 	var player = _create_player()
@@ -280,7 +280,7 @@ func test_reverse_sets_backward_speed():
 	Input.action_press("brake")
 	player._physics_process(0.1)
 	Input.action_release("brake")
-	assert_eq(player.velocity.y, -100.0, "Reverse should give -100 px/s forward")
+	assert_eq(player.velocity.y, 200.0, "Reverse should give 200 px/s forward")
 
 func test_coast_uses_base_speed():
 	var player = _create_player()
