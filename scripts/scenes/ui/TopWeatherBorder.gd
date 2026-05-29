@@ -70,15 +70,47 @@ func _draw() -> void:
 	])
 	draw_polygon(quad_points, quad_colors)
 	
-	# 3. Twinkling stars field (Clear & Storm weather)
+	# 3. Atmospheric haze layer near horizon
+	var haze_color = bg_color_top.lerp(Color(1.0, 0.2, 0.6, 0.0), 0.5)
+	var haze_points = PackedVector2Array([
+		Vector2(0, 50), Vector2(size.x, 50),
+		Vector2(size.x, 72), Vector2(0, 72)
+	])
+	var haze_colors = PackedColorArray([
+		Color(haze_color.r, haze_color.g, haze_color.b, 0.0),
+		Color(haze_color.r, haze_color.g, haze_color.b, 0.0),
+		Color(1.0, 0.3, 0.8, 0.08), Color(1.0, 0.3, 0.8, 0.08)
+	])
+	draw_polygon(haze_points, haze_colors)
+	
+	# 3b. City glow on horizon
+	var glow_width = size.x * 0.4
+	var glow_cx = size.x / 2.0 + sin(time_elapsed * 0.03) * 50.0
+	var glow_col = Color(1.0, 0.2, 0.7, 0.0)
+	if current_weather == "clear":
+		glow_col = Color(1.0, 0.3, 0.8, 0.0)
+	elif current_weather == "acid_rain":
+		glow_col = Color(0.2, 0.9, 0.2, 0.0)
+	elif current_weather == "storm":
+		glow_col = Color(0.0, 0.5, 1.0, 0.0)
+	for g in range(5):
+		var ga = 0.04 - g * 0.008
+		if ga > 0:
+			draw_circle(Vector2(glow_cx, 72), 40.0 + g * 20.0, Color(glow_col.r, glow_col.g, glow_col.b, ga))
+	
+	# 4. Twinkling stars field (Clear & Storm weather)
 	if current_weather == "clear" or (current_weather == "storm" and not flash_active):
 		_draw_star_field()
+		_draw_shooting_stars()
 		
-	# 4. Far background parallax mountain ranges
+	# 5. Distant neon horizon grid (retrowave perspective)
+	_draw_neon_horizon_grid(bg_color_bottom)
+	
+	# 6. Far background parallax mountain ranges
 	var far_mtn_col = bg_color_bottom.lerp(Color.BLACK, 0.6)
 	_draw_procedural_mountains(54.0, 8.0, far_mtn_col, 20.0, time_elapsed * 0.05)
 	
-	# 5. Celestial bodies (Sunset Sun or cratered Moon)
+	# 7. Celestial bodies (Sunset Sun or cratered Moon)
 	var center_x = size.x / 2.0
 	if current_weather == "clear":
 		# Synthwave outrun sunset sun with sliced cuts & glowing layers
@@ -136,12 +168,43 @@ func _draw() -> void:
 		_draw_cloud(Vector2(center_x - 70 + sin(time_elapsed * 0.6) * 12, 28), 28, Color(0.05, 0.05, 0.08, 0.8))
 		_draw_cloud(Vector2(center_x + 50 - cos(time_elapsed * 0.5) * 15, 40), 32, Color(0.03, 0.03, 0.06, 0.8))
 
-	# 6. Near background parallax mountain range (closer, darker overlay)
+	# 8. Near background parallax mountain range (closer, darker overlay)
 	var near_mtn_col = bg_color_bottom.lerp(Color.BLACK, 0.75)
 	_draw_procedural_mountains(58.0, 6.0, near_mtn_col, 16.0, time_elapsed * 0.1 + 2.5)
 
-	# 7. Sleek horizontal neon horizon separating divider line
+	# 9. Double neon horizon lines (cyan + pink)
 	draw_line(Vector2(0, 72), Vector2(size.x, 72), Color(0.0, 0.85, 1.0, 0.9), 2.0)
+	draw_line(Vector2(0, 70.5), Vector2(size.x, 70.5), Color(1.0, 0.1, 0.6, 0.4), 1.0)
+
+func _draw_shooting_stars() -> void:
+	var ss_phase = fmod(time_elapsed, 6.0)
+	if ss_phase > 0.05 and ss_phase < 0.4:
+		var progress = ss_phase / 0.4
+		var sx = 50.0 + progress * (size.x - 100.0)
+		var sy = 5.0 + progress * 30.0
+		var alpha = sin(progress * PI)
+		draw_line(Vector2(sx, sy), Vector2(sx - 20.0 * progress, sy + 12.0 * progress), Color(1.0, 1.0, 1.0, alpha * 0.7), 1.5)
+		draw_line(Vector2(sx, sy), Vector2(sx - 8.0 * progress, sy + 5.0 * progress), Color(1.0, 1.0, 1.0, alpha), 0.5)
+
+func _draw_neon_horizon_grid(bg_bottom: Color) -> void:
+	var grid_color = Color(1.0, 0.1, 0.6, 0.15)
+	if current_weather == "clear":
+		grid_color = Color(1.0, 0.1, 0.6, 0.15)
+	elif current_weather == "acid_rain":
+		grid_color = Color(0.2, 1.0, 0.2, 0.1)
+	elif current_weather == "storm":
+		grid_color = Color(0.0, 0.8, 1.0, 0.08)
+	elif current_weather == "light_rain":
+		grid_color = Color(0.6, 0.6, 0.8, 0.08)
+	
+	# Perspective grid lines converging to vanishing point
+	var vp_x = size.x / 2.0 + sin(time_elapsed * 0.02) * 30.0
+	var vp_y = 40.0
+	for i in range(8):
+		var t = 0.3 + i * 0.1
+		var y1 = vp_y + (72.0 - vp_y) * t
+		var spread = 30.0 + i * 25.0
+		draw_line(Vector2(vp_x - spread, y1), Vector2(vp_x + spread, y1), grid_color, 1.0)
 
 func _draw_star_field() -> void:
 	# Twinkling star field with glowing cross flares

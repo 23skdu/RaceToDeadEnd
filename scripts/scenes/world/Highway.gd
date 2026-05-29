@@ -5,12 +5,12 @@ signal ice_entered(body: Node)
 signal ice_exited(body: Node)
 signal bridge_fall(body: Node)
 
-const CHUNK_HEIGHT: int = 10
+const CHUNK_HEIGHT: int = 14
 const CHUNK_WIDTH: int = 14
 const TILE_SIZE: Vector2i = Vector2i(48, 24)
-const CHUNK_PIXEL_HEIGHT: int = 240
-const PREWARM_CHUNKS: int = 8
-const DESPAWN_CHUNKS_BEHIND: int = 3
+const CHUNK_PIXEL_HEIGHT: int = int(CHUNK_HEIGHT * TILE_SIZE.y)
+const PREWARM_CHUNKS: int = 10
+const DESPAWN_CHUNKS_BEHIND: int = 4
 
 const LANE_COUNT: int = 8
 const SHOULDER_COLUMNS: int = 3

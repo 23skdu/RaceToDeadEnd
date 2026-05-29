@@ -14,10 +14,14 @@ func _physics_process(delta: float) -> void:
 		
 	if player and is_instance_valid(player):
 		target_player_x = player.global_position.x
-		
+		var target_y = player.global_position.y - 70.0
+		var diff_y = target_y - position.y
+		velocity.y = move_toward(velocity.y, diff_y * 3.0, 180.0 * delta)
+	else:
+		velocity.y = -speed * 0.3
+
 	var diff = target_player_x - position.x
 	velocity.x = move_toward(velocity.x, diff, 150.0 * delta)
-	velocity.y = -speed
 	move_and_slide()
 
 	# Bouncing visual and audio triggers

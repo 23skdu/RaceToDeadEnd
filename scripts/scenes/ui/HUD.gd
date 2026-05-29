@@ -31,7 +31,7 @@ func _ready() -> void:
 	GameManager.multiplier_timer_updated.connect(_on_multiplier_timer_updated)
 	GameManager.difficulty_tier_changed.connect(_on_tier_changed)
 	GameManager.lives_updated.connect(_on_lives_updated)
-	boost_indicators.assign(boost_container.get_children())
+	boost_indicators.assign(boost_container.get_children().filter(func(c): return c is ColorRect))
 	_on_lives_updated(GameManager.lives)
 	if weapon_icon:
 		weapon_icon.visible = false

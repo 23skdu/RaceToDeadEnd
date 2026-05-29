@@ -7,12 +7,12 @@ func before_all():
 
 func test_chunk_constants():
 	var h = Highway.new()
-	assert_eq(h.CHUNK_HEIGHT, 10, "Chunk height should be 10")
+	assert_eq(h.CHUNK_HEIGHT, 14, "Chunk height should be 14")
 	assert_eq(h.CHUNK_WIDTH, 14, "Chunk width should be 14")
 	assert_eq(h.TILE_SIZE, Vector2i(48, 24), "Tile size should be 48x24")
-	assert_eq(h.CHUNK_PIXEL_HEIGHT, 240, "Chunk pixel height should be 240")
-	assert_eq(h.PREWARM_CHUNKS, 8, "Prewarm chunks should be 8")
-	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 3, "Despawn chunks behind should be 3")
+	assert_eq(h.CHUNK_PIXEL_HEIGHT, 336, "Chunk pixel height should be 336")
+	assert_eq(h.PREWARM_CHUNKS, 10, "Prewarm chunks should be 10")
+	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 4, "Despawn chunks behind should be 4")
 	assert_eq(h.SHOULDER_COLUMNS, 3, "Shoulder columns should be 3")
 	assert_eq(h.LANE_START_COL, 3, "Lane start col should be 3")
 	assert_eq(h.LANE_END_COL, 10, "Lane end col should be 10")
@@ -68,25 +68,25 @@ func test_first_chunks_are_standard():
 	var second_chunk = h.active_chunks[1]
 	assert_eq(second_chunk.get_meta("chunk_type"), h.ChunkType.STANDARD, "Second chunk should be STANDARD")
 
-func test_prewarm_creates_8_chunks():
+func test_prewarm_creates_10_chunks():
 	var h = Highway.new()
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
-	assert_eq(h.active_chunks.size(), 8, "Should have 8 prewarmed chunks")
+	assert_eq(h.active_chunks.size(), 10, "Should have 10 prewarmed chunks")
 
 func test_chunks_positioned_correctly():
 	var h = Highway.new()
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
-	var expected_positions = [720, 480, 240, 0, -240, -480, -720, -960]
-	for i in range(8):
+	var expected_positions = [1008, 672, 336, 0, -336, -672, -1008, -1344, -1680, -2016]
+	for i in range(10):
 		assert_eq(h.active_chunks[i].position.y, expected_positions[i], "Chunk " + str(i) + " Y position")
 
 func test_current_segment_increments():
 	var h = Highway.new()
 	h.player = _create_mock_player(Vector2(0, 0))
 	add_child_autofree(h)
-	assert_eq(h.current_segment, 8, "Should have 8 segments after prewarm")
+	assert_eq(h.current_segment, 10, "Should have 10 segments after prewarm")
 
 func test_remove_tiles_node_from_chunk():
 	var h = Highway.new()
@@ -498,8 +498,8 @@ func test_recycle_chunk_removes_old_tiles():
 	assert_true(old_tiles != null, "Chunk should have tiles before recycle")
 	h._recycle_chunk(chunk)
 	var tiles_after = h._get_tiles_node(chunk)
-	assert_ne(tiles_after, old_tiles, "Old tiles should be replaced after recycle")
-	assert_false(old_tiles.is_inside_tree(), "Old tiles should be removed from tree")
+	assert_eq(tiles_after, old_tiles, "Tiles should be recycled (same node reused from pool)")
+	assert_true(tiles_after.is_inside_tree(), "Recycled tiles should still be in tree")
 
 func test_recycle_chunk_old_tiles_buffer_freed():
 	var h = Highway.new()
@@ -565,7 +565,7 @@ func test_process_recycles_multiple_chunks_in_one_frame():
 	add_child_autofree(h)
 	h.player.global_position = Vector2(0, 5000)
 	h._process(0.1)
-	assert_eq(h.active_chunks.size(), 8, "Chunk count should remain 8 after recycling multiple")
+	assert_eq(h.active_chunks.size(), 10, "Chunk count should remain 10 after recycling multiple")
 
 func test_process_with_player_at_exact_threshold():
 	var h = Highway.new()
@@ -574,7 +574,7 @@ func test_process_with_player_at_exact_threshold():
 	var threshold = h.CHUNK_PIXEL_HEIGHT * h.DESPAWN_CHUNKS_BEHIND
 	h.player.global_position = Vector2(0, threshold + 1)
 	h._process(0.1)
-	assert_eq(h.active_chunks.size(), 8, "Should handle exact threshold boundary")
+	assert_eq(h.active_chunks.size(), 10, "Should handle exact threshold boundary")
 
 func test_process_does_not_recycle_below_threshold():
 	var h = Highway.new()

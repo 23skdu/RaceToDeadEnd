@@ -23,14 +23,18 @@ static func _create_boss_biker_texture() -> ImageTexture:
 	var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.0, 0.0, 0.0, 0.0))
 
-	var metallic_gray = Color(0.5, 0.55, 0.6, 1.0)
-	var chrome_light = Color(0.8, 0.82, 0.85, 1.0)
-	var steel_dark = Color(0.2, 0.22, 0.25, 1.0)
-	var tire_black = Color(0.12, 0.12, 0.14, 1.0)
-	var leather_black = Color(0.06, 0.06, 0.08, 1.0)
-	var glow_orange = Color(1.0, 0.35, 0.0, 1.0)
-	var glow_red = Color(1.0, 0.0, 0.15, 1.0)
-	var beam_yellow = Color(1.0, 0.85, 0.2, 0.3)
+	var rotor_blade = Color(0.55, 0.6, 0.7, 0.85)
+	var rotor_blade_dark = Color(0.25, 0.28, 0.35, 0.85)
+	var chrome = Color(0.75, 0.78, 0.85, 1.0)
+	var chrome_light = Color(0.85, 0.88, 0.95, 1.0)
+	var steel = Color(0.3, 0.32, 0.38, 1.0)
+	var steel_dark = Color(0.15, 0.16, 0.2, 1.0)
+	var tire = Color(0.1, 0.1, 0.12, 1.0)
+	var body_red = Color(0.55, 0.05, 0.05, 1.0)
+	var body_red_light = Color(0.7, 0.1, 0.1, 1.0)
+	var glow_cyan = Color(0.0, 0.9, 1.0, 1.0)
+	var glow_orange = Color(1.0, 0.4, 0.0, 1.0)
+	var glow_red = Color(1.0, 0.0, 0.2, 1.0)
 
 	var fill_ellipse = func(cx: float, cy: float, rx: float, ry: float, col: Color) -> void:
 		var x_start = clampi(int(cx - rx - 1), 0, 127)
@@ -55,62 +59,124 @@ static func _create_boss_biker_texture() -> ImageTexture:
 					var py = clampi(int(pt.y + dy), 0, 127)
 					img.set_pixel(px, py, col)
 
-	# 1. Front headlamp lighting beam (yellow flare)
-	for x in range(96, 128):
-		var y_extent = int((x - 96) * 0.35)
-		for y in range(48 - y_extent, 48 + y_extent + 1):
-			if y >= 0 and y < 128:
-				img.set_pixel(x, y, beam_yellow)
+	# === ROTOR BLADES (top) ===
+	# Spinning rotor hub
+	fill_ellipse.call(64.0, 18.0, 8.0, 6.0, steel_dark)
+	fill_ellipse.call(64.0, 18.0, 4.0, 3.0, glow_cyan)
 
-	# 2. Chrome Chassis Fork & Frame Lines
-	draw_thick_line.call(Vector2(38, 80), Vector2(64, 60), 4, metallic_gray) # rear swingarm
-	draw_thick_line.call(Vector2(90, 80), Vector2(76, 44), 3, chrome_light)  # front fork
-	draw_thick_line.call(Vector2(64, 60), Vector2(76, 44), 4, steel_dark)     # main spine
-	draw_thick_line.call(Vector2(38, 80), Vector2(76, 44), 2, chrome_light)  # frame strut
+	# Rotor blade left
+	for blade in range(4):
+		var angle = blade * PI / 2.0
+		var bx = 64.0 + cos(angle) * 38.0
+		var by = 18.0 + sin(angle) * 14.0
+		fill_ellipse.call(bx, by, 30.0, 5.0, rotor_blade)
+		fill_ellipse.call(bx - cos(angle) * 4.0, by - sin(angle) * 2.0, 24.0, 3.0, rotor_blade_dark)
 
-	# 3. Two Large spiked tires
-	fill_ellipse.call(38.0, 80.0, 18.0, 18.0, tire_black)
-	fill_ellipse.call(38.0, 80.0, 10.0, 10.0, chrome_light)
-	fill_ellipse.call(38.0, 80.0, 4.0, 4.0, steel_dark)
+	# Blade tip glows
+	for blade in range(4):
+		var angle = blade * PI / 2.0
+		var tx = 64.0 + cos(angle) * 60.0
+		var ty = 18.0 + sin(angle) * 18.0
+		fill_ellipse.call(tx, ty, 4.0, 3.0, glow_cyan)
 
-	fill_ellipse.call(90.0, 80.0, 18.0, 18.0, tire_black)
-	fill_ellipse.call(90.0, 80.0, 10.0, 10.0, chrome_light)
-	fill_ellipse.call(90.0, 80.0, 4.0, 4.0, steel_dark)
+	# === BIKER BODY ARMOR (red, rotor-inspired) ===
+	# Torso armor plating
+	fill_ellipse.call(64.0, 42.0, 18.0, 20.0, steel_dark)
+	fill_ellipse.call(64.0, 42.0, 16.0, 18.0, body_red)
+	# Chest emblem
+	fill_ellipse.call(64.0, 42.0, 8.0, 6.0, steel)
+	fill_ellipse.call(64.0, 42.0, 5.0, 3.0, glow_cyan)
+	# Shoulder pads
+	fill_ellipse.call(45.0, 34.0, 6.0, 7.0, steel)
+	fill_ellipse.call(83.0, 34.0, 6.0, 7.0, steel)
+	fill_ellipse.call(45.0, 34.0, 3.0, 3.0, glow_red)
+	fill_ellipse.call(83.0, 34.0, 3.0, 3.0, glow_red)
 
-	# Silver Tire Spikes
+	# Helmet
+	fill_ellipse.call(64.0, 20.0, 12.0, 10.0, steel_dark)
+	fill_ellipse.call(64.0, 20.0, 10.0, 8.0, body_red)
+	# Visor slit
+	for y in range(18, 22):
+		for x in range(56, 73):
+			img.set_pixel(x, y, glow_cyan)
+	# Helmet spike
+	draw_thick_line.call(Vector2(64, 12), Vector2(64, 6), 3, chrome_light)
+
+	# === BETTER MOTORCYCLE (chrome + red beast) ===
+	# Fuel tank
+	fill_ellipse.call(64.0, 66.0, 22.0, 12.0, body_red_light)
+	fill_ellipse.call(64.0, 66.0, 18.0, 8.0, steel)
+
+	# Engine block
+	fill_ellipse.call(64.0, 78.0, 20.0, 14.0, steel_dark)
+	fill_ellipse.call(64.0, 78.0, 14.0, 8.0, steel)
+	# Engine cylinders
+	for y in range(72, 84, 3):
+		draw_thick_line.call(Vector2(48, y), Vector2(80, y), 2, chrome)
+	# Exhaust pipes
+	draw_thick_line.call(Vector2(52, 84), Vector2(36, 92), 4, steel)
+	draw_thick_line.call(Vector2(76, 84), Vector2(92, 92), 4, steel)
+	draw_thick_line.call(Vector2(36, 92), Vector2(24, 92), 4, glow_orange)
+	draw_thick_line.call(Vector2(92, 92), Vector2(104, 92), 4, glow_orange)
+	# Exhaust flame tips
+	fill_ellipse.call(22.0, 92.0, 5.0, 4.0, glow_orange)
+	fill_ellipse.call(106.0, 92.0, 5.0, 4.0, glow_orange)
+
+	# Frame
+	draw_thick_line.call(Vector2(64, 56), Vector2(64, 100), 3, chrome)
+	draw_thick_line.call(Vector2(38, 100), Vector2(64, 70), 3, chrome)
+	draw_thick_line.call(Vector2(90, 100), Vector2(64, 70), 3, chrome)
+
+	# === BIGGER WHEELS ===
+	# Rear wheel (left)
+	fill_ellipse.call(34.0, 102.0, 16.0, 16.0, tire)
+	fill_ellipse.call(34.0, 102.0, 9.0, 9.0, chrome)
+	fill_ellipse.call(34.0, 102.0, 4.0, 4.0, steel_dark)
+	# Rear spokes
+	for a in range(6):
+		var rad = a * PI / 3.0
+		draw_thick_line.call(Vector2(34, 102), Vector2(34 + cos(rad) * 9, 102 + sin(rad) * 9), 2, chrome_light)
+	# Rear spikes
 	for a in range(8):
 		var rad = a * PI / 4.0
-		var sx1 = int(38.0 + cos(rad) * 19.0)
-		var sy1 = int(80.0 + sin(rad) * 19.0)
-		var sx2 = int(90.0 + cos(rad) * 19.0)
-		var sy2 = int(80.0 + sin(rad) * 19.0)
-		if sx1 >= 0 and sx1 < 128 and sy1 >= 0 and sy1 < 128:
-			img.set_pixel(sx1, sy1, chrome_light)
-		if sx2 >= 0 and sx2 < 128 and sy2 >= 0 and sy2 < 128:
-			img.set_pixel(sx2, sy2, chrome_light)
+		var sx = 34.0 + cos(rad) * 17.0
+		var sy = 102.0 + sin(rad) * 17.0
+		fill_ellipse.call(sx, sy, 2.5, 2.5, chrome_light)
 
-	# 4. Roaring hot engine block
-	fill_ellipse.call(64.0, 64.0, 18.0, 13.0, steel_dark)
-	# Engine cylinders (horizontal lines)
-	for y in range(58, 71, 3):
-		draw_thick_line.call(Vector2(50, y), Vector2(78, y), 2, metallic_gray)
-	# Exhaust pipes glowing
-	draw_thick_line.call(Vector2(55, 68), Vector2(40, 62), 3, glow_orange)
-	draw_thick_line.call(Vector2(40, 62), Vector2(24, 62), 3, glow_orange)
+	# Front wheel (right)
+	fill_ellipse.call(94.0, 102.0, 16.0, 16.0, tire)
+	fill_ellipse.call(94.0, 102.0, 9.0, 9.0, chrome)
+	fill_ellipse.call(94.0, 102.0, 4.0, 4.0, steel_dark)
+	# Front spokes
+	for a in range(6):
+		var rad = a * PI / 3.0
+		draw_thick_line.call(Vector2(94, 102), Vector2(94 + cos(rad) * 9, 102 + sin(rad) * 9), 2, chrome_light)
+	# Front spikes
+	for a in range(8):
+		var rad = a * PI / 4.0
+		var sx = 94.0 + cos(rad) * 17.0
+		var sy = 102.0 + sin(rad) * 17.0
+		fill_ellipse.call(sx, sy, 2.5, 2.5, chrome_light)
 
-	# 5. Biker Torso (leather jacket)
-	fill_ellipse.call(64.0, 40.0, 14.0, 16.0, leather_black)
-	# Spikes on shoulders
-	fill_ellipse.call(50.0, 28.0, 3.0, 3.0, chrome_light)
-	fill_ellipse.call(78.0, 28.0, 3.0, 3.0, chrome_light)
+	# === HEADLIGHT ===
+	fill_ellipse.call(98.0, 56.0, 7.0, 5.0, chrome_light)
+	fill_ellipse.call(99.0, 56.0, 5.0, 3.0, glow_cyan)
+	# Light beam
+	for x in range(102, 128):
+		var y_ext = int((x - 102) * 0.3)
+		for y in range(52 - y_ext, 60 + y_ext + 1):
+			if y >= 0 and y < 128:
+				var dist = (x - 102) / 26.0
+				var alpha = clampf(0.4 * (1.0 - dist), 0.0, 0.4)
+				var c = img.get_pixel(x, y)
+				var beam = Color(glow_cyan.r, glow_cyan.g, glow_cyan.b, alpha)
+				img.set_pixel(x, y, c.lerp(beam, alpha))
 
-	# 6. Biker Helmet & Visor
-	fill_ellipse.call(64.0, 22.0, 9.0, 9.0, steel_dark)
-	fill_ellipse.call(66.0, 21.0, 7.0, 3.5, glow_red) # glowing eye slit visor
-
-	# 7. Front headlamp shell
-	fill_ellipse.call(94.0, 48.0, 5.0, 5.0, chrome_light)
-	fill_ellipse.call(95.0, 48.0, 3.0, 3.0, glow_orange)
+	# === HANDLEBARS ===
+	draw_thick_line.call(Vector2(90, 50), Vector2(100, 46), 3, chrome)
+	draw_thick_line.call(Vector2(90, 50), Vector2(80, 46), 3, chrome)
+	fill_ellipse.call(100.0, 46.0, 3.0, 3.0, glow_red)
+	fill_ellipse.call(80.0, 46.0, 3.0, 3.0, glow_red)
 
 	return ImageTexture.create_from_image(img)
 

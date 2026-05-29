@@ -52,32 +52,35 @@ max_value = 100
 visible = false
 modulate = Color(1, 0.8, 0, 1)
 
-[node name="BoostLabel" type="Label" parent="."]
-offset_left = 1100.0
-offset_top = 655.0
-offset_right = 1260.0
-offset_bottom = 680.0
-theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 14
-horizontal_alignment = 1
-text = "BOOST"
-
 [node name="BoostContainer" type="HBoxContainer" parent="."]
-offset_left = 1100.0
-offset_top = 680.0
-offset_right = 1260.0
-offset_bottom = 710.0
+offset_left = 890.0
+offset_top = 695.0
+offset_right = 1000.0
+offset_bottom = 715.0
+theme_override_constants/separation = 4
+
+[node name="BoostLabel" type="Label" parent="BoostContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+text = "BST"
 
 [node name="Boost1" type="ColorRect" parent="BoostContainer"]
-custom_minimum_size = Vector2(40, 30)
+custom_minimum_size = Vector2(20, 16)
+layout_mode = 2
+size_flags_vertical = 4
 color = Color(0, 0.8, 1, 1)
 
 [node name="Boost2" type="ColorRect" parent="BoostContainer"]
-custom_minimum_size = Vector2(40, 30)
+custom_minimum_size = Vector2(20, 16)
+layout_mode = 2
+size_flags_vertical = 4
 color = Color(0, 0.8, 1, 1)
 
 [node name="Boost3" type="ColorRect" parent="BoostContainer"]
-custom_minimum_size = Vector2(40, 30)
+custom_minimum_size = Vector2(20, 16)
+layout_mode = 2
+size_flags_vertical = 4
 color = Color(0, 0.8, 1, 1)
 
 [node name="WeaponIcon" type="ColorRect" parent="."]
