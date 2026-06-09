@@ -1,3 +1,5 @@
+<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/73206466-a21d-4f86-8c64-89a932b66d07" />
+
 # Race to Dead End
 
 Isometric vehicular combat racing game. Drive a futuristic interceptor down an endless highway, fighting zombie bikers, post-apocalyptic gang trucks, and alien saucers. Inspired by Spy Hunter (1983).
