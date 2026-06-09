@@ -64,9 +64,15 @@ Garage.tscn (meta-progression shop)
 
 | Singleton | Path | Responsibility |
 |---|---|---|
-| `GameManager` | `autoload/GameManager.gd` | Game state, scoring, difficulty curve, save/load |
-| `ScoreManager` | `autoload/ScoreManager.gd` | Kill registration, pickup handling, score popups |
-| `AudioManager` | `autoload/AudioManager.gd` | Procedural 8-bit SFX/music synthesis, audio pooling |
+| `GameManager` | `scripts/autoload/GameManager.gd` | Game state, scoring, difficulty curve, save/load |
+| `ScoreManager` | `scripts/autoload/ScoreManager.gd` | Kill registration, pickup handling, score popups |
+| `AudioManager` | `scripts/autoload/AudioManager.gd` | Procedural 8-bit SFX/music synthesis, audio pooling |
+| `Constants` | `scripts/autoload/Constants.gd` | Game-wide constants (lanes, speeds, colors) |
+| `ObjectPool` | `scripts/autoload/ObjectPool.gd` | Generic object pool (enemies, bullets, pickups) |
+| `CameraShake` | `scripts/autoload/CameraShake.gd` | Screen shake + gamepad rumble |
+| `TransitionLayer` | `scripts/autoload/TransitionLayer.gd` | Fade-to-black scene transitions |
+| `PackManager` | `scripts/autoload/PackManager.gd` | Asset pack management |
+| `SettingsManager` | `scripts/autoload/SettingsManager.gd` | Audio/video/input settings |
 
 ### Collision Layers
 
@@ -135,7 +141,7 @@ After installing, enable the plugin:
 
 **From the editor:**
 - The **GUT** panel appears at the bottom of the editor
-- Set test directory to `res://test/`
+- Set test directory to `res://tests/`
 - Click **Run All**
 
 **From the command line:**
@@ -146,7 +152,7 @@ godot --headless -s res://addons/gut/gut_cmdln.gd -gdir=res://test --exit
 
 ### Write Tests
 
-Test files live in `test/unit/` and must:
+Test files live in `tests/unit/` and must:
 - Be prefixed with `test_` (e.g., `test_game_manager.gd`)
 - Extend `GutTest` (from `res://addons/gut/test.gd`)
 
@@ -175,7 +181,7 @@ func test_something():
 Autoload singletons are globally available during tests, but for isolated tests, instantiate them manually:
 
 ```gdscript
-var gm = load("res://autoload/GameManager.gd").new()
+var gm = load("res://scripts/autoload/GameManager.gd").new()
 add_child_autofree(gm)
 gm._ready()
 ```
@@ -205,24 +211,57 @@ func test_damage_types():
 
 ### Existing Tests
 
+**Unit tests** (43 files in `tests/unit/`):
+
 | File | Coverage |
 |---|---|
-| `test/unit/test_game_manager.gd` | State, scoring, difficulty, save/load, score ticker, upgrades |
-| `test/unit/test_score_manager.gd` | Kill registration, civilian protection, pickups, constants |
-| `test/unit/test_audio_manager.gd` | Player creation, SFX pooling, procedural synthesis, null handling |
-| `test/unit/test_highway.gd` | Chunk generation, tile variants, recycling, constants, ice/bridge |
-| `test/unit/test_spawner.gd` | Wave composition, pickup drops, garbage collection, timer logic |
-| `test/unit/test_interceptor.gd` | Lane system, weapons, boost, invincibility, weave, upgrades |
-| `test/unit/test_enemy.gd` | Init types, damage, death signals, hit flash, collision layer |
-| `test/unit/test_bullet.gd` | Init, direction, homing, nearest-finding, movement, groups |
-| `test/unit/test_mine.gd` | Arming, explosion, body/area triggers, collision mask |
-| `test/unit/test_emp.gd` | Expansion, max radius, damage, scale, groups |
-| `test/unit/test_drone_bomb.gd` | Detonation timing, blink warning, explosion visual, collision |
-| `test/unit/test_hud.gd` | Score, health, multiplier, tier, boost, weapon display |
-| `test/unit/test_game_over.gd` | Score display, credits (integer), signals, visibility |
-| `test/unit/test_garage.gd` | Upgrade costs, max level, insufficient credits, signals |
-| `test/unit/test_main.gd` | Scene paths, state management, button handlers |
-| `test/unit/test_game.gd` | Scene paths, restart, menu navigation, game over handling |
+| `test_game_manager.gd` | State, scoring, difficulty, save/load, score ticker, upgrades |
+| `test_score_manager.gd` | Kill registration, civilian protection, pickups, constants |
+| `test_audio_manager.gd` | SFX pooling, procedural synthesis, null handling |
+| `test_constants.gd` | Lane positions, speed values, enum integrity |
+| `test_constants_extended.gd` | Additional constant validation |
+| `test_highway.gd` | Chunk generation, tile variants, recycling, ice/bridge |
+| `test_spawner.gd` | Wave composition, pickup drops, garbage collection, timer logic |
+| `test_interceptor.gd` | Lane system, weapons, boost, invincibility, weave, upgrades |
+| `test_enemy.gd` | Init types, damage, death signals, hit flash, collision layer |
+| `test_bullet.gd` | Init, direction, homing, nearest-finding, movement, groups |
+| `test_mine.gd` | Arming, explosion, body/area triggers, collision mask |
+| `test_emp.gd` | Expansion, max radius, damage, scale, groups |
+| `test_drone_bomb.gd` | Detonation timing, blink warning, explosion visual, collision |
+| `test_hud.gd` | Score, health, multiplier, tier, boost, weapon display |
+| `test_game_over.gd` | Score display, credits, signals, visibility |
+| `test_garage.gd` | Upgrade costs, max level, insufficient credits, signals |
+| `test_main.gd` | Scene paths, state management, button handlers |
+| `test_game.gd` | Scene paths, restart, menu navigation, game over handling |
+| `test_bunny.gd` | Bunny enemy init, movement, damage, death, gating |
+| `test_rotor.gd` | Rotor enemy init, movement, damage, death |
+| `test_scav.gd` | Scav init, flank behavior, shooting, damage |
+| `test_drone.gd` | Drone init, hover, bomb drop, damage |
+| `test_bosses.gd` | BossBunny, BossSasquatch init, phases, damage |
+| `test_boss_war_rig.gd` | BossWarRig init, ram attack, damage, death |
+| `test_civilian.gd` | Civilian init, collision, protect bonus, speed |
+| `test_object_pool.gd` | Pool creation, acquire/release, fallback, scene cache |
+| `test_camera_shake.gd` | Shake intensity, duration, decay, rumble |
+| `test_transition_layer.gd` | Fade-in, fade-out, scene transition signals |
+| `test_pack_manager.gd` | Pack loading, asset resolution, fallback |
+| `test_settings_manager.gd` | Audio/video/input settings, save/load |
+| `test_input_remap.gd` | Action remapping, input event routing |
+| `test_options.gd` | Options menu, settings UI, signal wiring |
+| `test_pause_menu.gd` | Pause/resume, button handlers |
+| `test_helpers.gd` | Utility functions, sprite scaling helpers |
+| `test_sprites.gd` | Sprite scaling, texture loading |
+| `test_player_sprite.gd` | Player sprite orientation, scale |
+| `test_weather_system.gd` | Rain/acid/storm states, lightning, transitions |
+| `test_top_weather_border.gd` | Weather overlay, border rendering, damage zones |
+| `test_chain_swing.gd` | Chain swing rotation, arc, collision, damage |
+| `test_poop_weapon.gd` | Poop weapon init, physics, cleanup |
+| `test_baby_bunny_bomb.gd` | Bomb init, detonation, explosion, cleanup |
+| `test_weapon_data.gd` | Weapon data resource, stat values |
+| `test_interceptor_info.gd` | Interceptor info display, stat tracking |
+
+**Integration tests** (2 files in `tests/integration/`):
+- `test_combat_flow.gd` — Full combat loop: spawn → fight → score → game over
+- `test_stress_pool.gd` — ObjectPool stress test with mass acquire/release cycles
 
 ---
 
@@ -326,46 +365,34 @@ ObjectPool.create_pool("new_enemy", NEW_ENEMY_SCENE, N)
 
 ```
 res://
-├── autoload/              # Global singletons
-│   ├── GameManager.gd     # State, scoring, difficulty, save/load
-│   ├── ScoreManager.gd    # Kill registration, pickups
-│   └── AudioManager.gd    # Procedural 8-bit audio
-├── scenes/
-│   ├── Main.tscn/.gd      # Main menu
-│   ├── Game.tscn/.gd      # Gameplay root
-│   ├── world/
-│   │   ├── Highway.tscn/.gd   # Procedural road generation
-│   │   └── Spawner.tscn/.gd   # Enemy wave spawning
-│   ├── player/
-│   │   └── Interceptor.tscn/.gd  # Player vehicle
-│   ├── enemies/
-│   │   ├── Enemy.gd           # Base enemy class
-│   │   ├── Bunny.tscn/.gd     # Infected zombie bunny
-│   │   ├── Rotor.tscn/.gd     # Zombie biker
-│   │   ├── Scav.tscn/.gd      # Gang pickup
-│   │   ├── Sasquatch.tscn/.gd # Wandering brute (renamed from BossSasquatch)
-│   │   └── Drone.tscn/.gd     # Alien saucer
-│   ├── weapons/
-│   │   ├── Bullet.tscn/.gd    # Machine gun projectile
-│   │   ├── Mine.tscn/.gd      # Dropped mine
-│   │   ├── EMPBlast.tscn/.gd  # Screen-wide EMP
-│   │   └── DroneBomb.gd       # Drone bomb (script-only)
-│   └── ui/
-│       ├── HUD.tscn/.gd       # In-game HUD
-│       ├── GameOver.tscn/.gd  # Game over screen
-│       └── Garage.tscn/.gd    # Meta-upgrade shop
-├── assets/
-│   ├── sprites/enemies/       # Enemy sprite PNGs
-│   └── tilesets/              # Isometric tile definitions
-├── test/
-│   └── unit/                  # GUT unit tests
-├── docs/
-│   ├── design.md              # Full game design document
-│   ├── nextsteps.md           # Implementation plan + bug fix log
-│   └── development.md         # This file
-├── addons/                    # Third-party plugins (gitignored)
-│   └── gut/                   # GUT testing framework
-└── project.godot              # Project configuration
+├── demo/                    # Boss defeat overlay scenes
+├── scenes/                  # .tscn scene files
+│   ├── enemies/             # Bunny, Rotor, Scav, Drone, bosses, civilians
+│   ├── player/              # Interceptor
+│   ├── ui/                  # HUD, GameOver, Garage, PauseMenu, Options, InputRemap, TopWeatherBorder, InterceptorInfo
+│   ├── weapons/             # Bullet, Mine, EMPBlast, DroneBomb, ChainSwing, PoopWeapon, BabyBunnyBomb
+│   └── world/               # Highway, Spawner, weather system
+├── scripts/
+│   ├── autoload/            # 9 singletons (GameManager, ScoreManager, AudioManager, Constants, ObjectPool, CameraShake, TransitionLayer, PackManager, SettingsManager)
+│   ├── scenes/              # Scripts attached to scene nodes
+│   │   ├── Game.gd          # Game root
+│   │   ├── Main.gd          # Main menu
+│   │   ├── enemies/         # Enemy base + subtypes (Bunny, Rotor, Scav, Sasquatch, Drone)
+│   │   ├── player/          # Interceptor controller
+│   │   ├── ui/              # HUD, menus, input remapping, options
+│   │   ├── weapons/         # Bullet, Mine, EMP, DroneBomb, ChainSwing, PoopWeapon, BabyBunnyBomb
+│   │   └── world/           # Highway, Spawner, WeatherSystem
+│   ├── resources/           # WeaponData resource
+│   ├── utils/               # Helpers.gd (sprite scaling utilities)
+│   └── run_tests.gd         # Headless test runner
+├── tests/                   # GUT test suite
+│   ├── test_helper.gd       # Audio bus setup, mock creation utilities
+│   ├── unit/                # 43 unit test files
+│   └── integration/         # 2 integration test files
+├── assets/                  # Sprites, audio, tilesets, environments
+├── addons/gut/              # GUT plugin
+├── docs/                    # Documentation
+└── project.godot            # Project configuration
 ```
 
 ---
@@ -385,7 +412,7 @@ Configure in **Project → Export**:
 
 ### Release Checklist
 
-- [ ] All tests pass (`godot --headless -s res://addons/gut/gut_cmdln.gd -gdir=res://test --exit`)
+- [ ] All tests pass (`godot --headless -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gdir=res://tests/integration -ginclude_subdirs -gexit`)
 - [ ] No editor warnings in Output panel
 - [ ] Export runs on target platform
 - [ ] Assets optimized (texture compression, audio VOC/OGG)
@@ -397,11 +424,6 @@ Configure in **Project → Export**:
 
 These features are defined in the design doc but not yet coded:
 
-- Civilian vehicles (spawn logic, protect bonus)
-- Weather system (fog, dust storms, acid rain)
-- Boss encounters (every 3000 pts — BossBunny, BossGiantBiker, BossWarRig, BossVoidDrone)
-- Parallax background layers
-- Options menu (audio/video settings)
 - Daily run challenge / seed system
 - Achievement badges
 - Online leaderboard
@@ -415,8 +437,8 @@ See `docs/design.md` for full specifications.
 ## Troubleshooting
 
 **GUT tests don't appear in the panel:**
-- Verify test files are in `res://test/` and prefixed with `test_`
-- Check GUT panel settings → Test Directory = `res://test/`
+- Verify test files are in `res://tests/unit/` and prefixed with `test_`
+- Check GUT panel settings → Test Directory = `res://tests`
 - Reload project after adding new test files
 
 **Godot won't import the project:**

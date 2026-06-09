@@ -145,9 +145,9 @@ The 2nd boss was replaced and Sasquatch was converted to a wandering monster:
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Test count | ~920 | ~1000+ |
+| Test count | ~920 | ~1097 |
 | Pass rate | 100% | 100% |
-| Test files | 20 | 20 |
+| Test files | 20 | 45 |
 | Bugs fixed | 0 counted | 2 (weather leak, civilian frame-rate) |
 | Dead code removed | 0 | 1 function |
 | Caches added | 0 | 3 (diamond mesh, rect mesh, packed scenes) |

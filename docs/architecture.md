@@ -8,12 +8,12 @@
 
 ```
 res://
-├── autoload/                # .gd.uid stubs (editor tracking for relocated scripts)
+├── demo/                    # Boss defeat overlay scenes
 ├── scenes/                  # .tscn scene files
-│   ├── enemies/             # Bunny, Rotor, Scav, Drone, BossBunny, BossSasquatch, BossWarRig, BossVoidDrone, Civilian
+│   ├── enemies/             # Bunny, Rotor, Scav, Drone, BossBunny, BossSasquatch, BossGiantBiker, BossWarRig, BossVoidDrone, Civilian
 │   ├── player/              # Interceptor
-│   ├── ui/                  # HUD, GameOver, Garage, Options, PauseMenu
-│   ├── weapons/             # Bullet, Mine, EMPBlast, DroneBomb
+│   ├── ui/                  # HUD, GameOver, Garage, PauseMenu, Options, InputRemap, TopWeatherBorder, InterceptorInfo
+│   ├── weapons/             # Bullet, Mine, EMPBlast, DroneBomb, ChainSwing, PoopWeapon, BabyBunnyBomb
 │   └── world/               # Highway, Spawner, WeatherSystem
 ├── scripts/
 │   ├── autoload/            # Singletons (autoloaded in project.godot)
@@ -24,7 +24,6 @@ res://
 │   │   ├── Constants.gd     # All game constants (8 lanes, lane positions, bullet speeds, colors)
 │   │   ├── CameraShake.gd   # Screen shake + gamepad rumble
 │   │   ├── TransitionLayer.gd # Fade-to-black scene transitions
-│   │   ├── Helpers.gd       # Static utility functions (sprite scaling)
 │   │   ├── PackManager.gd   # Asset pack management
 │   │   └── SettingsManager.gd # Audio/video/input settings
 │   ├── scenes/              # Scripts attached to scene nodes
@@ -36,17 +35,16 @@ res://
 │   │   ├── weapons/         # Bullet, Mine, EMP, DroneBomb logic
 │   │   └── world/           # Highway, Spawner, WeatherSystem logic
 │   ├── resources/           # Custom resources (WeaponData)
-│   └── utils/               # Development/analysis tools
+│   ├── utils/               # Development/analysis tools (Helpers.gd)
+│   └── run_tests.gd         # Headless test runner (SceneTree script)
 ├── tests/                   # GUT test suite
-│   ├── test_helper.gd       # Test utilities (class_name TestHelper)
-│   ├── unit/                # 36 unit test files
-│   └── integration/         # Integration tests (combat flow, stress pool)
+│   ├── test_helper.gd       # Test utilities (audio bus setup, mock creation)
+│   ├── unit/                # 43 unit test files
+│   └── integration/         # 2 integration tests (combat flow, stress pool)
 ├── assets/                  # Sprites, audio, tilesets, environments
 ├── addons/gut/              # GUT plugin
 ├── docs/                    # Documentation
-├── project.godot            # Engine config
-├── run_tests.gd             # Headless test runner (SceneTree script)
-└── run_tests.sh             # Batch test runner for CI
+└── project.godot            # Engine config
 ```
 
 ## Core Systems
@@ -86,7 +84,7 @@ res://
 - Sasquatch: repurposed from 2nd boss to a random wandering monster that appears after the 2nd boss kill
 
 ### Difficulty & Speed Scaling
-- Difficulty tier advances every 1000 score points (max tier 20)
+- Difficulty tier advances every 3000 score points (max tier 20)
 - Game speed scales: `BASE_SPEED + (tier - 1) * SPEED_PER_TIER` (cap at 600)
 - Wave interval decreases with tier: `BASE - (tier - 1) * 0.3` (min 2s)
 - Weather escalates at tiers 5, 8, 12 (rain → acid rain → storm)
@@ -137,8 +135,8 @@ res://
 ## Testing
 
 - **Framework**: GUT (Godot Unit Testing) via `addons/gut/`
-- **Runner**: `run_tests.gd` (SceneTree script, headless) and `run_tests.sh` (batch CI)
-- **Unit tests**: 36 files covering all autoloads, scenes, and utilities
+- **Runner**: `scripts/run_tests.gd` (SceneTree script, headless)
+- **Unit tests**: 43 files covering all autoloads, scenes, and utilities
 - **Integration tests**: 2 files covering combat flow and stress/pool exhaustion
 - Test helper with audio bus setup, mock player creation, scene instantiation
 - Run: `godot --headless --path . -s addons/gut/gut_cmdln.gd -- -gdir tests/unit`
