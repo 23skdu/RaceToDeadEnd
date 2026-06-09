@@ -317,7 +317,7 @@ func test_lightning_flash_cleaned_after_tween():
 	tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free())
 	await tween.finished
 	await get_tree().process_frame
-	assert_true(flash.is_queued_for_deletion(), "Flash should be queued for deletion after tween")
+	assert_false(is_instance_valid(flash), "Flash should be freed after tween")
 
 func test_lightning_bolt_cleaned_after_tween():
 	var ws = _create_weather()
@@ -330,4 +330,4 @@ func test_lightning_bolt_cleaned_after_tween():
 	tween.tween_callback(func(): if is_instance_valid(bolt): bolt.queue_free())
 	await tween.finished
 	await get_tree().process_frame
-	assert_true(bolt.is_queued_for_deletion(), "Bolt should be queued for deletion after tween")
+	assert_false(is_instance_valid(bolt), "Bolt should be freed after tween")

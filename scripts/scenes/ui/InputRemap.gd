@@ -14,7 +14,7 @@ var _listening_action: String = ""
 var _listening_idx: int = -1
 var _rows: Array[Dictionary] = []
 
-@onready var action_list: VBoxContainer = $ActionList
+@onready var action_list: VBoxContainer = get_node_or_null("ActionList")
 
 func _ready() -> void:
 	if not action_list:

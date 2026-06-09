@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://demo/DemoScene.gd" id="1_demo"]
 
-[node name="DemoBossBunny" type="CanvasLayer"]
+[node name="DemoBossBunny" type="Control"]
 process_mode = 3
 script = ExtResource("1_demo")
 boss_type = "boss_bunny"

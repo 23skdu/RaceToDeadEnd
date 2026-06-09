@@ -1,4 +1,4 @@
-extends CanvasLayer
+extends Control
 
 signal demo_finished
 
@@ -53,7 +53,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if _timer >= duration:
 		return
-	var rect = get_viewport_rect()
+	var rect = get_viewport().get_visible_rect()
 	var cx = rect.size.x / 2.0
 	var cy = rect.size.y / 2.0
 
