@@ -467,14 +467,16 @@ func test_spawn_civilian_sets_position_offset():
 func test_should_spawn_boss_returns_true_at_threshold():
 	var s = Spawner.new()
 	s._ready()
-	s.enemy_scenes["boss"] = _make_boss_scene()
+	var boss_key = s._get_next_boss_key()
+	s.enemy_scenes[boss_key] = _make_boss_scene()
 	GameManager.score = Constants.BOSS_SCORE_INTERVAL
 	assert_true(s._should_spawn_boss(), "Should return true when score crosses threshold")
 
 func test_should_spawn_boss_returns_false_below_threshold():
 	var s = Spawner.new()
 	s._ready()
-	s.enemy_scenes["boss"] = _make_boss_scene()
+	var boss_key = s._get_next_boss_key()
+	s.enemy_scenes[boss_key] = _make_boss_scene()
 	GameManager.score = Constants.BOSS_SCORE_INTERVAL - 1
 	assert_false(s._should_spawn_boss(), "Should return false below threshold")
 
@@ -607,3 +609,50 @@ func test_civilian_spawn_accumulator_skips_spawn_below_threshold():
 	s._process(0.3)
 	var child_after = s.get_child_count()
 	assert_eq(child_after, child_before, "No civilian should spawn below threshold")
+
+func test_get_next_boss_key():
+	var s = Spawner.new()
+	s._bosses_spawned = 0
+	assert_eq(s._get_next_boss_key(), "boss_bunny", "First boss should be boss_bunny")
+	s._bosses_spawned = 1
+	assert_eq(s._get_next_boss_key(), "boss_giant_biker", "Second boss should be boss_giant_biker")
+	s._bosses_spawned = 2
+	assert_eq(s._get_next_boss_key(), "boss", "Third boss should be boss")
+	s._bosses_spawned = 3
+	assert_eq(s._get_next_boss_key(), "boss_void_drone", "Fourth boss should be boss_void_drone")
+	s._bosses_spawned = 4
+	assert_eq(s._get_next_boss_key(), "boss_void_drone", "Subsequent bosses should be boss_void_drone")
+
+func test_spawn_boss_stages():
+	var s = Spawner.new()
+	s.player = _create_mock_player()
+	add_child_autofree(s)
+	
+	var mock_scene = _make_boss_scene()
+	s.enemy_scenes["boss_bunny"] = mock_scene
+	s.enemy_scenes["boss_giant_biker"] = mock_scene
+	s.enemy_scenes["boss"] = mock_scene
+	s.enemy_scenes["boss_void_drone"] = mock_scene
+
+	# Stage 0: Boss Bunny
+	s._bosses_spawned = 0
+	s._spawn_boss()
+	assert_eq(s._bosses_spawned, 1, "_bosses_spawned should increment to 1")
+	var spawned_boss = s.get_child(s.get_child_count() - 1)
+	assert_not_null(spawned_boss, "Boss node should be spawned")
+	
+	# Stage 1: Boss Giant Biker
+	s._bosses_spawned = 1
+	s._spawn_boss()
+	assert_eq(s._bosses_spawned, 2, "_bosses_spawned should increment to 2")
+	
+	# Stage 2: Boss (War Rig)
+	s._bosses_spawned = 2
+	s._spawn_boss()
+	assert_eq(s._bosses_spawned, 3, "_bosses_spawned should increment to 3")
+	
+	# Stage 3+: Boss Void Drone
+	s._bosses_spawned = 3
+	s._spawn_boss()
+	assert_eq(s._bosses_spawned, 4, "_bosses_spawned should increment to 4")
+

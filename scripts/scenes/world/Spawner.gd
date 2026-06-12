@@ -105,11 +105,7 @@ func _spawn_wave() -> void:
 			_spawn_enemy(enemy_type)
 	wave_spawned.emit(current_wave)
 
-func _should_spawn_boss() -> bool:
-	var next_threshold = (_bosses_spawned + 1) * Constants.BOSS_SCORE_INTERVAL
-	return GameManager.score >= next_threshold and enemy_scenes.has("boss") and enemy_scenes["boss"]
-
-func _spawn_boss() -> void:
+func _get_next_boss_key() -> String:
 	var boss_key = "boss_bunny"
 	if _bosses_spawned == 1:
 		boss_key = "boss_giant_biker"
@@ -117,7 +113,15 @@ func _spawn_boss() -> void:
 		boss_key = "boss"
 	elif _bosses_spawned >= 3:
 		boss_key = "boss_void_drone"
-		
+	return boss_key
+
+func _should_spawn_boss() -> bool:
+	var next_threshold = (_bosses_spawned + 1) * Constants.BOSS_SCORE_INTERVAL
+	var boss_key = _get_next_boss_key()
+	return GameManager.score >= next_threshold and enemy_scenes.has(boss_key) and enemy_scenes[boss_key]
+
+func _spawn_boss() -> void:
+	var boss_key = _get_next_boss_key()
 	_bosses_spawned += 1
 	GameManager.boss_active = true
 	GameManager.current_speed = 0.0
