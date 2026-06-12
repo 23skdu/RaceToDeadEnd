@@ -28,7 +28,7 @@ jobs:
 
       - name: Add coi-serviceworker
         run: |
-          curl -L -o build/web/coi-serviceworker.js https://raw.githubusercontent.com/gzguidoti/coi-serviceworker/master/coi-serviceworker.js
+          curl -L -o build/web/coi-serviceworker.js https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.js
           sed -i 's|<head>|<head><script src="coi-serviceworker.js"></script>|g' build/web/index.html
 
       - name: Deploy to GitHub Pages
