@@ -1,4 +1,4 @@
-# Race to Dead End — Game Architecture
+# Race to Dead End - Game Architecture
 
 ## Engine
 
@@ -76,7 +76,7 @@ res://
 ### Combat
 - **Primary**: Machine gun (0.1s cooldown, auto-fire)
 - **Secondary**: Homing missile, proximity mine, EMP blast (cycled via Q)
-- Player bullet speed = `GameManager.current_speed + BULLET_SPEED_OFFSET (500)` — always outruns max player speed (including boost)
+- Player bullet speed = `GameManager.current_speed + BULLET_SPEED_OFFSET (500)` - always outruns max player speed (including boost)
 - Enemy bullet speed is constant `BULLET_SPEED (500)`
 - Homing bullets use distance-bounded targeting (MAX_HOMING_RANGE = 400px)
 - Enemy types: Bunny (contact-damage only, gated before 1st boss kill), Rotor (swarm, gated behind 1st boss kill), Scav (flank + shoot, gated behind 2nd boss kill), Sasquatch (wandering brute, gated behind 2nd boss kill), Drone (hover + bomb, gated behind 3rd boss kill)
@@ -100,7 +100,7 @@ res://
 - `GameManager.bosses_killed` is incremented when `Game._on_boss_defeated` fires
 
 ### Player (Interceptor)
-- Sprite scaled to 84px base size (vs 64px for Rotor enemies — ~31% larger)
+- Sprite scaled to 84px base size (vs 64px for Rotor enemies - ~31% larger)
 - `_lane_to_x()` maps lane index to world X position via `Constants.LANE_POSITIONS` (clamped 0–7)
 - 6 upgradeable stats: max health, boost capacity, fire rate, missile ammo, mine ammo, EMP ammo
 - Boost: 2× speed multiplier, 3 charges, 8s recharge per charge

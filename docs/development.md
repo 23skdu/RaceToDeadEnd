@@ -1,4 +1,4 @@
-# Race to Dead End — Development Guide
+# Race to Dead End - Development Guide
 
 This guide covers everything you need to know to contribute to the project: setup, architecture, testing, coding conventions, and common development tasks.
 
@@ -8,9 +8,9 @@ This guide covers everything you need to know to contribute to the project: setu
 
 ### Prerequisites
 
-- **Godot 4.6+** — Download from [godotengine.org](https://godotengine.org)
-- **Git** — For version control
-- **VS Code** (optional) — Recommended with the [Godot Tools](https://marketplace.visualstudio.com/items?itemName=geequlim.godot-tools) extension
+- **Godot 4.6+** - Download from [godotengine.org](https://godotengine.org)
+- **Git** - For version control
+- **VS Code** (optional) - Recommended with the [Godot Tools](https://marketplace.visualstudio.com/items?itemName=geequlim.godot-tools) extension
 
 ### Setup
 
@@ -173,9 +173,9 @@ func test_something():
 - `assert_signal_emitted(obj, signal_name, msg)`
 
 **Lifecycle hooks:**
-- `before_all()` / `after_all()` — run once per file
-- `before_each()` / `after_each()` — run before/after each test
-- `add_child_autofree(node)` — auto-frees nodes after test
+- `before_all()` / `after_all()` - run once per file
+- `before_each()` / `after_each()` - run before/after each test
+- `add_child_autofree(node)` - auto-frees nodes after test
 
 **Testing autoloads:**
 Autoload singletons are globally available during tests, but for isolated tests, instantiate them manually:
@@ -260,8 +260,8 @@ func test_damage_types():
 | `test_interceptor_info.gd` | Interceptor info display, stat tracking |
 
 **Integration tests** (2 files in `tests/integration/`):
-- `test_combat_flow.gd` — Full combat loop: spawn → fight → score → game over
-- `test_stress_pool.gd` — ObjectPool stress test with mass acquire/release cycles
+- `test_combat_flow.gd` - Full combat loop: spawn → fight → score → game over
+- `test_stress_pool.gd` - ObjectPool stress test with mass acquire/release cycles
 
 ---
 
@@ -285,7 +285,7 @@ func test_damage_types():
 
 ### Signals over Direct References
 
-Prefer signals for cross-system communication. The GameManager emits signals that the HUD listens to — this keeps UI decoupled from game logic.
+Prefer signals for cross-system communication. The GameManager emits signals that the HUD listens to - this keeps UI decoupled from game logic.
 
 ### Error Handling
 
@@ -447,7 +447,7 @@ See `docs/design.md` for full specifications.
 
 **Autoload errors:**
 - Check `project.godot` → `[autoload]` section has correct paths
-- Autoloads are available globally — no need to `preload()` them
+- Autoloads are available globally - no need to `preload()` them
 
 **Collision not working:**
 - Verify `collision_layer` and `collision_mask` on both nodes

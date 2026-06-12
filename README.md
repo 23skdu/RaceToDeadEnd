@@ -2,7 +2,7 @@
 
 # Race to Dead End
 
-Isometric vehicular combat racing game. Drive a futuristic interceptor down an endless highway, fighting zombie bikers, post-apocalyptic gang trucks, and alien saucers. Inspired by Spy Hunter (1983).
+Isometric vehicular combat racing game. Drive a futuristic interceptor down an endless highway, fighting zombie bunnies, zombie bikers, post-apocalyptic gang trucks, and alien saucers. Inspired by Spy Hunter (1983).
 
 ## Setup
 

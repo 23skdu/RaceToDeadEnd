@@ -1,4 +1,4 @@
-# Performance & Feature Improvement Plan — Next Steps
+# Performance & Feature Improvement Plan - Next Steps
 
 Status: PROPOSED (10 New Performance and Feature Improvements)
 
