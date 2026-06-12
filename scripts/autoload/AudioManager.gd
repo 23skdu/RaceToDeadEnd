@@ -40,6 +40,7 @@ var _stream_demo_boss_war_rig: AudioStreamWAV
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var _player_priorities: Array[int] = []
+var _async_tasks: Dictionary = {}
 
 static func _init_buses() -> void:
 	var expected_buses = ["Master", "Music", "SFX"]
@@ -70,8 +71,7 @@ func _ready() -> void:
 		p.finished.connect(_on_sfx_finished.bind(i))
 
 	_setup_audio_buses()
-	_generate_menu_music()
-	play_menu_music()
+	_generate_all_async()
 
 func _on_sfx_finished(player_idx: int) -> void:
 	if player_idx < _player_priorities.size():
@@ -125,18 +125,22 @@ func play_game_music() -> void:
 	var bosses_killed = GameManager.bosses_killed
 	
 	if bosses_killed == 0:
+		_wait_for_task("game_music_bunny")
 		if not _stream_game_music_bunny:
 			_stream_game_music_bunny = _generate_game_music_bunny()
 		stream = _stream_game_music_bunny
 	elif bosses_killed == 1:
+		_wait_for_task("game_music_biker")
 		if not _stream_game_music_biker:
 			_stream_game_music_biker = _generate_game_music_biker()
 		stream = _stream_game_music_biker
 	elif bosses_killed == 2:
+		_wait_for_task("game_music_sasquatch")
 		if not _stream_game_music_sasquatch:
 			_stream_game_music_sasquatch = _generate_game_music_sasquatch()
 		stream = _stream_game_music_sasquatch
 	else:
+		_wait_for_task("game_music_void")
 		if not _stream_game_music_void:
 			_stream_game_music_void = _generate_game_music_void()
 		stream = _stream_game_music_void
@@ -156,22 +160,27 @@ func stop_music() -> void:
 func play_demo_music(boss_type: String) -> void:
 	var stream: AudioStreamWAV
 	if boss_type == "boss_bunny":
+		_wait_for_task("demo_boss_bunny")
 		if not _stream_demo_boss_bunny:
 			_stream_demo_boss_bunny = _generate_demo_music_bunny()
 		stream = _stream_demo_boss_bunny
 	elif boss_type == "boss_giant_biker":
+		_wait_for_task("demo_boss_giant_biker")
 		if not _stream_demo_boss_giant_biker:
 			_stream_demo_boss_giant_biker = _generate_demo_music_giant_biker()
 		stream = _stream_demo_boss_giant_biker
 	elif boss_type == "boss_sasquatch":
+		_wait_for_task("demo_boss_sasquatch")
 		if not _stream_demo_boss_sasquatch:
 			_stream_demo_boss_sasquatch = _generate_demo_music_sasquatch()
 		stream = _stream_demo_boss_sasquatch
 	elif boss_type == "boss_void_drone":
+		_wait_for_task("demo_boss_void_drone")
 		if not _stream_demo_boss_void_drone:
 			_stream_demo_boss_void_drone = _generate_demo_music_void_drone()
 		stream = _stream_demo_boss_void_drone
 	elif boss_type == "boss":
+		_wait_for_task("demo_boss_war_rig")
 		if not _stream_demo_boss_war_rig:
 			_stream_demo_boss_war_rig = _generate_demo_music_war_rig()
 		stream = _stream_demo_boss_war_rig
@@ -778,4 +787,29 @@ func _generate_game_music_void() -> AudioStreamWAV:
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = int(22050.0 * 16.0)
 	return stream
+
+func _generate_all_async() -> void:
+	_stream_menu_music = _generate_menu_music()
+	
+	_async_tasks["game_music_bunny"] = WorkerThreadPool.add_task(func(): _stream_game_music_bunny = _generate_game_music_bunny())
+	_async_tasks["game_music_biker"] = WorkerThreadPool.add_task(func(): _stream_game_music_biker = _generate_game_music_biker())
+	_async_tasks["game_music_sasquatch"] = WorkerThreadPool.add_task(func(): _stream_game_music_sasquatch = _generate_game_music_sasquatch())
+	_async_tasks["game_music_void"] = WorkerThreadPool.add_task(func(): _stream_game_music_void = _generate_game_music_void())
+	
+	_async_tasks["demo_boss_bunny"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_bunny = _generate_demo_music_bunny())
+	_async_tasks["demo_boss_giant_biker"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_giant_biker = _generate_demo_music_giant_biker())
+	_async_tasks["demo_boss_sasquatch"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_sasquatch = _generate_demo_music_sasquatch())
+	_async_tasks["demo_boss_void_drone"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_void_drone = _generate_demo_music_void_drone())
+	_async_tasks["demo_boss_war_rig"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_war_rig = _generate_demo_music_war_rig())
+
+func _wait_for_task(key: String) -> void:
+	if _async_tasks.has(key):
+		var task_id = _async_tasks[key]
+		WorkerThreadPool.wait_for_task_completion(task_id)
+		_async_tasks.erase(key)
+
+func _exit_tree() -> void:
+	var keys = _async_tasks.keys()
+	for key in keys:
+		_wait_for_task(key)
 

@@ -259,7 +259,7 @@ func test_rain_particles_emit_count_scales():
 	ws._set_weather(ws.WeatherType.LIGHT_RAIN)
 	ws.weather_intensity = 1.0
 	ws._update_rain_particles(0.0)
-	assert_lt(ws._rain_particles.amount, 200, "Light rain should have fewer particles than max")
+	assert_lt(ws._rain_particles.amount_ratio, 1.0, "Light rain should have lower amount ratio than max")
 
 func test_white_texture_created():
 	var ws = _create_weather()

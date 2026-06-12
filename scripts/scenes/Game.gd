@@ -146,132 +146,134 @@ func _setup_parallax() -> void:
 	]
 	
 	var textures: Array[Texture2D] = []
-	var rng = RandomNumberGenerator.new()
-	rng.seed = 12345
-	
-	for li in layers.size():
-		var l = layers[li]
-		var tex_height = int(256.0 * l.height)
-		var img_width = 512
-		var img = Image.create(img_width, tex_height, false, Image.FORMAT_RGBA8)
+	if _parallax_texture_cache.is_empty():
+		var rng = RandomNumberGenerator.new()
+		rng.seed = 12345
 		
-		# Base gradient fill
-		for x in img_width:
-			for y in tex_height:
-				var t = float(y) / float(tex_height - 1)
-				var c = l.color_top.lerp(l.color_bot, t)
-				img.set_pixel(x, y, c)
-		
-		if l.label == "deep":
-			# 1. Glowing Synthwave Sun in center
-			var cx = 256.0
-			var cy = float(tex_height) - 100.0
-			var r = 70.0
+		for li in layers.size():
+			var l = layers[li]
+			var tex_height = int(256.0 * l.height)
+			var img_width = 512
+			var img = Image.create(img_width, tex_height, false, Image.FORMAT_RGBA8)
 			
-			# Draw Glow Aura
+			# Base gradient fill
 			for x in img_width:
 				for y in tex_height:
-					var dx = x - cx
-					var dy = y - cy
-					var dist = sqrt(dx*dx + dy*dy)
-					if dist <= r + 24.0:
-						var t = (dist - r) / 24.0
-						if dist <= r:
-							t = 0.0
-						var alpha = clampf((1.0 - t) * 0.45, 0.0, 1.0)
-						var current_c = img.get_pixel(x, y)
-						var glow_c = Color(1.0, 0.05, 0.65).lerp(current_c, t)
-						img.set_pixel(x, y, current_c.lerp(glow_c, alpha))
+					var t = float(y) / float(tex_height - 1)
+					var c = l.color_top.lerp(l.color_bot, t)
+					img.set_pixel(x, y, c)
 			
-			# Draw Sun Body with Scanline Cutouts
-			for x in img_width:
-				for y in tex_height:
-					var dx = x - cx
-					var dy = y - cy
-					var dist = sqrt(dx*dx + dy*dy)
-					if dist <= r:
-						# Scanline cutout calculations (lines get thicker at bottom)
-						var relative_y = y - (cy - r)
-						var step_t = relative_y / (r * 2.0)
-						var scanline_thickness = lerpf(0.5, 6.5, step_t)
-						if y > cy - 10.0 and fmod(y, 14.0) < scanline_thickness:
-							continue # Skip drawing to leave transparent gap
-						
-						var t_color = float(y - (cy - r)) / (r * 2.0)
-						var sun_col = Color(1.0, 0.0, 0.55).lerp(Color(1.0, 0.75, 0.0), t_color)
-						img.set_pixel(x, y, sun_col)
-						
-			# 2. Sprinkle Glowing Stars in upper sky
-			for j in range(75):
-				var sx = rng.randi() % img_width
-				var sy = rng.randi() % int(cy - 60.0)
-				if sy < tex_height and sx < img_width:
-					var intensity = rng.randf_range(0.5, 1.0)
-					var star_color = Color(0.85, 0.9, 1.0, intensity)
-					img.set_pixel(sx, sy, star_color)
-					# Add small cross glow for bright stars
-					if intensity > 0.85:
-						if sx > 0: img.set_pixel(sx - 1, sy, Color(0.85, 0.9, 1.0, intensity * 0.4))
-						if sx < img_width - 1: img.set_pixel(sx + 1, sy, Color(0.85, 0.9, 1.0, intensity * 0.4))
-						if sy > 0: img.set_pixel(sx, sy - 1, Color(0.85, 0.9, 1.0, intensity * 0.4))
-						if sy < tex_height - 1: img.set_pixel(sx, sy + 1, Color(0.85, 0.9, 1.0, intensity * 0.4))
-						
-		elif l.label == "far":
-			# Distant Mountain Range Silhouette with Neon Outline
-			for x in img_width:
-				# Complex wave form for organic mountain peaks
-				var my = float(tex_height) - 100.0 + sin(x * 0.035) * 25.0 + sin(x * 0.09) * 8.0 + cos(x * 0.015) * 15.0
-				var m_height = int(my)
-				for y in range(m_height, tex_height):
-					if y >= 0 and y < tex_height:
-						if y < m_height + 2:
-							# Neon Cyan Border
-							img.set_pixel(x, y, Color(0.0, 0.9, 1.0, 0.9))
-						else:
-							# Dark Purple-Gray Mountain Silhouette
-							var t = float(y - m_height) / float(tex_height - m_height)
-							var col = Color(0.05, 0.04, 0.12).lerp(Color(0.09, 0.07, 0.18), t)
-							img.set_pixel(x, y, col)
-							
-		elif l.label == "mid":
-			# Cyberpunk City Skyline Silhouette with glowing windows & neon roofs
-			var bh = 0
-			var bw = 0
-			var has_windows = false
-			var win_color = Color.YELLOW
-			for x in img_width:
-				if bw <= 0:
-					bw = rng.randi_range(16, 32)
-					bh = int(float(tex_height) - rng.randf_range(60.0, 160.0))
-					has_windows = rng.randf() < 0.65
-					win_color = Color(1.0, 0.85, 0.15) if rng.randf() < 0.7 else Color(0.2, 0.95, 1.0)
+			if l.label == "deep":
+				# 1. Glowing Synthwave Sun in center
+				var cx = 256.0
+				var cy = float(tex_height) - 100.0
+				var r = 70.0
 				
-				for y in range(bh, tex_height):
-					if y >= 0 and y < tex_height:
-						if y < bh + 2:
-							# Neon Pink Glowing Roof edge
-							img.set_pixel(x, y, Color(1.0, 0.1, 0.55))
-						elif has_windows and x % 6 == 3 and y % 12 == 5 and y > bh + 15 and y < tex_height - 20 and hash(x * 17 + y * 31) % 10 < 3:
-							# Glowing window pixel
-							img.set_pixel(x, y, win_color)
-						else:
-							# Dark violet building silhouette
-							var t = float(y - bh) / float(tex_height - bh)
-							var col = Color(0.1, 0.06, 0.20).lerp(Color(0.2, 0.14, 0.28), t)
-							img.set_pixel(x, y, col)
-				bw -= 1
-				
-		elif l.label == "near":
-			# Repeating Closer Highway Trusses & structural grid lines
-			for x in img_width:
-				for y in tex_height:
-					# Draw structural beam outline silhouette
-					if fmod(float(x + y), 96.0) < 3.0 or fmod(float(x - y), 96.0) < 3.0:
-						if y > float(tex_height) * 0.4:
+				# Draw Glow Aura
+				for x in img_width:
+					for y in tex_height:
+						var dx = x - cx
+						var dy = y - cy
+						var dist = sqrt(dx*dx + dy*dy)
+						if dist <= r + 24.0:
+							var t = (dist - r) / 24.0
+							if dist <= r:
+								t = 0.0
+							var alpha = clampf((1.0 - t) * 0.45, 0.0, 1.0)
 							var current_c = img.get_pixel(x, y)
-							img.set_pixel(x, y, current_c.lerp(Color(0.22, 0.15, 0.32), 0.7))
+							var glow_c = Color(1.0, 0.05, 0.65).lerp(current_c, t)
+							img.set_pixel(x, y, current_c.lerp(glow_c, alpha))
+				
+				# Draw Sun Body with Scanline Cutouts
+				for x in img_width:
+					for y in tex_height:
+						var dx = x - cx
+						var dy = y - cy
+						var dist = sqrt(dx*dx + dy*dy)
+						if dist <= r:
+							# Scanline cutout calculations (lines get thicker at bottom)
+							var relative_y = y - (cy - r)
+							var step_t = relative_y / (r * 2.0)
+							var scanline_thickness = lerpf(0.5, 6.5, step_t)
+							if y > cy - 10.0 and fmod(y, 14.0) < scanline_thickness:
+								continue # Skip drawing to leave transparent gap
 							
-		textures.append(ImageTexture.create_from_image(img))
+							var t_color = float(y - (cy - r)) / (r * 2.0)
+							var sun_col = Color(1.0, 0.0, 0.55).lerp(Color(1.0, 0.75, 0.0), t_color)
+							img.set_pixel(x, y, sun_col)
+							
+				# 2. Sprinkle Glowing Stars in upper sky
+				for j in range(75):
+					var sx = rng.randi() % img_width
+					var sy = rng.randi() % int(cy - 60.0)
+					if sy < tex_height and sx < img_width:
+						var intensity = rng.randf_range(0.5, 1.0)
+						var star_color = Color(0.85, 0.9, 1.0, intensity)
+						img.set_pixel(sx, sy, star_color)
+						# Add small cross glow for bright stars
+						if intensity > 0.85:
+							if sx > 0: img.set_pixel(sx - 1, sy, Color(0.85, 0.9, 1.0, intensity * 0.4))
+							if sx < img_width - 1: img.set_pixel(sx + 1, sy, Color(0.85, 0.9, 1.0, intensity * 0.4))
+							if sy > 0: img.set_pixel(sx, sy - 1, Color(0.85, 0.9, 1.0, intensity * 0.4))
+							if sy < tex_height - 1: img.set_pixel(sx, sy + 1, Color(0.85, 0.9, 1.0, intensity * 0.4))
+							
+			elif l.label == "far":
+				# Distant Mountain Range Silhouette with Neon Outline
+				for x in img_width:
+					# Complex wave form for organic mountain peaks
+					var my = float(tex_height) - 100.0 + sin(x * 0.035) * 25.0 + sin(x * 0.09) * 8.0 + cos(x * 0.015) * 15.0
+					var m_height = int(my)
+					for y in range(m_height, tex_height):
+						if y >= 0 and y < tex_height:
+							if y < m_height + 2:
+								# Neon Cyan Border
+								img.set_pixel(x, y, Color(0.0, 0.9, 1.0, 0.9))
+							else:
+								# Dark Purple-Gray Mountain Silhouette
+								var t = float(y - m_height) / float(tex_height - m_height)
+								var col = Color(0.05, 0.04, 0.12).lerp(Color(0.09, 0.07, 0.18), t)
+								img.set_pixel(x, y, col)
+								
+			elif l.label == "mid":
+				# Cyberpunk City Skyline Silhouette with glowing windows & neon roofs
+				var bh = 0
+				var bw = 0
+				var has_windows = false
+				var win_color = Color.YELLOW
+				for x in img_width:
+					if bw <= 0:
+						bw = rng.randi_range(16, 32)
+						bh = int(float(tex_height) - rng.randf_range(60.0, 160.0))
+						has_windows = rng.randf() < 0.65
+						win_color = Color(1.0, 0.85, 0.15) if rng.randf() < 0.7 else Color(0.2, 0.95, 1.0)
+					
+					for y in range(bh, tex_height):
+						if y >= 0 and y < tex_height:
+							if y < bh + 2:
+								# Neon Pink Glowing Roof edge
+								img.set_pixel(x, y, Color(1.0, 0.1, 0.55))
+							elif has_windows and x % 6 == 3 and y % 12 == 5 and y > bh + 15 and y < tex_height - 20 and hash(x * 17 + y * 31) % 10 < 3:
+								# Glowing window pixel
+								img.set_pixel(x, y, win_color)
+							else:
+								# Dark violet building silhouette
+								var t = float(y - bh) / float(tex_height - bh)
+								var col = Color(0.1, 0.06, 0.20).lerp(Color(0.2, 0.14, 0.28), t)
+								img.set_pixel(x, y, col)
+					bw -= 1
+					
+			elif l.label == "near":
+				# Repeating Closer Highway Trusses & structural grid lines
+				for x in img_width:
+					for y in tex_height:
+						# Draw structural beam outline silhouette
+						if fmod(float(x + y), 96.0) < 3.0 or fmod(float(x - y), 96.0) < 3.0:
+							if y > float(tex_height) * 0.4:
+								var current_c = img.get_pixel(x, y)
+								img.set_pixel(x, y, current_c.lerp(Color(0.22, 0.15, 0.32), 0.7))
+								
+			_parallax_texture_cache.append(ImageTexture.create_from_image(img))
+	textures = _parallax_texture_cache
 		
 	for i in textures.size():
 		var l = layers[i]
@@ -307,6 +309,7 @@ func _go_to_garage() -> void:
 		garage.queue_free()
 		_restart_game()
 	)
+static var _parallax_texture_cache: Array[Texture2D] = []
 
 var _parallax: ParallaxBackground = null
 var _pause_menu: CanvasLayer = null

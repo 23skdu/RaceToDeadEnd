@@ -1,160 +1,106 @@
-# Performance & Feature Improvement Plan — Implementation Status
+# Performance & Feature Improvement Plan — Next Steps
 
-Status: ALL 10 items implemented and verified (plus Bunny enemy addition). Full test suite: 100% pass.
-
----
-
-## 1. Fix WeatherSystem Lightning Node Leak
-**Effort: Low | Impact: High | Category: Bug Fix**
-
-**Done.** Added missing `()` to `flash.queue_free` and `bolt.queue_free` calls in WeatherSystem.gd lines 174 and 204. Prior to this fix, lightning flash ColorRect and bolt Line2D nodes accumulated in the scene tree indefinitely during STORM weather.
-
-**Tests:** `test_lightning_flash_cleaned_after_tween`, `test_lightning_bolt_cleaned_after_tween` — verify flash/bolt are queued for deletion after tween completes.
+Status: PROPOSED (10 New Performance and Feature Improvements)
 
 ---
 
-## 2. Remove Highway.gd Dead Code
-**Effort: Trivial | Impact: Low | Category: Code Quality**
+## 1. Weather System GPUParticles2D Optimization
+**Effort: Low | Impact: High | Category: Performance**
 
-**Done.** Removed `_clear_chunk_tiles` from Highway.gd (was only called in tests, not production). Updated test references to use direct `queue_free()`.
-
-**Tests:** `test_remove_tiles_node_from_chunk`, `test_remove_tiles_queue_free_tiles`, `test_remove_tiles_no_tiles_does_not_crash` — renamed and updated.
+*   **Problem:** In `WeatherSystem.gd`, weather transitions dynamically scale the rain particle density by modifying `_rain_particles.amount` (e.g., `_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * 0.5 * weather_intensity)`). In Godot 4, changing the `amount` property of a GPUParticles2D node at runtime triggers a GPU buffer reallocation, causing a noticeable micro-stutter/frame drop.
+*   **Proposed Solution:** Initialize the particle system once with a constant `amount = Constants.RAIN_DROP_COUNT`. Control rain density and visibility during transitions by dynamically adjusting the process material's alpha/color, or the particle emitter's `speed_scale` and lifetime parameters. This keeps the GPU memory layout stable and eliminates reallocation spikes.
+*   **Verification Plan:** Run profiling on weather transitions; verify particle count remains stable in GPUMonitor, and check that frame times stay consistent.
 
 ---
 
-## 3. Cache Highway Meshes
+## 2. Static Parallax Background Generation & Caching
+**Effort: Low | Impact: High | Category: Performance**
+
+*   **Problem:** The cyberpunk synthwave background layers are generated procedurally on startup/restart in `Game.gd` (`_setup_parallax()`). Generating 4 layers pixel-by-pixel (up to 512x384 each) in GDScript loops utilizing complex math (`sin`, `sqrt`, `fmod`, `Color.lerp`) blocks the main thread, leading to a prominent 0.5s–1.0s freeze when reloading the scene on restart/death.
+*   **Proposed Solution:** Introduce a static dictionary to cache the generated `ImageTexture` objects. Generate them once on the first run, and on subsequent scene reloads, directly retrieve the cached textures instead of regenerating them.
+*   **Verification Plan:** Profile the restart sequence. Verify that reload times drop under 100ms and the parallax textures remain identical.
+
+---
+
+## 3. Homing Bullet Target Stickiness & Throttling
 **Effort: Low | Impact: Moderate | Category: Performance**
 
-**Done.** Added `static var _diamond_mesh_cache` and `static var _rect_mesh_cache` to Highway.gd. `_create_diamond_mesh()` returns cached mesh if available. `_create_rect_mesh()` indexes cache by Vector2 size key. Eliminates redundant ArrayMesh allocation per chunk build.
-
-**Tests:** `test_diamond_mesh_is_cached`, `test_rect_mesh_is_cached`, `test_rect_mesh_different_sizes_not_same`.
-
----
-
-## 4. Auto-Save at Segment Boundaries
-**Effort: Low | Impact: Moderate | Category: Feature**
-
-**Done.** `GameManager.advance_segment()` now calls `save_progress()` if `credits > 0 or score > 0`. This ensures mid-run progress is persisted on crash.
-
-**Tests:** `test_advance_segment_triggers_auto_save`, `test_advance_segment_does_not_save_with_zero_credits` — verify save file creation.
+*   **Problem:** Homing bullets in `Bullet.gd` query the nearest target from the global enemy list inside `_physics_process(delta)` on every physics frame. When there are many bullets and enemies on screen, this results in significant distance-squared math operations every frame.
+*   **Proposed Solution:** Implement "target stickiness." Let the bullet lock onto a single target node and follow it. Only re-evaluate or scan for a closer target every `Constants.ENEMY_CACHE_INTERVAL` (0.25 seconds) or when the current locked target dies/exits the screen, reducing distance calculations by over 90%.
+*   **Verification Plan:** Create a unit test `test_bullet_homing_target_stickiness` to verify target locking behavior and scan throttling.
 
 ---
 
-## 5. Convert Civilian Spawn to Timer Accumulator
-**Effort: Low | Impact: Low | Category: Bug Fix**
+## 4. MultiMeshInstance2D for Obstacles and Decor
+**Effort: Moderate | Impact: Moderate | Category: Performance**
 
-**Done.** Replaced frame-rate-dependent `randf() < CIVILIAN_SPAWN_CHANCE * delta` with a `_civilian_spawn_accumulator` that increments by delta each frame and spawns when reaching `1.0 / civilian_chance`. Consistent spawn rate regardless of FPS.
-
-**Tests:** `test_civilian_spawn_accumulator_increments`, `test_civilian_spawn_accumulator_skips_spawn_below_threshold`.
+*   **Problem:** In `Highway.gd`, static obstacles (barrels, rocks) and desert decor (cacti, skulls, rusted cars) are instantiated as individual nodes (`Polygon2D`, `Line2D`, `StaticBody2D`) for each highway chunk. When chunks are generated or recycled, instantiating/freeing dozens of nodes creates scene-tree modification overhead and increases draw calls.
+*   **Proposed Solution:** Consolidate the visuals of static obstacles and decor into `MultiMeshInstance2D` nodes per chunk type, just like lanes and shoulders. Maintain simple pooled collision objects (`StaticBody2D` with simple circle/rect shape) separate from the complex drawing nodes.
+*   **Verification Plan:** Verify chunk instantiation time and draw call counts in the Godot debugger.
 
 ---
 
-## 6. Add Difficulty Tier Indicator to HUD
+## 5. Threaded Procedural Audio Synth Generation
+**Effort: Moderate | Impact: High | Category: Performance**
+
+*   **Problem:** `AudioManager.gd` builds 16-bit procedural WAV streams (especially the 16-second looping background music tracks) using `_build_16bit_stream()`. Executing GDScript math functions (`sin`, `fmod`, `lerpf`) 350,000+ times sequentially blocks the main thread, causing startup lag.
+*   **Proposed Solution:** Move the procedural generation loops onto background threads using Godot's `WorkerThreadPool`. Generate the next required music track asynchronously in the background so it is ready before the level/boss phase transitions, completely eliminating the audio-related main thread freeze.
+*   **Verification Plan:** Measure frame time during background music changes; ensure zero frame-rate stutter on track transitions.
+
+---
+
+## 6. ObjectPool Dynamic Expansion Throttling
+**Effort: Low | Impact: Moderate | Category: Performance**
+
+*   **Problem:** If the pre-warmed pool in `ObjectPool.gd` is exhausted during high-action gameplay (e.g. boss minion waves), fallback objects are instantiated on the spot. This causes sudden spike stutters as multiple scenes are loaded/instantiated in a single frame.
+*   **Proposed Solution:** Pre-allocate fallback objects progressively over multiple frames when the pool capacity drops below a critical threshold (e.g. 20% left), rather than instantiating them on-demand when `acquire()` is called.
+*   **Verification Plan:** Mock pool exhaustion and verify that the frame time does not spike during fallback instantiations.
+
+---
+
+## 7. Advanced Customization Pack Visual Previews in Garage
 **Effort: Moderate | Impact: Moderate | Category: Feature**
 
-**Already implemented.** HUD.gd already has `@onready var tier_label: Label = $TierLabel` (line 12) and `GameManager.difficulty_tier_changed.connect(_on_tier_changed)` (line 23). The `_on_tier_changed(tier)` handler sets `tier_label.text = "TIER %d" % tier`. No changes needed — verified existing functionality.
+*   **Problem:** In the Garage UI (`Garage.gd`), discovered customization packs (music, skins, themes) are listed with simple "Enable / Disable" buttons. The player has no way to preview the custom player skin or the theme's color palette before loading it into the game.
+*   **Proposed Solution:** Add a preview panel to the Customize tab. Display a sprite preview of the player skin, dynamic colored swatches of the theme palette (highway lane/guardrail colors), and details about the music track list from the selected pack.
+*   **Verification Plan:** Manually verify that selecting a pack displays its corresponding skin texture and theme colors in the preview frame.
 
 ---
 
-## 7. Add Enemy Death Animation
-**Effort: Low | Impact: Moderate | Category: Feature (Visual Polish)**
+## 8. Encrypted Save Game System
+**Effort: Low | Impact: High | Category: Feature (Security)**
 
-**Done.** Added `_death_animation()` to Enemy.gd that sets `sprite.scale = Vector2.ZERO` on death. `on_pool_release()` now resets `sprite.scale = Vector2.ONE` so recycled enemies render correctly. Collision is disabled via `set_deferred(&"disabled", true)` before animation. The signal emission and pool release happen immediately (no async tween dependency to avoid breaking test contracts).
-
-**Tests:** `test_death_animation_sets_scale_to_zero`, `test_on_pool_release_resets_sprite_scale`.
-
----
-
-## 8. Cache ObjectPool Fallback PackedScenes
-**Effort: Low | Impact: Low | Category: Performance**
-
-**Done.** Added `_scene_cache: Dictionary` to ObjectPool.gd. When `acquire()` creates a fallback instance (pool exhausted), it stores the loaded `PackedScene` in `_scene_cache`. Subsequent fallback acquires use the cached scene, avoiding repeated `load()` from disk.
-
-**Tests:** `test_scene_cache_avoids_reload`, `test_scene_cache_reuses_cached_scene`, `test_scene_cache_returns_same_packed_scene`.
+*   **Problem:** `GameManager.gd` saves credits and upgrade progress to `user://save.dat` as a plaintext Dictionary check-summed with a simple hash function. Users can easily bypass the hash check or modify the save data, making progression exploits trivial.
+*   **Proposed Solution:** Encrypt the save file using Godot's built-in `FileAccess.open_encrypted_with_pass` with a secure key. This prevents players from manually tempering with high scores or credit values.
+*   **Verification Plan:** Write a test checking that reading the save file without the correct key fails and fails gracefully on corrupted data.
 
 ---
 
-## 9. Connect Bullet hit_target Signal in Pool Lifecycle
-**Effort: Low | Impact: Low | Category: Performance**
+## 9. Dynamic Rain Splashes & Road Reflection Effects
+**Effort: Moderate | Impact: Moderate | Category: Feature (Visual Polish)**
 
-**Done.** Added `hit_target` signal disconnection loop in `Bullet.on_pool_release()` so connections are always fresh when a bullet is reused. Removed redundant `is_connected` checks from `Game._on_player_weapon_fired()` — connections are now direct without guard.
-
-**Tests:** `test_on_pool_release_disconnects_hit_target` — verifies no stale connections remain after release.
-
----
-
-## 10. Add Boost Trail Visual Effect
-**Effort: Low | Impact: Moderate | Category: Feature (Visual Polish)**
-
-**Done.** Added `_trail_line: Line2D`, `_trail_points: Array[Vector2]`, and `_trail_spacing_counter: float` to Interceptor.gd. During boost activation, position samples are recorded at `TRAIL_SPACING` intervals. The trail renders as an orange fading Line2D behind the player. Trail is cleared when boost deactivates.
-
-**Tests:** `test_boost_trail_line_exists`, `test_boost_trail_records_points_during_boost`, `test_boost_trail_clears_when_not_boosting`.
+*   **Problem:** During rainy and stormy weather, the rain droplets fall down the screen but have no interaction with the highway surface, making the environment feel static.
+*   **Proposed Solution:** Implement micro-splash particles where rain hits the highway, and add a simple screen-space shader or modulating layer to simulate a wet road surface with glowing neon reflections from the synthwave sun and background lights.
+*   **Verification Plan:** Visual inspection during CLEAR -> LIGHT_RAIN -> ACID_RAIN weather transitions.
 
 ---
 
-## Bonus: Bunny Enemy Addition
+## 10. EMP Shockwave Screen-Space Distortion
+**Effort: Moderate | Impact: Moderate | Category: Feature (Visual Polish)**
 
-A new enemy type "Bunny" (infected zombie bunny) was added as the introductory enemy for Level 1:
+*   **Problem:** The EMP blast is functionally complete but visually underwhelming, lacking weight and feedback when activated.
+*   **Proposed Solution:** Implement a screen-space shockwave distortion shader on the EMP node. The shader will warp the underlying pixels outwards in an expanding circle, matching the collision radius of the EMP, making it feel powerful.
+*   **Verification Plan:** Trigger the EMP blast and confirm that the screen-space distortion circle scales correctly in line with the shockwave.
 
-**New files:**
-- `scripts/scenes/enemies/Bunny.gd` — Contact-damage-only enemy AI
-- `scenes/enemies/Bunny.tscn` — CharacterBody2D scene with Sprite2D, CollisionShape2D, HitFlashTimer
+---
 
-**Modified files:**
-- `scripts/scenes/enemies/Enemy.gd` — Added `BUNNY` to `EnemyType` enum, procedural pink bunny sprite texture, init values, and hit/death sound routing
-- `scripts/autoload/AudioManager.gd` — Added bunny hit (high-pitched squeak) and death (pop) sound generators
-- `scripts/autoload/Constants.gd` — Added `BUNNY_SPEED_MULTIPLIER = 0.85`
-- `scripts/autoload/ScoreManager.gd` — Added `bunny_kill = 50`
-- `scripts/scenes/world/Spawner.gd` — Registered bunny scene; rewrote wave composition so bunnies are the **only enemy** before the 1st boss kill (`bosses_killed < 1`); Rotors gate at `bosses_killed >= 1`; Scavs at `>= 2`; Drones at `>= 3`
-- `scripts/scenes/Game.gd` — Added `BUNNY_SCENE` preload and `ObjectPool.create_pool("bunny", BUNNY_SCENE, 8)`
+## Summary Statistics (Target Metrics)
 
-**Enemy progression (revised):**
-- Pre-1st boss: Bunnies only → BossBunny
-- Post-1st boss: Rotors available → BossGiantBiker
-- Post-2nd boss: Scavs available → BossWarRig
-- Post-3rd boss: Drones available → BossVoidDrone (repeat)
-
-## Boss Rework: Giant Biker + Sasquatch Conversion
-
-The 2nd boss was replaced and Sasquatch was converted to a wandering monster:
-
-**New files:**
-- `scripts/scenes/enemies/BossGiantBiker.gd` — Zombie giant on motorcycle with chain weapon boss (HP 15, 2-phase enrage at 50% HP)
-- `scenes/enemies/BossGiantBiker.tscn` — Boss scene (120×120 collision, collision_mask=5)
-- `scripts/scenes/weapons/ChainSwing.gd` — Chain weapon Area2D that rotates 130° arc, damages player on contact
-- `scenes/weapons/ChainSwing.tscn` — ChainSwing scene with Line2D visual + collision tip
-- `demo/DemoBossGiantBiker.tscn` — Defeat overlay ("GIANT BIKER DEFEATED!")
-
-**Modified files:**
-- `scripts/scenes/enemies/BossSasquatch.gd` — Removed boss_key, reduced HP to 5, now a regular enemy (`EnemyType.SASQUATCH`) that wanders between lanes and throws projectiles
-- `scenes/enemies/BossSasquatch.tscn` — Changed collision to 40×48, mask to 3 (regular enemy), removed PlaceholderTexture2D
-- `scripts/scenes/enemies/Enemy.gd` — Added `SASQUATCH` to `EnemyType` enum and all match blocks
-- `scripts/autoload/Constants.gd` — Added `BOSS_GIANT_BIKER_HP = 15`, reduced `BOSS_SASQUATCH_HP = 5`
-- `scripts/autoload/ScoreManager.gd` — Added `sasquatch_kill = 300`
-- `scripts/autoload/AudioManager.gd` — Added giant biker demo music generator
-- `scripts/scenes/world/Spawner.gd` — Boss order: Bunny → GiantBiker → WarRig → VoidDrone; added sasquatch to wave compositions after 2nd boss kill
-- `scripts/scenes/Game.gd` — Added pools for boss_giant_biker, sasquatch, chain_swing; updated demo routing
-
-**Enemy progression (revised):**
-- Pre-1st boss: Bunnies only → BossBunny
-- Post-1st boss: Rotors available → BossGiantBiker
-- Post-2nd boss: Scavs + Sasquatches available → BossWarRig
-- Post-3rd boss: Drones added → BossVoidDrone (repeat)
-
-## Summary Statistics
-
-| Metric | Before | After |
-|--------|--------|-------|
-| Test count | ~920 | ~1097 |
+| Metric | Current | Target |
+|--------|---------|--------|
+| Target Test count | 324 | 335+ |
 | Pass rate | 100% | 100% |
-| Test files | 20 | 45 |
-| Bugs fixed | 0 counted | 2 (weather leak, civilian frame-rate) |
-| Dead code removed | 0 | 1 function |
-| Caches added | 0 | 3 (diamond mesh, rect mesh, packed scenes) |
-| Visual features added | 0 | 2 (death animation, boost trail) |
-| Gameplay features added | 0 | 2 (auto-save, bunny enemy) |
-| New enemy types | 3 | 5 (Bunny + Sasquatch conversion) |
-| New bosses | 4 | 4 (Bunny → GiantBiker → WarRig → VoidDrone) |
-| Boss reworks | 0 | 1 (Sasquatch → wandering monster) |
-| Signal optimizations | 0 | 1 (bullet lifecycle) |
-| Frame-rate fixes | 0 | 1 (civilian spawn) |
+| Scene reload time (Restart) | ~800ms | <100ms |
+| Homing calculation overhead | High | Low |
+| Save file security | Plaintext | Encrypted |
+| Draw call count (Debris Chunk) | High (~30) | Low (~5) |

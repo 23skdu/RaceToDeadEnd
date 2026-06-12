@@ -12,6 +12,7 @@ var homing_strength: float = 0.0
 var is_player_bullet: bool = true
 var _cached_enemies: Array = []
 var _cache_timer: float = 0.0
+var _homing_target: Node = null
 
 signal hit_target(target: Node)
 
@@ -42,12 +43,14 @@ const EARLY_OUT_DIST_SQ: float = 4000.0
 func _physics_process(delta: float) -> void:
 	if homing_strength > 0.0:
 		_cache_timer += delta
-		if _cache_timer >= Constants.ENEMY_CACHE_INTERVAL:
+		var should_refresh = _cache_timer >= Constants.ENEMY_CACHE_INTERVAL
+		if should_refresh:
 			_cache_timer = 0.0
 			_cached_enemies = GameManager.enemy_list
-		var nearest = _find_nearest(_cached_enemies)
-		if nearest and is_instance_valid(nearest):
-			var target_dir = (nearest.global_position - global_position).normalized()
+		if not is_instance_valid(_homing_target) or should_refresh:
+			_homing_target = _find_nearest(_cached_enemies)
+		if is_instance_valid(_homing_target):
+			var target_dir = (_homing_target.global_position - global_position).normalized()
 			direction = direction.lerp(target_dir, homing_strength * delta).normalized()
 	position += direction * speed * delta
 
@@ -92,6 +95,7 @@ func on_pool_acquire() -> void:
 	modulate = Color.WHITE
 	_cached_enemies.clear()
 	_cache_timer = 0.0
+	_homing_target = null
 
 func on_pool_release() -> void:
 	homing_strength = 0.0
@@ -100,6 +104,7 @@ func on_pool_release() -> void:
 	modulate = Color.WHITE
 	_cached_enemies.clear()
 	_cache_timer = 0.0
+	_homing_target = null
 	for conn in hit_target.get_connections():
 		hit_target.disconnect(conn.callable)
 

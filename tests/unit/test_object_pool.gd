@@ -1,5 +1,15 @@
 extends GutTest
 
+func before_each():
+	for child in ObjectPool.get_children():
+		child.free()
+	ObjectPool._pending_allocations.clear()
+	ObjectPool._pools.clear()
+	ObjectPool._pool_max_sizes.clear()
+	ObjectPool._scene_paths.clear()
+	ObjectPool._scene_cache.clear()
+	ObjectPool._pickup_pool_data.clear()
+
 func test_create_pool():
 	ObjectPool.create_pool("test_bullet", preload("res://scenes/weapons/Bullet.tscn"), 5)
 	assert_true(ObjectPool.has_pool("test_bullet"), "Pool should be created")
@@ -324,3 +334,71 @@ func test_scene_cache_returns_same_packed_scene():
 	var cached = ObjectPool._scene_cache["cache_test3"]
 	assert_is(cached, PackedScene, "Cached entry should be a PackedScene")
 	ObjectPool.release(item1)
+
+func test_progressive_expansion_triggers_when_below_threshold():
+	var pool_name = "test_progressive"
+	# Create pool of size 5
+	ObjectPool.create_pool(pool_name, preload("res://scenes/weapons/Bullet.tscn"), 5)
+	assert_eq(ObjectPool._pool_max_sizes[pool_name], 5)
+	
+	# Acquire 4 items. Available size in pool is 1.
+	# Threshold is ceil(5 * 0.2) = 1.
+	# Available size (1) is not < threshold (1), so no expansion yet.
+	var acquired_items = []
+	for i in 4:
+		acquired_items.append(ObjectPool.acquire(pool_name))
+	
+	assert_eq(ObjectPool._pools[pool_name].size(), 1)
+	assert_eq(ObjectPool._pending_allocations.size(), 0, "No expansion should be triggered at 20% boundary")
+	
+	# Acquire 5th item. Available size in pool is 0.
+	# 0 < 1, so expansion triggers.
+	acquired_items.append(ObjectPool.acquire(pool_name))
+	assert_eq(ObjectPool._pools[pool_name].size(), 0)
+	assert_eq(ObjectPool._pending_allocations.size(), 4, "Progressive expansion should queue 4 allocations")
+	
+	# Process one frame
+	ObjectPool._process(0.016)
+	assert_eq(ObjectPool._pending_allocations.size(), 3)
+	assert_eq(ObjectPool._pools[pool_name].size(), 1, "Should instantiate one node in the pool")
+	assert_eq(ObjectPool._pool_max_sizes[pool_name], 6, "Max size should increase by 1")
+	
+	# Process the remaining 3 frames
+	for i in 3:
+		ObjectPool._process(0.016)
+	assert_eq(ObjectPool._pending_allocations.size(), 0)
+	assert_eq(ObjectPool._pools[pool_name].size(), 4, "Should have instantiated all 4 nodes")
+	assert_eq(ObjectPool._pool_max_sizes[pool_name], 9, "Max size should be updated to 9")
+	
+	for item in acquired_items:
+		ObjectPool.release(item)
+
+func test_progressive_pickup_expansion_triggers():
+	ObjectPool.create_pickup_pool(10)
+	assert_eq(ObjectPool._pool_max_sizes["pickup"], 10)
+	
+	# Acquire 9 pickups. Available size is 1. Threshold is ceil(10 * 0.2) = 2.
+	# 1 < 2, so it should trigger expansion.
+	var acquired_pickups = []
+	for i in 9:
+		acquired_pickups.append(ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): pass))
+	
+	assert_eq(ObjectPool._pools["pickup"].size(), 1)
+	assert_eq(ObjectPool._pending_allocations.size(), 4, "Progressive pickup expansion should queue 4 allocations")
+	
+	# Process one frame
+	ObjectPool._process(0.016)
+	assert_eq(ObjectPool._pending_allocations.size(), 3)
+	assert_eq(ObjectPool._pools["pickup"].size(), 2)
+	assert_eq(ObjectPool._pool_max_sizes["pickup"], 11)
+	
+	# Process the rest
+	for i in 3:
+		ObjectPool._process(0.016)
+	assert_eq(ObjectPool._pending_allocations.size(), 0)
+	assert_eq(ObjectPool._pools["pickup"].size(), 5)
+	assert_eq(ObjectPool._pool_max_sizes["pickup"], 14)
+	
+	for p in acquired_pickups:
+		ObjectPool.release(p)
+

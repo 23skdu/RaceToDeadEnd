@@ -289,3 +289,35 @@ func test_on_pool_release_disconnects_hit_target():
 	assert_eq(b.hit_target.get_connections().size(), 1, "Should have 1 connection before release")
 	b.on_pool_release()
 	assert_eq(b.hit_target.get_connections().size(), 0, "Should have 0 connections after release")
+
+func test_bullet_homing_target_stickiness():
+	GameManager.enemy_list = []
+	var b = _create_bullet()
+	b.homing_strength = 6.0
+	b.global_position = Vector2(0, 0)
+	
+	var target1 = Node2D.new()
+	target1.global_position = Vector2(50, -50)
+	target1.add_to_group("enemy")
+	add_child_autofree(target1)
+	GameManager.enemy_list.append(target1)
+	
+	b._cache_timer = Constants.ENEMY_CACHE_INTERVAL
+	b._physics_process(0.01) # This should lock onto target1
+	assert_eq(b._homing_target, target1, "Should lock target1")
+	
+	# Spawn a closer target2
+	var target2 = Node2D.new()
+	target2.global_position = Vector2(10, -10)
+	target2.add_to_group("enemy")
+	add_child_autofree(target2)
+	GameManager.enemy_list.append(target2)
+	
+	# Run process without resetting cache timer (timer is 0.0 right now)
+	b._physics_process(0.01)
+	assert_eq(b._homing_target, target1, "Should stay locked onto target1 (stickiness) because timer hasn't elapsed")
+	
+	# Elapse cache timer
+	b._cache_timer = Constants.ENEMY_CACHE_INTERVAL
+	b._physics_process(0.01)
+	assert_eq(b._homing_target, target2, "Should switch to target2 after cache timer elapses")

@@ -4,14 +4,25 @@ var _pools: Dictionary = {}
 var _scene_paths: Dictionary = {}
 var _scene_cache: Dictionary = {}
 var _pickup_pool_data: Dictionary = {}
+var _pool_max_sizes: Dictionary = {}
+var _pending_allocations: Array[Dictionary] = []
 
 func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> void:
 	if _pools.has(pool_name):
 		for node in get_children():
 			if node.has_meta("_pool_name") and node.get_meta("_pool_name") == pool_name:
 				node.queue_free()
+	
+	# Clear pending allocations for this pool
+	var i = _pending_allocations.size() - 1
+	while i >= 0:
+		if _pending_allocations[i].get("pool_name") == pool_name:
+			_pending_allocations.remove_at(i)
+		i -= 1
+
 	var pool: Array[Node] = []
 	_scene_paths[pool_name] = scene.resource_path
+	_scene_cache[pool_name] = scene
 	for _i in initial_size:
 		var instance = scene.instantiate()
 		instance.set_meta("_pool_name", pool_name)
@@ -21,12 +32,21 @@ func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> vo
 		add_child(instance)
 		pool.append(instance)
 	_pools[pool_name] = pool
+	_pool_max_sizes[pool_name] = initial_size
 
 func create_pickup_pool(initial_size: int = 20) -> void:
 	if _pools.has("pickup"):
 		for node in get_children():
 			if node.has_meta("_pool_name") and node.get_meta("_pool_name") == "pickup":
 				node.queue_free()
+	
+	# Clear pending allocations for pickup
+	var i = _pending_allocations.size() - 1
+	while i >= 0:
+		if _pending_allocations[i].get("pool_name") == "pickup":
+			_pending_allocations.remove_at(i)
+		i -= 1
+
 	_scene_paths["pickup"] = ""
 	var pool: Array[Node] = []
 	for _i in initial_size:
@@ -38,6 +58,7 @@ func create_pickup_pool(initial_size: int = 20) -> void:
 		add_child(pickup)
 		pool.append(pickup)
 	_pools["pickup"] = pool
+	_pool_max_sizes["pickup"] = initial_size
 
 func _create_pickup_node() -> Area2D:
 	var pickup = Area2D.new()
@@ -87,6 +108,7 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 			item.on_pool_acquire()
 		if item.get_parent():
 			item.get_parent().remove_child(item)
+		_check_and_trigger_expansion("pickup")
 		return item
 	var fallback = _create_pickup_node()
 	fallback.set_meta("_pool_name", "pickup")
@@ -103,6 +125,7 @@ func acquire_pickup(pickup_type: String, position: Vector2, on_collected: Callab
 			"boost": fb_visual.color = Color(0.2, 0.8, 1.0)
 			"multiplier": fb_visual.color = Color(1.0, 0.3, 1.0)
 	_pickup_pool_data[fallback] = {"type": pickup_type, "callback": on_collected}
+	_check_and_trigger_expansion("pickup")
 	return fallback
 
 func _get_pickup_visual(pickup: Area2D) -> Polygon2D:
@@ -151,6 +174,7 @@ func acquire(pool_name: String) -> Node:
 			item.on_pool_acquire()
 		if item.get_parent():
 			item.get_parent().remove_child(item)
+		_check_and_trigger_expansion(pool_name)
 		return item
 	if not _scene_cache.has(pool_name):
 		_scene_cache[pool_name] = load(_scene_paths[pool_name])
@@ -158,6 +182,7 @@ func acquire(pool_name: String) -> Node:
 	fallback.set_meta("_in_pool", false)
 	if fallback.has_method("on_pool_acquire"):
 		fallback.on_pool_acquire()
+	_check_and_trigger_expansion(pool_name)
 	return fallback
 
 func release(node: Node) -> void:
@@ -178,3 +203,52 @@ func release(node: Node) -> void:
 	if node.get_parent():
 		node.get_parent().remove_child(node)
 	_pools[pool_name].append(node)
+
+func _check_and_trigger_expansion(pool_name: String) -> void:
+	if not _pools.has(pool_name):
+		return
+	var max_size = _pool_max_sizes.get(pool_name, 0)
+	if max_size <= 0:
+		return
+	
+	var pending_count = 0
+	for alloc in _pending_allocations:
+		if alloc.get("pool_name") == pool_name:
+			pending_count += 1
+			
+	var current_available = _pools[pool_name].size() + pending_count
+	var threshold = ceil(max_size * 0.2)
+	if current_available < threshold:
+		for i in 4:
+			_pending_allocations.append({
+				"pool_name": pool_name,
+				"is_pickup": (pool_name == "pickup")
+			})
+
+func _process(_delta: float) -> void:
+	if _pending_allocations.size() > 0:
+		var alloc = _pending_allocations.pop_front()
+		var pool_name = alloc.get("pool_name")
+		var is_pickup = alloc.get("is_pickup", false)
+		
+		var node: Node = null
+		if is_pickup:
+			node = _create_pickup_node()
+		else:
+			if not _scene_cache.has(pool_name):
+				if _scene_paths.has(pool_name) and _scene_paths[pool_name] != "":
+					_scene_cache[pool_name] = load(_scene_paths[pool_name])
+			if _scene_cache.has(pool_name) and _scene_cache[pool_name]:
+				node = _scene_cache[pool_name].instantiate()
+		
+		if node:
+			node.set_meta("_pool_name", pool_name)
+			node.set_meta("_in_pool", true)
+			node.visible = false
+			node.process_mode = Node.PROCESS_MODE_DISABLED
+			add_child(node)
+			if not _pools.has(pool_name):
+				_pools[pool_name] = []
+			_pools[pool_name].append(node)
+			_pool_max_sizes[pool_name] = _pool_max_sizes.get(pool_name, 0) + 1
+

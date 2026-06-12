@@ -40,6 +40,8 @@ static var _diamond_mesh_cache: ArrayMesh = null
 static var _diamond_mesh_lane_cache: ArrayMesh = null
 static var _diamond_mesh_shoulder_cache: ArrayMesh = null
 static var _rect_mesh_cache: Dictionary = {}
+static var _decor_mesh_cache: Dictionary = {}
+static var _obstacle_mesh_cache: Dictionary = {}
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -336,162 +338,74 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		stripe_mmi.modulate = Color(1.0, 1.0, 0.8)
 		chunk_local.add_child(stripe_mmi)
 	
+	var decor_positions: Dictionary = {}
+	var crash_obstacle_positions: Array[Vector2] = []
 	for decor in desert_decorations:
-		var decor_node = _create_desert_decoration(decor["type"])
-		if decor_node:
-			decor_node.position = decor["pos"]
-			chunk_local.add_child(decor_node)
+		var type = decor["type"]
+		if not decor_positions.has(type):
+			decor_positions[type] = []
+		decor_positions[type].append(decor["pos"])
+		if type == 2 or type == 3:
+			crash_obstacle_positions.append(decor["pos"])
 			
-			if decor["type"] == 2 or decor["type"] == 3:
-				var crash_obstacle = StaticBody2D.new()
-				crash_obstacle.collision_layer = 1
-				crash_obstacle.collision_mask = 1
-				crash_obstacle.position = decor["pos"]
-				crash_obstacle.add_to_group("deadly_obstacles")
-				
-				var col_shape = CollisionShape2D.new()
-				var rect_shape = RectangleShape2D.new()
-				rect_shape.size = Vector2(20, 20)
-				col_shape.shape = rect_shape
-				crash_obstacle.add_child(col_shape)
-				
-				chunk_local.add_child(crash_obstacle)
-	
-	for obs in obstacle_positions:
-		var obstacle = StaticBody2D.new()
-		obstacle.collision_layer = 1
-		obstacle.collision_mask = 1
-		obstacle.position = obs["pos"]
-		obstacle.add_to_group("obstacles")
+	for type in decor_positions:
+		var positions = decor_positions[type]
+		var mmi = MultiMeshInstance2D.new()
+		mmi.texture = white_texture
+		var mm = MultiMesh.new()
+		mm.mesh = _get_decor_mesh(type)
+		mm.instance_count = positions.size()
+		for i in positions.size():
+			mm.set_instance_transform_2d(i, Transform2D(0.0, positions[i]))
+		mmi.multimesh = mm
+		chunk_local.add_child(mmi)
 		
-		# Replace diamond wedge with a Circle Collider to fix severe bouncing
+	for pos in crash_obstacle_positions:
+		var crash_obstacle = StaticBody2D.new()
+		crash_obstacle.collision_layer = 1
+		crash_obstacle.collision_mask = 1
+		crash_obstacle.position = pos
+		crash_obstacle.add_to_group("deadly_obstacles")
+		
 		var col_shape = CollisionShape2D.new()
-		var circle = CircleShape2D.new()
-		circle.radius = 12.0
-		col_shape.shape = circle
-		obstacle.add_child(col_shape)
+		var rect_shape = RectangleShape2D.new()
+		rect_shape.size = Vector2(20, 20)
+		col_shape.shape = rect_shape
+		crash_obstacle.add_child(col_shape)
+		chunk_local.add_child(crash_obstacle)
 		
-		if obs["type"] == "barrel":
-			# --- 1. Construction Barrel ( VIBRANT ORANGE / REFLECTIVE STRIPES ) ---
-			# Barrel Base
-			var base = Polygon2D.new()
-			base.polygon = PackedVector2Array([
-				Vector2(-12, 11), Vector2(12, 11),
-				Vector2(10, 14), Vector2(-10, 14)
-			])
-			base.color = Color(0.12, 0.12, 0.14)
-			obstacle.add_child(base)
+	var obs_positions: Dictionary = {}
+	for obs in obstacle_positions:
+		var type = obs["type"]
+		if not obs_positions.has(type):
+			obs_positions[type] = []
+		obs_positions[type].append(obs["pos"])
+		
+	for type in obs_positions:
+		var positions = obs_positions[type]
+		var mmi = MultiMeshInstance2D.new()
+		mmi.texture = white_texture
+		var mm = MultiMesh.new()
+		mm.mesh = _get_obstacle_mesh(type)
+		mm.instance_count = positions.size()
+		for i in positions.size():
+			mm.set_instance_transform_2d(i, Transform2D(0.0, positions[i]))
+		mmi.multimesh = mm
+		chunk_local.add_child(mmi)
+		
+		for pos in positions:
+			var obstacle = StaticBody2D.new()
+			obstacle.collision_layer = 1
+			obstacle.collision_mask = 1
+			obstacle.position = pos
+			obstacle.add_to_group("obstacles")
 			
-			# Orange Barrel Body
-			var body = Polygon2D.new()
-			body.polygon = PackedVector2Array([
-				Vector2(-10, -14), Vector2(10, -14),
-				Vector2(11, 11), Vector2(-11, 11)
-			])
-			body.color = Color(1.0, 0.4, 0.0) # Bright safety orange
-			obstacle.add_child(body)
-			
-			# Horizontal Stripe 1 (White Reflective)
-			var stripe1 = Polygon2D.new()
-			stripe1.polygon = PackedVector2Array([
-				Vector2(-10.2, -6), Vector2(10.2, -6),
-				Vector2(10.5, -1), Vector2(-10.5, -1)
-			])
-			stripe1.color = Color(0.95, 0.95, 0.98)
-			obstacle.add_child(stripe1)
-			
-			# Horizontal Stripe 2 (White Reflective)
-			var stripe2 = Polygon2D.new()
-			stripe2.polygon = PackedVector2Array([
-				Vector2(-10.6, 3), Vector2(10.6, 3),
-				Vector2(10.9, 8), Vector2(-10.9, 8)
-			])
-			stripe2.color = Color(0.95, 0.95, 0.98)
-			obstacle.add_child(stripe2)
-			
-			# Ridges on the orange parts
-			var ridge = Line2D.new()
-			ridge.width = 1.5
-			ridge.default_color = Color(0.6, 0.25, 0.0)
-			ridge.points = PackedVector2Array([Vector2(-10.4, 1), Vector2(10.4, 1)])
-			obstacle.add_child(ridge)
-			
-			# Flashing red light unit
-			var light_base = Polygon2D.new()
-			light_base.polygon = PackedVector2Array([
-				Vector2(-4, -14), Vector2(4, -14),
-				Vector2(3, -19), Vector2(-3, -19)
-			])
-			light_base.color = Color(0.2, 0.2, 0.2)
-			obstacle.add_child(light_base)
-			
-			# Red light bulb
-			var bulb = Polygon2D.new()
-			bulb.polygon = PackedVector2Array([
-				Vector2(-2, -19), Vector2(2, -19),
-				Vector2(3, -24), Vector2(0, -26), Vector2(-3, -24)
-			])
-			bulb.color = Color(1.0, 0.0, 0.1)
-			obstacle.add_child(bulb)
-			
-			# Dynamic blinking glow layer on top
-			var flash_glow = Polygon2D.new()
-			flash_glow.polygon = PackedVector2Array([
-				Vector2(0, -28), Vector2(6, -24), Vector2(0, -20), Vector2(-6, -24)
-			])
-			flash_glow.color = Color(1.0, 0.2, 0.2, 0.8)
-			
-			# Procedural blink script to toggle visibility at 1.67 Hz
-			var blink_script = GDScript.new()
-			blink_script.source_code = "extends Polygon2D\nvar time = 0.0\nfunc _process(delta):\n\ttime += delta\n\tvisible = fmod(time, 0.6) < 0.3\n"
-			blink_script.reload()
-			flash_glow.set_script(blink_script)
-			obstacle.add_child(flash_glow)
-			
-		else:
-			# --- 2. Debris Rock ( SHADED GRAY CRACKED BOULDER ) ---
-			# Main Rock Polygon (Organic wavy shape)
-			var rock_poly = Polygon2D.new()
-			rock_poly.polygon = PackedVector2Array([
-				Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
-				Vector2(4, -14), Vector2(13, -6), Vector2(15, 8),
-				Vector2(5, 13), Vector2(-6, 13)
-			])
-			rock_poly.color = Color(0.48, 0.48, 0.5) # Slate gray rock
-			obstacle.add_child(rock_poly)
-			
-			# Rock Shadow facet (Bottom-Right)
-			var rock_shadow = Polygon2D.new()
-			rock_shadow.polygon = PackedVector2Array([
-				Vector2(0, -13), Vector2(4, -14), Vector2(13, -6),
-				Vector2(15, 8), Vector2(5, 13), Vector2(-3, 6)
-			])
-			rock_shadow.color = Color(0.35, 0.35, 0.38) # Cast shadow
-			obstacle.add_child(rock_shadow)
-			
-			# Rock Highlight facet (Top-Left Specular)
-			var rock_lite = Polygon2D.new()
-			rock_lite.polygon = PackedVector2Array([
-				Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
-				Vector2(0, -13), Vector2(-5, 0)
-			])
-			rock_lite.color = Color(0.62, 0.62, 0.65) # Catch light
-			obstacle.add_child(rock_lite)
-			
-			# Rock internal crack lines
-			var crack = Line2D.new()
-			crack.width = 1.5
-			crack.default_color = Color(0.2, 0.2, 0.22)
-			crack.points = PackedVector2Array([Vector2(-4, -12), Vector2(-2, -3), Vector2(3, 4)])
-			obstacle.add_child(crack)
-			
-			var crack2 = Line2D.new()
-			crack2.width = 1.0
-			crack2.default_color = Color(0.2, 0.2, 0.22)
-			crack2.points = PackedVector2Array([Vector2(-2, -3), Vector2(-10, 2)])
-			obstacle.add_child(crack2)
-			
-		chunk_local.add_child(obstacle)
+			var col_shape = CollisionShape2D.new()
+			var circle = CircleShape2D.new()
+			circle.radius = 12.0
+			col_shape.shape = circle
+			obstacle.add_child(col_shape)
+			chunk_local.add_child(obstacle)
 	
 	if lane_polygons.size() > 0 and chunk_type != ChunkType.ICE and chunk_type != ChunkType.BRIDGE:
 		var crack_mmi = MultiMeshInstance2D.new()
@@ -946,3 +860,186 @@ func _get_tiles_node(chunk: Node2D) -> Node2D:
 	if chunk.get_child_count() > 0:
 		return chunk.get_child(0) as Node2D
 	return null
+
+static func _node_to_mesh(node: Node2D) -> ArrayMesh:
+	var vertices = PackedVector2Array()
+	var colors = PackedColorArray()
+	var indices = PackedInt32Array()
+	_gather_polygons(node, Transform2D(), vertices, colors, indices)
+	
+	var mesh = ArrayMesh.new()
+	var arrays = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+static func _gather_polygons(node: Node, parent_xform: Transform2D, vertices: PackedVector2Array, colors: PackedColorArray, indices: PackedInt32Array) -> void:
+	var local_xform = parent_xform
+	if node is Node2D:
+		local_xform = parent_xform * node.transform
+		
+	if node is Polygon2D:
+		var start_idx = vertices.size()
+		var poly = node.polygon
+		var col = node.color
+		for vertex in poly:
+			vertices.append(local_xform * vertex)
+			colors.append(col)
+		var poly_indices = Geometry2D.triangulate_polygon(poly)
+		for idx in poly_indices:
+			indices.append(start_idx + idx)
+	elif node is Line2D:
+		var width = node.width
+		var half_w = width / 2.0
+		var col = node.default_color
+		var pts = node.points
+		for j in range(pts.size() - 1):
+			var p1 = pts[j]
+			var p2 = pts[j+1]
+			var dir = (p2 - p1).normalized()
+			var normal = Vector2(-dir.y, dir.x)
+			
+			var v1 = p1 - normal * half_w
+			var v2 = p1 + normal * half_w
+			var v3 = p2 + normal * half_w
+			var v4 = p2 - normal * half_w
+			
+			var start_idx = vertices.size()
+			vertices.append(local_xform * v1)
+			vertices.append(local_xform * v2)
+			vertices.append(local_xform * v3)
+			vertices.append(local_xform * v4)
+			
+			for k in 4:
+				colors.append(col)
+				
+			indices.append(start_idx + 0)
+			indices.append(start_idx + 1)
+			indices.append(start_idx + 2)
+			indices.append(start_idx + 0)
+			indices.append(start_idx + 2)
+			indices.append(start_idx + 3)
+			
+	for child in node.get_children():
+		_gather_polygons(child, local_xform, vertices, colors, indices)
+
+func _get_decor_mesh(type: int) -> ArrayMesh:
+	if _decor_mesh_cache.has(type):
+		return _decor_mesh_cache[type]
+	var temp_node = _create_desert_decoration(type)
+	var mesh = _node_to_mesh(temp_node)
+	temp_node.queue_free()
+	_decor_mesh_cache[type] = mesh
+	return mesh
+
+func _get_obstacle_mesh(type: String) -> ArrayMesh:
+	if _obstacle_mesh_cache.has(type):
+		return _obstacle_mesh_cache[type]
+	
+	var temp_obs = Node2D.new()
+	if type == "barrel":
+		var base = Polygon2D.new()
+		base.polygon = PackedVector2Array([
+			Vector2(-12, 11), Vector2(12, 11),
+			Vector2(10, 14), Vector2(-10, 14)
+		])
+		base.color = Color(0.12, 0.12, 0.14)
+		temp_obs.add_child(base)
+		
+		var body = Polygon2D.new()
+		body.polygon = PackedVector2Array([
+			Vector2(-10, -14), Vector2(10, -14),
+			Vector2(11, 11), Vector2(-11, 11)
+		])
+		body.color = Color(1.0, 0.4, 0.0)
+		temp_obs.add_child(body)
+		
+		var stripe1 = Polygon2D.new()
+		stripe1.polygon = PackedVector2Array([
+			Vector2(-10.2, -6), Vector2(10.2, -6),
+			Vector2(10.5, -1), Vector2(-10.5, -1)
+		])
+		stripe1.color = Color(0.95, 0.95, 0.98)
+		temp_obs.add_child(stripe1)
+		
+		var stripe2 = Polygon2D.new()
+		stripe2.polygon = PackedVector2Array([
+			Vector2(-10.6, 3), Vector2(10.6, 3),
+			Vector2(10.9, 8), Vector2(-10.9, 8)
+		])
+		stripe2.color = Color(0.95, 0.95, 0.98)
+		temp_obs.add_child(stripe2)
+		
+		var ridge = Line2D.new()
+		ridge.width = 1.5
+		ridge.default_color = Color(0.6, 0.25, 0.0)
+		ridge.points = PackedVector2Array([Vector2(-10.4, 1), Vector2(10.4, 1)])
+		temp_obs.add_child(ridge)
+		
+		var light_base = Polygon2D.new()
+		light_base.polygon = PackedVector2Array([
+			Vector2(-4, -14), Vector2(4, -14),
+			Vector2(3, -19), Vector2(-3, -19)
+		])
+		light_base.color = Color(0.2, 0.2, 0.2)
+		temp_obs.add_child(light_base)
+		
+		var bulb = Polygon2D.new()
+		bulb.polygon = PackedVector2Array([
+			Vector2(-2, -19), Vector2(2, -19),
+			Vector2(3, -24), Vector2(0, -26), Vector2(-3, -24)
+		])
+		bulb.color = Color(1.0, 0.0, 0.1)
+		temp_obs.add_child(bulb)
+		
+		var glow = Polygon2D.new()
+		glow.polygon = PackedVector2Array([
+			Vector2(0, -28), Vector2(6, -24), Vector2(0, -20), Vector2(-6, -24)
+		])
+		glow.color = Color(1.0, 0.2, 0.2, 0.5)
+		temp_obs.add_child(glow)
+	else:
+		var rock_poly = Polygon2D.new()
+		rock_poly.polygon = PackedVector2Array([
+			Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
+			Vector2(4, -14), Vector2(13, -6), Vector2(15, 8),
+			Vector2(5, 13), Vector2(-6, 13)
+		])
+		rock_poly.color = Color(0.48, 0.48, 0.5)
+		temp_obs.add_child(rock_poly)
+		
+		var rock_shadow = Polygon2D.new()
+		rock_shadow.polygon = PackedVector2Array([
+			Vector2(0, -13), Vector2(4, -14), Vector2(13, -6),
+			Vector2(15, 8), Vector2(5, 13), Vector2(-3, 6)
+		])
+		rock_shadow.color = Color(0.35, 0.35, 0.38)
+		temp_obs.add_child(rock_shadow)
+		
+		var rock_lite = Polygon2D.new()
+		rock_lite.polygon = PackedVector2Array([
+			Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
+			Vector2(0, -13), Vector2(-5, 0)
+		])
+		rock_lite.color = Color(0.62, 0.62, 0.65)
+		temp_obs.add_child(rock_lite)
+		
+		var crack = Line2D.new()
+		crack.width = 1.5
+		crack.default_color = Color(0.2, 0.2, 0.22)
+		crack.points = PackedVector2Array([Vector2(-4, -12), Vector2(-2, -3), Vector2(3, 4)])
+		temp_obs.add_child(crack)
+		
+		var crack2 = Line2D.new()
+		crack2.width = 1.0
+		crack2.default_color = Color(0.2, 0.2, 0.22)
+		crack2.points = PackedVector2Array([Vector2(-2, -3), Vector2(-10, 2)])
+		temp_obs.add_child(crack2)
+		
+	var mesh = _node_to_mesh(temp_obs)
+	temp_obs.queue_free()
+	_obstacle_mesh_cache[type] = mesh
+	return mesh

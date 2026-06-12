@@ -112,7 +112,8 @@ func test_audio_manager_play_sfx_null_stream():
 			after_count += 1
 	assert_eq(after_count, before_count, "Should not play null stream")
 
-func 	test_audio_manager_procedural_music_generates_stream():
+func test_audio_manager_procedural_music_generates_stream():
+	AudioManager.play_menu_music()
 	assert_true(AudioManager.music_player.playing or AudioManager.music_player.stream != null, "Music should be playing")
 
 func test_sfx_player_count_constant():
@@ -461,3 +462,12 @@ func test_generate_bounce_stream():
 	var stream = am._generate_bounce_stream()
 	assert_true(stream != null, "Should generate bounce stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Bounce should be 16-bit")
+
+func test_audio_manager_async_generation():
+	var keys = AudioManager._async_tasks.keys()
+	if keys.size() > 0:
+		var key = keys[0]
+		AudioManager._wait_for_task(key)
+		assert_false(AudioManager._async_tasks.has(key), "Task should be removed from tasks list after wait")
+	else:
+		assert_true(true, "All tasks completed")

@@ -108,18 +108,18 @@ func _update_rain_particles(_delta: float) -> void:
 			_rain_particles.emitting = false
 			return
 		WeatherType.LIGHT_RAIN:
-			_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * 0.5 * weather_intensity)
+			_rain_particles.amount_ratio = 0.5 * weather_intensity
 			var c = Constants.RAIN_PARTICLE_CLEAR
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 		WeatherType.ACID_RAIN:
-			_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * weather_intensity)
+			_rain_particles.amount_ratio = weather_intensity
 			var c = Constants.RAIN_PARTICLE_ACID
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
 		WeatherType.STORM:
-			_rain_particles.amount = int(Constants.RAIN_DROP_COUNT * weather_intensity)
+			_rain_particles.amount_ratio = weather_intensity
 			var c = Constants.RAIN_PARTICLE_STORM
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
-	_rain_particles.emitting = _rain_particles.amount > 0
+	_rain_particles.emitting = _rain_particles.amount_ratio > 0.0
 
 func _update_clouds(delta: float) -> void:
 	if current_weather == WeatherType.ACID_RAIN or current_weather == WeatherType.STORM:
