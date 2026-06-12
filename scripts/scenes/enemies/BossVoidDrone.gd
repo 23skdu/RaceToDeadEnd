@@ -105,6 +105,7 @@ func _physics_process(delta: float) -> void:
 		_spawn_drones()
 		
 	move_and_slide()
+	handle_obstacle_collisions()
 
 func _spawn_drones() -> void:
 	if _spawner and _spawner.has_signal("spawn_minion_requested"):

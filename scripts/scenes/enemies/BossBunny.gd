@@ -144,6 +144,7 @@ func _physics_process(delta: float) -> void:
 		_spawn_baby_bunny()
 		
 	move_and_slide()
+	handle_obstacle_collisions()
 
 func _spawn_baby_bunny() -> void:
 	var bomb = ObjectPool.acquire("baby_bunny_bomb")

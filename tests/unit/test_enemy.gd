@@ -430,3 +430,48 @@ func test_init_sets_spawner():
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0, spawner)
 	assert_eq(e._spawner, spawner, "Spawner should be set via init")
 	spawner.free()
+
+class MockBossWithCollisions extends "res://scripts/scenes/enemies/Enemy.gd":
+	var mock_collisions: Array = []
+	func _ready() -> void:
+		pass
+	func _get_slide_collisions() -> Array:
+		return mock_collisions
+
+class MockKinematicCollision2D:
+	var _collider = null
+	func get_collider():
+		return _collider
+
+func test_boss_crushes_obstacle():
+	var boss = MockBossWithCollisions.new()
+	boss.boss_key = "boss_bunny"
+	
+	var obstacle = StaticBody2D.new()
+	obstacle.add_to_group("obstacles")
+	add_child_autofree(obstacle)
+	
+	var col = MockKinematicCollision2D.new()
+	col._collider = obstacle
+	boss.mock_collisions.append(col)
+	
+	assert_false(obstacle.is_queued_for_deletion(), "Obstacle should be active initially")
+	boss.handle_obstacle_collisions()
+	assert_true(obstacle.is_queued_for_deletion(), "Obstacle should be crushed/queued for deletion")
+	boss.free()
+
+func test_non_boss_does_not_crush_obstacle():
+	var non_boss = MockBossWithCollisions.new()
+	non_boss.boss_key = ""
+	
+	var obstacle = StaticBody2D.new()
+	obstacle.add_to_group("obstacles")
+	add_child_autofree(obstacle)
+	
+	var col = MockKinematicCollision2D.new()
+	col._collider = obstacle
+	non_boss.mock_collisions.append(col)
+	
+	non_boss.handle_obstacle_collisions()
+	assert_false(obstacle.is_queued_for_deletion(), "Non-boss should not crush obstacles")
+	non_boss.free()

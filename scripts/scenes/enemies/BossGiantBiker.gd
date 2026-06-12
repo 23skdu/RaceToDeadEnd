@@ -219,6 +219,7 @@ func _physics_process(delta: float) -> void:
 		_swing_chain()
 
 	move_and_slide()
+	handle_obstacle_collisions()
 
 func _swing_chain() -> void:
 	var chain = ObjectPool.acquire("chain_swing")

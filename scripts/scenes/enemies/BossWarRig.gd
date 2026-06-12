@@ -47,6 +47,7 @@ func _physics_process(delta: float) -> void:
 		_execute_attack()
 		
 	move_and_slide()
+	handle_obstacle_collisions()
 
 func _check_phase() -> void:
 	var max_hp = Constants.BOSS_WAR_RIG_HP

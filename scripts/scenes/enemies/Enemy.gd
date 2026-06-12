@@ -213,6 +213,21 @@ func _physics_process(delta: float) -> void:
 			stunned = false
 			sprite.modulate = Color.WHITE
 
+func _get_slide_collisions() -> Array:
+	var list = []
+	for i in get_slide_collision_count():
+		list.append(get_slide_collision(i))
+	return list
+
+func handle_obstacle_collisions() -> void:
+	if boss_key == "":
+		return
+	for col in _get_slide_collisions():
+		var collider = col.get_collider()
+		if collider and is_instance_valid(collider):
+			if collider.is_in_group("obstacles") or collider.is_in_group("deadly_obstacles"):
+				collider.queue_free()
+
 func apply_stun(duration: float) -> void:
 	stunned = true
 	stun_timer = duration

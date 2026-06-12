@@ -125,6 +125,7 @@ func _physics_process(delta: float) -> void:
 		_throw_poop()
 
 	move_and_slide()
+	handle_obstacle_collisions()
 
 func _dodge() -> void:
 	var new_lane = randi_range(0, Constants.LANE_COUNT - 1)

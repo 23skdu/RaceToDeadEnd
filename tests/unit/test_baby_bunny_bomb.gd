@@ -103,3 +103,33 @@ func test_bomb_take_damage():
 	bomb._ready()
 	bomb.take_damage(1)
 	assert_eq(bomb.hp, 0, "HP should be 0 after damage")
+
+class MockKinematicCollision2D:
+	var _collider = null
+	func get_collider():
+		return _collider
+
+class MockBabyBunnyBomb extends "res://scripts/scenes/weapons/BabyBunnyBomb.gd":
+	var mock_collision = null
+	func _ready() -> void:
+		pass
+	func _perform_movement_collision(_velocity_vec, _delta_val):
+		return mock_collision
+	func _die() -> void:
+		destroyed.emit(global_position, "baby_bunny_bomb", self)
+
+func test_bomb_detonates_on_any_collision():
+	var bomb = MockBabyBunnyBomb.new()
+	
+	var obstacle = StaticBody2D.new()
+	obstacle.name = "SomeObstacle"
+	add_child_autofree(obstacle)
+	
+	var col = MockKinematicCollision2D.new()
+	col._collider = obstacle
+	bomb.mock_collision = col
+	
+	watch_signals(bomb)
+	bomb._physics_process(0.1)
+	assert_signal_emitted(bomb, "destroyed", "Bomb should detonate and emit destroyed signal on any collision")
+	bomb.free()
