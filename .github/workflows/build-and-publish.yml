@@ -1,0 +1,132 @@
+name: "Build and Publish"
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GUT_VERSION: "9.7.1"
+  COI_SW_SHA: "7b1d2a092d0d2dd2b7270b6f12f13605de26f214"
+
+jobs:
+  test:
+    name: Test & Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Setup Godot ${{ env.GODOT_VERSION }}
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: false
+
+      - name: Cache GUT Addon
+        uses: actions/cache@v6
+        with:
+          path: addons/gut
+          key: gut-${{ env.GUT_VERSION }}
+
+      - name: Install GUT & Run Checks
+        run: |
+          make check
+
+  build:
+    name: Build Release Artifacts
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Setup Godot ${{ env.GODOT_VERSION }}
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Export Web Build
+        run: |
+          make build-web GODOT_VERSION="${{ env.GODOT_VERSION }}" COI_SW_SHA="${{ env.COI_SW_SHA }}"
+
+      - name: Export Linux & macOS Builds
+        run: |
+          make build-linux build-macos GODOT_VERSION="${{ env.GODOT_VERSION }}"
+          tar -czf build/RaceToDeadEnd-linux-x86_64.tar.gz -C build/linux .
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-build
+          path: build/web
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-builds
+          path: |
+            build/RaceToDeadEnd-linux-x86_64.tar.gz
+            build/macos/RaceToDeadEnd.zip
+
+  publish:
+    name: Publish Web & Release
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Download Web Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: web-build
+          path: build/web
+
+      - name: Deploy Web Build to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/web
+          branch: gh-pages
+
+      - name: Download Desktop Artifacts for Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/download-artifact@v8
+        with:
+          name: desktop-builds
+          path: dist
+
+      - name: Package Web Build for Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p dist
+          (cd build/web && zip -r ../../dist/RaceToDeadEnd-web.zip .)
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/RaceToDeadEnd-web.zip
+            dist/RaceToDeadEnd-linux-x86_64.tar.gz
+            dist/RaceToDeadEnd.zip
+          generate_release_notes: true

@@ -25,6 +25,10 @@ Thumbs.db
 *.dylib
 *.so
 *.lib
+build/
+builds/
+__pycache__/
+*.pyc
 
 # Third-party addons (install locally)
 addons/gut/
