@@ -129,7 +129,7 @@ func test_interceptor_has_gpu_particle_effects() -> void:
 	assert_false(flash.emitting, "Muzzle flash should be off by default")
 
 func test_all_player_skin_svgs_valid():
-	assert_eq(Constants.PLAYER_SKINS.size(), 7, "Should define default + 5 style skins + urban camo")
+	assert_eq(Constants.PLAYER_SKINS.size(), 10, "Should define default + 8 style skins + urban camo")
 	for skin in Constants.PLAYER_SKINS:
 		var tex_path := str(skin.get("texture_path", ""))
 		assert_true(ResourceLoader.exists(tex_path), "Skin SVG should exist: " + tex_path)

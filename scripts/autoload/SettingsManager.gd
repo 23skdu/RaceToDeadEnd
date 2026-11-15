@@ -2,6 +2,8 @@ extends Node
 
 signal player_skin_changed(skin_id: String)
 signal music_track_changed(track_id: String)
+signal high_contrast_changed(enabled: bool)
+signal colorblind_mode_changed(mode: String)
 
 const InputRemapUtil = preload("res://scripts/scenes/ui/InputRemap.gd")
 
@@ -11,6 +13,7 @@ const VIDEO_SECTION: String = "video"
 const PACKS_SECTION: String = "packs"
 const CONTROLS_SECTION: String = "controls"
 const APPEARANCE_SECTION: String = "appearance"
+const ACCESSIBILITY_SECTION: String = "accessibility"
 
 var _config: ConfigFile = ConfigFile.new()
 var _loaded: bool = false
@@ -122,6 +125,29 @@ func get_fullscreen(default: bool = false) -> bool:
 	if _config.has_section_key(VIDEO_SECTION, "fullscreen"):
 		return _config.get_value(VIDEO_SECTION, "fullscreen", default)
 	return default
+
+func set_high_contrast(enabled: bool) -> void:
+	_config.set_value(ACCESSIBILITY_SECTION, "high_contrast", enabled)
+	save_settings()
+	high_contrast_changed.emit(enabled)
+
+func get_high_contrast() -> bool:
+	if _config.has_section_key(ACCESSIBILITY_SECTION, "high_contrast"):
+		return bool(_config.get_value(ACCESSIBILITY_SECTION, "high_contrast", false))
+	return false
+
+func set_colorblind_mode(mode: String) -> void:
+	var valid := ["none", "protanopia", "deuteranopia", "tritanopia"]
+	var clean := mode if mode in valid else "none"
+	_config.set_value(ACCESSIBILITY_SECTION, "colorblind_mode", clean)
+	save_settings()
+	colorblind_mode_changed.emit(clean)
+
+func get_colorblind_mode() -> String:
+	if _config.has_section_key(ACCESSIBILITY_SECTION, "colorblind_mode"):
+		var val := str(_config.get_value(ACCESSIBILITY_SECTION, "colorblind_mode", "none"))
+		return val if val in ["none", "protanopia", "deuteranopia", "tritanopia"] else "none"
+	return "none"
 
 func set_player_skin(skin_id: String) -> void:
 	var clean_id := skin_id.strip_edges()

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" width="64" height="96">
+  <!-- Solar Flare: Gold Hull with Crimson/Orange Flame Accents -->
+  <path d="M32 4 L44 12 L48 24 L50 40 L50 64 L48 76 L44 84 L32 92 L20 84 L16 76 L14 64 L14 40 L16 24 L20 12 Z" fill="#3a2a0a" stroke="#ff8800" stroke-width="1.5"/>
+
+  <!-- Flame stripe accents -->
+  <path d="M24 10 L28 10 L26 82 L22 80 Z" fill="#ff4400" opacity="0.9"/>
+  <path d="M36 10 L40 10 L42 80 L38 82 Z" fill="#ff4400" opacity="0.9"/>
+  <path d="M28 14 L30 14 L29 76 L27 75 Z" fill="#ffcc00" opacity="0.85"/>
+  <path d="M34 14 L36 14 L37 75 L35 76 Z" fill="#ffcc00" opacity="0.85"/>
+
+  <!-- Front armor wedge -->
+  <path d="M32 8 L40 14 L42 22 L32 26 L22 22 L24 14 Z" fill="#5a3a10" stroke="#ff8800" stroke-width="0.6"/>
+
+  <!-- Cockpit canopy -->
+  <path d="M26 28 L38 28 L40 36 L32 40 L24 36 Z" fill="#1a0f05" stroke="#ffcc00" stroke-width="1"/>
+  <path d="M28 30 L36 30 L37 34 L32 36 L27 34 Z" fill="#ff4400" opacity="0.5"/>
+
+  <!-- Central weapons spine -->
+  <rect x="30" y="42" width="4" height="20" rx="1" fill="#5a3a10" stroke="#ffcc00" stroke-width="0.6"/>
+
+  <!-- Side armor panels -->
+  <path d="M16 40 L22 40 L22 64 L16 64 Z" fill="#4a2a0a" stroke="#ff8800" stroke-width="0.5"/>
+  <path d="M42 40 L48 40 L48 64 L42 64 Z" fill="#4a2a0a" stroke="#ff8800" stroke-width="0.5"/>
+
+  <!-- Side weapon mounts -->
+  <rect x="14" y="44" width="6" height="8" rx="1" fill="#5a3a10" stroke="#ffcc00" stroke-width="0.6"/>
+  <circle cx="17" cy="48" r="2" fill="#ff4400" opacity="0.9"/>
+  <rect x="44" y="44" width="6" height="8" rx="1" fill="#5a3a10" stroke="#ffcc00" stroke-width="0.6"/>
+  <circle cx="47" cy="48" r="2" fill="#ff4400" opacity="0.9"/>
+
+  <!-- Engine exhaust grilles -->
+  <rect x="24" y="72" width="6" height="4" rx="1" fill="#3a2a0a" stroke="#ff8800" stroke-width="0.6"/>
+  <rect x="34" y="72" width="6" height="4" rx="1" fill="#3a2a0a" stroke="#ff8800" stroke-width="0.6"/>
+
+  <!-- Rear thruster housing -->
+  <path d="M22 80 L32 86 L42 80 L40 76 L32 80 L24 76 Z" fill="#5a3a10" stroke="#ffcc00" stroke-width="1"/>
+
+  <!-- Front targeting sensors -->
+  <circle cx="28" cy="18" r="1.8" fill="#ffcc00" opacity="0.9"/>
+  <circle cx="36" cy="18" r="1.8" fill="#ffcc00" opacity="0.9"/>
+
+  <!-- Side running lights -->
+  <circle cx="16" cy="32" r="1.5" fill="#ff4400" opacity="0.9"/>
+  <circle cx="48" cy="32" r="1.5" fill="#ff4400" opacity="0.9"/>
+
+  <!-- Afterburner flames -->
+  <path d="M26 86 L28 94 L30 86 Z" fill="#ff4400" opacity="0.9"/>
+  <path d="M34 86 L36 94 L38 86 Z" fill="#ff4400" opacity="0.9"/>
+</svg>

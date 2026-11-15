@@ -86,3 +86,15 @@ func test_music_track_round_trip():
 	assert_eq(_sm.get_music_track(), "dynamic")
 	_sm.set_music_track("outrun")
 	assert_eq(_sm.get_music_track(), "outrun")
+
+func test_high_contrast_round_trip():
+	assert_false(_sm.get_high_contrast())
+	_sm.set_high_contrast(true)
+	assert_true(_sm.get_high_contrast())
+
+func test_colorblind_mode_round_trip():
+	assert_eq(_sm.get_colorblind_mode(), "none")
+	_sm.set_colorblind_mode("protanopia")
+	assert_eq(_sm.get_colorblind_mode(), "protanopia")
+	_sm.set_colorblind_mode("invalid_mode")
+	assert_eq(_sm.get_colorblind_mode(), "none")

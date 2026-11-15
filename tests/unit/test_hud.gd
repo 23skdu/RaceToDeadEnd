@@ -9,6 +9,8 @@ func test_hud_score_update():
 	var hud = _create_hud()
 	hud._on_score_updated(1234)
 	assert_eq(hud.score_label.text, "1234", "Score label should update")
+	if hud.score_rich_label:
+		assert_true(hud.score_rich_label.text.contains("1234"), "Rich score label should update with BBCode")
 
 func test_hud_health_update():
 	var hud = _create_hud()

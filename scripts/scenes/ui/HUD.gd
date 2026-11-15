@@ -3,6 +3,7 @@ extends CanvasLayer
 
 
 @onready var score_label: Label = $ScoreLabel
+@onready var score_rich_label: RichTextLabel = get_node_or_null("ScoreRichLabel")
 @onready var health_bar: ProgressBar = $HealthBar
 @onready var multiplier_label: Label = $MultiplierLabel
 @onready var multiplier_timer_bar: ProgressBar = $MultiplierTimerBar
@@ -248,6 +249,13 @@ func _update_threat_indicators() -> void:
 
 func _on_score_updated(score: int) -> void:
 	score_label.text = str(score)
+	if is_instance_valid(score_rich_label):
+		var color := "#ffffff"
+		if score >= 10000:
+			color = "#ffcc00"
+		elif score >= 5000:
+			color = "#00f0ff"
+		score_rich_label.text = "[color=%s][b]%d[/b][/color]" % [color, score]
 
 func _on_health_updated(health: int) -> void:
 	health_bar.value = health

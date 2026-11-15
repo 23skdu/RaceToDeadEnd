@@ -206,7 +206,7 @@ func test_garage_customize_displays_all_car_skins_and_gating():
 	garage.refresh()
 	var skin_list = garage.customize_container.get_node_or_null("CarSkinsScroll/CarSkinsList")
 	assert_not_null(skin_list, "Customize tab should have CarSkinsList")
-	assert_eq(skin_list.get_child_count(), 7, "Should display all 7 car skins")
+	assert_eq(skin_list.get_child_count(), 10, "Should display all 10 car skins")
 
 	var urban_btn: Button = skin_list.get_node_or_null("SkinRow_urban_camo/SkinSelectButton_urban_camo")
 	assert_not_null(urban_btn)
