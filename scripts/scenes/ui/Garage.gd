@@ -70,21 +70,29 @@ func _refresh_customize() -> void:
 	for child in customize_container.get_children():
 		customize_container.remove_child(child)
 		child.queue_free()
-		
+
+	_build_car_skins_section()
+
 	if PackManager == null or not PackManager.has_method("get_discovered_pack_ids"):
 		return
-		
+
 	var packs = PackManager.get_discovered_pack_ids()
 	if packs.size() == 0:
 		var lbl = Label.new()
-		lbl.text = "No content packs found."
+		lbl.name = "NoPacksLabel"
+		lbl.text = "No custom content packs installed."
 		customize_container.add_child(lbl)
 		return
-		
+
+	var pack_header = Label.new()
+	pack_header.name = "PacksHeaderLabel"
+	pack_header.text = "CUSTOM CONTENT PACKS"
+	customize_container.add_child(pack_header)
+
 	for pack_id in packs:
 		var info = PackManager.get_pack_info(pack_id)
 		var hb = HBoxContainer.new()
-		
+
 		var lbl = Label.new()
 		lbl.text = info.get("name", pack_id)
 		lbl.custom_minimum_size = Vector2(200, 0)
@@ -97,16 +105,108 @@ func _refresh_customize() -> void:
 			_update_pack_preview(pack_id)
 		)
 		hb.add_child(preview_btn)
-		
+
 		for ctype in info.get("content_types", []):
 			_add_toggle_button(hb, pack_id, ctype)
-			
+
 		customize_container.add_child(hb)
 
-	if _selected_preview_pack_id.is_empty() or not ( _selected_preview_pack_id in packs ):
+	if _selected_preview_pack_id.is_empty() or not (_selected_preview_pack_id in packs):
 		_selected_preview_pack_id = packs[0]
 	_build_preview_panel()
 	_update_pack_preview(_selected_preview_pack_id)
+
+func _build_car_skins_section() -> void:
+	var header = Label.new()
+	header.name = "SkinsHeaderLabel"
+	header.text = "INTERCEPTOR SKINS"
+	customize_container.add_child(header)
+
+	var scroll = ScrollContainer.new()
+	scroll.name = "CarSkinsScroll"
+	scroll.custom_minimum_size = Vector2(0, 210)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	customize_container.add_child(scroll)
+
+	var list = VBoxContainer.new()
+	list.name = "CarSkinsList"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 6)
+	scroll.add_child(list)
+
+	var selected_id := SettingsManager.get_player_skin() if SettingsManager and SettingsManager.has_method("get_player_skin") else "default"
+	if GameManager and GameManager.has_method("is_skin_unlocked") and not GameManager.is_skin_unlocked(selected_id):
+		selected_id = "default"
+
+	for skin_info in Constants.PLAYER_SKINS:
+		var skin_id := str(skin_info.get("id", ""))
+		var skin_name := str(skin_info.get("name", skin_id))
+		var desc := str(skin_info.get("description", ""))
+		var unlocked := GameManager.is_skin_unlocked(skin_id) if GameManager and GameManager.has_method("is_skin_unlocked") else true
+		var is_equipped := (skin_id == selected_id)
+
+		var row = HBoxContainer.new()
+		row.name = "SkinRow_" + skin_id
+		row.add_theme_constant_override("separation", 10)
+
+		var tex_path := str(skin_info.get("texture_path", ""))
+		if not tex_path.is_empty() and ResourceLoader.exists(tex_path):
+			var tr = TextureRect.new()
+			tr.name = "SkinThumb_" + skin_id
+			tr.texture = load(tex_path)
+			tr.custom_minimum_size = Vector2(28, 42)
+			tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			if bool(skin_info.get("use_default_modulate", false)):
+				tr.self_modulate = Color(0.2, 0.6, 1.0, 1.0)
+			if not unlocked:
+				tr.modulate = Color(0.45, 0.45, 0.45, 0.7)
+			row.add_child(tr)
+
+		var swatches = HBoxContainer.new()
+		swatches.add_theme_constant_override("separation", 3)
+		for hex_col in skin_info.get("colors", []):
+			var sw = ColorRect.new()
+			sw.custom_minimum_size = Vector2(12, 24)
+			sw.color = Color(str(hex_col))
+			swatches.add_child(sw)
+		row.add_child(swatches)
+
+		var info_box = VBoxContainer.new()
+		info_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name_lbl = Label.new()
+		name_lbl.text = skin_name if unlocked else skin_name + " [LOCKED]"
+		info_box.add_child(name_lbl)
+		var desc_lbl = Label.new()
+		desc_lbl.text = desc
+		desc_lbl.add_theme_font_size_override("font_size", 11)
+		desc_lbl.modulate = Color(0.75, 0.8, 0.9, 0.9)
+		info_box.add_child(desc_lbl)
+		row.add_child(info_box)
+
+		var btn = Button.new()
+		btn.name = "SkinSelectButton_" + skin_id
+		btn.custom_minimum_size = Vector2(120, 32)
+		if not unlocked:
+			btn.text = "LOCKED"
+			btn.disabled = true
+			btn.tooltip_text = "Defeat the 1st Boss (Cyber Bunny) to unlock"
+		elif is_equipped:
+			btn.text = "EQUIPPED"
+			btn.disabled = true
+		else:
+			btn.text = "EQUIP"
+			btn.pressed.connect(_on_select_skin_pressed.bind(skin_id))
+		row.add_child(btn)
+
+		list.add_child(row)
+
+func _on_select_skin_pressed(skin_id: String) -> void:
+	if not GameManager.is_skin_unlocked(skin_id):
+		return
+	if SettingsManager and SettingsManager.has_method("set_player_skin"):
+		SettingsManager.set_player_skin(skin_id)
+	_refresh_customize()
 
 func _build_preview_panel() -> void:
 	_preview_panel = PanelContainer.new()

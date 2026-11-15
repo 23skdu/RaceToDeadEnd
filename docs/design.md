@@ -158,7 +158,23 @@ The highway is procedurally generated in real-time from tile chunks:
 
 ### Run milestones:
 - Every 3000 pts = new difficulty tier unlock
-- Every 3000 pts = boss encounter (BossBunny → Giant Biker → War Rig → Void Drone)
+- Every 3000 pts = boss encounter (Cyber Bunny → Giant Biker → War Rig → Void Drone) — see [Boss Guide](bosses.md) for stats, attack phases, and screenshots of every boss
+
+## Part 11: Boss Encounters (Visual Reference)
+
+Full specifications live in [docs/bosses.md](bosses.md).
+
+| Cyber Bunny (`boss_bunny`, 25 HP) | Giant Biker (`boss_giant_biker`, 35 HP) |
+|---|---|
+| ![Cyber Bunny](images/bosses/boss_bunny.png) | ![Giant Biker](images/bosses/boss_giant_biker.png) |
+
+| War Rig (`boss`, 60 HP) | Void Drone (`boss_void_drone`, 45 HP) |
+|---|---|
+| ![War Rig](images/bosses/boss_war_rig.png) | ![Void Drone](images/bosses/boss_void_drone.png) |
+
+| Sasquatch (`sasquatch`, 15 HP — Wandering Mini-Boss) |
+|---|
+| ![Sasquatch](images/bosses/boss_sasquatch.png) |
 
 ### Meta-progression (between runs):
 - Credits earned = score / 10

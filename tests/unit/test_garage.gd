@@ -190,3 +190,44 @@ func test_garage_six_upgrades_displayed():
 		if child is Button:
 			button_count += 1
 	assert_eq(button_count, 6, "Should display 6 upgrade buttons")
+
+func test_garage_customize_displays_all_car_skins_and_gating():
+	var prev_first := GameManager.first_boss_defeated
+	var prev_killed := GameManager.bosses_killed
+	var prev_ach := GameManager.unlocked_achievements.duplicate()
+	var prev_skin := SettingsManager.get_player_skin()
+
+	GameManager.first_boss_defeated = false
+	GameManager.bosses_killed = 0
+	GameManager.unlocked_achievements.clear()
+	SettingsManager.set_player_skin("default")
+
+	var garage = _create_garage()
+	garage.refresh()
+	var skin_list = garage.customize_container.get_node_or_null("CarSkinsScroll/CarSkinsList")
+	assert_not_null(skin_list, "Customize tab should have CarSkinsList")
+	assert_eq(skin_list.get_child_count(), 5, "Should display all 5 car skins")
+
+	var urban_btn: Button = skin_list.get_node_or_null("SkinRow_urban_camo/SkinSelectButton_urban_camo")
+	assert_not_null(urban_btn)
+	assert_true(urban_btn.disabled, "Urban Camo button should be disabled before 1st boss kill")
+	assert_eq(urban_btn.text, "LOCKED")
+
+	# Standard style skin should be equippable
+	garage._on_select_skin_pressed("crimson_viper")
+	assert_eq(SettingsManager.get_player_skin(), "crimson_viper")
+
+	# Defeat 1st boss and verify Urban Camo unlocks
+	GameManager.first_boss_defeated = true
+	garage.refresh()
+	skin_list = garage.customize_container.get_node_or_null("CarSkinsScroll/CarSkinsList")
+	urban_btn = skin_list.get_node_or_null("SkinRow_urban_camo/SkinSelectButton_urban_camo")
+	assert_false(urban_btn.disabled, "Urban Camo button should unlock after 1st boss kill")
+	assert_eq(urban_btn.text, "EQUIP")
+	garage._on_select_skin_pressed("urban_camo")
+	assert_eq(SettingsManager.get_player_skin(), "urban_camo")
+
+	SettingsManager.set_player_skin(prev_skin)
+	GameManager.first_boss_defeated = prev_first
+	GameManager.bosses_killed = prev_killed
+	GameManager.unlocked_achievements = prev_ach

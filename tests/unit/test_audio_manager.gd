@@ -487,3 +487,40 @@ func test_audio_manager_async_generation():
 		assert_false(AudioManager._async_tasks.has(key), "Task should be removed from tasks list after wait")
 	else:
 		assert_true(true, "All tasks completed")
+
+func test_new_music_generators_produce_looping_16bit_streams():
+	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
+	var outrun: AudioStreamWAV = am._generate_game_music_outrun()
+	var industrial: AudioStreamWAV = am._generate_game_music_industrial()
+	var neon: AudioStreamWAV = am._generate_game_music_neon_drift()
+	for s in [outrun, industrial, neon]:
+		assert_not_null(s)
+		assert_eq(s.format, AudioStreamWAV.FORMAT_16_BITS)
+		assert_eq(s.loop_mode, AudioStreamWAV.LOOP_FORWARD)
+		assert_gt(s.data.size(), 0)
+
+func test_music_track_selection_and_playback():
+	var prev_track := AudioManager.get_music_track()
+	var options := AudioManager.get_music_options()
+	assert_gt(options.size(), 5, "Should expose multiple music track options")
+	assert_true(AudioManager.is_valid_music_track("outrun"))
+	assert_true(AudioManager.is_valid_music_track("industrial"))
+	assert_true(AudioManager.is_valid_music_track("neon_drift"))
+	assert_true(AudioManager.is_valid_music_track("classic"))
+	assert_false(AudioManager.is_valid_music_track("nonexistent_track"))
+
+	AudioManager.set_music_track("outrun", false)
+	assert_eq(AudioManager.get_music_track(), "outrun")
+	AudioManager.play_game_music()
+	assert_eq(AudioManager.music_player.stream, AudioManager._stream_game_music_outrun)
+
+	AudioManager.set_music_track("industrial", false)
+	AudioManager.play_game_music()
+	assert_eq(AudioManager.music_player.stream, AudioManager._stream_game_music_industrial)
+
+	AudioManager.set_music_track("neon_drift", false)
+	AudioManager.play_game_music()
+	assert_eq(AudioManager.music_player.stream, AudioManager._stream_game_music_neon_drift)
+
+	AudioManager.set_music_track(prev_track, false)

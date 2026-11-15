@@ -76,3 +76,13 @@ func test_set_volume_calls_save_settings():
 func test_set_volume_ignores_unknown_bus():
 	_sm.set_volume("NonExistentBusXYZ", 0.5)
 	assert_true(true, "set_volume with unknown bus should not crash")
+
+func test_player_skin_round_trip():
+	assert_eq(_sm.get_player_skin(), "default")
+	_sm.set_player_skin("solar_chrome")
+	assert_eq(_sm.get_player_skin(), "solar_chrome")
+
+func test_music_track_round_trip():
+	assert_eq(_sm.get_music_track(), "dynamic")
+	_sm.set_music_track("outrun")
+	assert_eq(_sm.get_music_track(), "outrun")

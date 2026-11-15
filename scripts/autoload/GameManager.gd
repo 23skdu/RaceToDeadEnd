@@ -26,6 +26,7 @@ var high_score: int = 0
 
 var enemy_list: Array[Node] = []
 var bosses_killed: int = 0
+var first_boss_defeated: bool = false
 var boss_active: bool = false
 
 var upgrade_levels: Dictionary = {
@@ -155,7 +156,21 @@ func record_run_kill(enemy_type: String) -> void:
 	if total_kills >= 50:
 		_unlock_achievement("centurion")
 	if enemy_type.begins_with("boss"):
+		first_boss_defeated = true
 		_unlock_achievement("boss_slayer")
+
+func record_boss_defeated(_boss_type: String = "") -> void:
+	bosses_killed += 1
+	first_boss_defeated = true
+	save_progress()
+
+func is_skin_unlocked(skin_id: String) -> bool:
+	if skin_id == "urban_camo":
+		return first_boss_defeated or bosses_killed >= 1 or ("boss_slayer" in unlocked_achievements)
+	for skin in Constants.PLAYER_SKINS:
+		if str(skin.get("id", "")) == skin_id:
+			return not bool(skin.get("unlock_boss", false))
+	return false
 
 func record_civilian_protected() -> void:
 	run_stats["civilians_protected"] = int(run_stats.get("civilians_protected", 0)) + 1
@@ -296,6 +311,8 @@ func _add_input_mappings() -> void:
 	_add_key_mapping("drop_mine", KEY_V)
 	_add_key_mapping("cycle_weapon", KEY_R)
 	_add_key_mapping("primary_fire", KEY_SPACE)
+	if not InputMap.has_action("screenshot"):
+		_add_key_mapping("screenshot", KEY_F12)
 
 func _add_key_mapping(action: String, keycode: int) -> void:
 	if not InputMap.has_action(action):
@@ -335,6 +352,7 @@ func save_progress() -> void:
 		"upgrade_levels": upgrade_levels.duplicate(),
 		"leaderboard": leaderboard.duplicate(true),
 		"achievements": unlocked_achievements.duplicate(),
+		"first_boss_defeated": first_boss_defeated,
 	}
 	var save_data = {
 		"version": SAVE_VERSION,
@@ -415,3 +433,7 @@ func load_progress() -> void:
 		for ach in payload.achievements:
 			if ach is String and ACHIEVEMENT_TITLES.has(ach) and not (ach in unlocked_achievements):
 				unlocked_achievements.append(ach)
+	if payload.has("first_boss_defeated") and typeof(payload.first_boss_defeated) == TYPE_BOOL:
+		first_boss_defeated = payload.first_boss_defeated
+	elif "boss_slayer" in unlocked_achievements:
+		first_boss_defeated = true

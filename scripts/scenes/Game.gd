@@ -481,7 +481,7 @@ func _on_score_popped(pos: Vector2, _points: int, label: String) -> void:
 	tween.tween_callback(_return_popup_label.bind(popup))
 
 func _on_boss_defeated(boss_type: String) -> void:
-	GameManager.bosses_killed += 1
+	GameManager.record_boss_defeated(boss_type)
 	var demo_scene = null
 	if boss_type == "boss_bunny":
 		demo_scene = DEMO_BUNNY_SCENE.instantiate()

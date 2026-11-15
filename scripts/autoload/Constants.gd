@@ -162,3 +162,52 @@ const ACID_OVERLAY_COLOR_HEAVY: Color = Color(0.15, 0.2, 0.15, 0.25)
 
 const ACID_OVERLAY_ALPHA_LIGHT: float = 0.15
 const ACID_OVERLAY_ALPHA_HEAVY: float = 0.25
+
+# Player Car Skins
+const PLAYER_SKINS: Array[Dictionary] = [
+	{
+		"id": "default",
+		"name": "Interceptor Classic",
+		"description": "Standard MK-VI Cyan-Navy Alloy",
+		"texture_path": "res://assets/sprites/player/interceptor.svg",
+		"use_default_modulate": true,
+		"colors": ["#1a2a3a", "#00ffcc", "#ff6600"],
+		"unlock_boss": false,
+	},
+	{
+		"id": "crimson_viper",
+		"name": "Crimson Viper",
+		"description": "Twin-Stripe Obsidian & Scarlet",
+		"texture_path": "res://assets/sprites/player/interceptor_crimson_viper.svg",
+		"use_default_modulate": false,
+		"colors": ["#1c090e", "#ff1e42", "#ffcc33"],
+		"unlock_boss": false,
+	},
+	{
+		"id": "toxic_volt",
+		"name": "Toxic Volt",
+		"description": "Hazard-Chevron Charcoal & Acid Lime",
+		"texture_path": "res://assets/sprites/player/interceptor_toxic_volt.svg",
+		"use_default_modulate": false,
+		"colors": ["#161b18", "#99ff00", "#ffee00"],
+		"unlock_boss": false,
+	},
+	{
+		"id": "solar_chrome",
+		"name": "Solar Chrome",
+		"description": "Synthwave Silver & Sunset Slashes",
+		"texture_path": "res://assets/sprites/player/interceptor_solar_chrome.svg",
+		"use_default_modulate": false,
+		"colors": ["#9aa8bc", "#ff2a85", "#ff7b00"],
+		"unlock_boss": false,
+	},
+	{
+		"id": "urban_camo",
+		"name": "Urban Camo",
+		"description": "Special Stealth Camouflage (Defeat 1st Boss)",
+		"texture_path": "res://assets/sprites/player/interceptor_urban_camo.svg",
+		"use_default_modulate": false,
+		"colors": ["#2b3038", "#6b7482", "#b4becb"],
+		"unlock_boss": true,
+	},
+]

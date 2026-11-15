@@ -5,7 +5,7 @@ signal binding_changed(action: String)
 const ACTIONS: Array[String] = [
 	"move_left", "move_right", "accelerate", "brake",
 	"primary_fire", "secondary_fire", "boost", "cycle_weapon",
-	"fire_emp", "drop_mine", "pause"
+	"fire_emp", "drop_mine", "pause", "screenshot"
 ]
 
 const SAVE_PATH: String = "user://input_bindings.cfg"

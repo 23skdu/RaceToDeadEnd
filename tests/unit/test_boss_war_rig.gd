@@ -26,6 +26,8 @@ func test_boss_defaults():
 	assert_eq(b.speed, 80.0, "Default speed")
 	assert_eq(b.phase, 1, "Default phase")
 	assert_false(b.minion_spawned, "Minions not yet spawned")
+	assert_not_null(b.sprite.texture, "BossWarRig should generate a procedural texture")
+	assert_eq(b.sprite.texture.get_width(), 128, "BossWarRig texture width should be 128")
 
 func test_boss_phase_starts_at_1():
 	var b = _create_boss()

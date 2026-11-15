@@ -33,6 +33,7 @@ cd RaceToDeadEnd
 | Secondary fire (missile/mine/EMP) | Shift |
 | Cycle secondary weapon | Q |
 | Boost (2× speed, 1.5s) | Tab |
+| Take screenshot | F12 (saves PNG to `user://screenshots/`) |
 
 ---
 
@@ -73,6 +74,7 @@ Garage.tscn (meta-progression shop)
 | `TransitionLayer` | `scripts/autoload/TransitionLayer.gd` | Fade-to-black scene transitions |
 | `PackManager` | `scripts/autoload/PackManager.gd` | Asset pack management |
 | `SettingsManager` | `scripts/autoload/SettingsManager.gd` | Audio/video/input settings |
+| `ScreenshotManager` | `scripts/autoload/ScreenshotManager.gd` | In-game `F12` viewport screenshot capture & PNG export |
 
 ### Collision Layers
 

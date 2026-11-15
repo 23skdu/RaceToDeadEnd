@@ -94,3 +94,50 @@ func test_interceptor_svg_not_icon():
 	var h = img.get_height()
 	var center = img.get_pixel(w / 2, h / 2)
 	assert_true(center.r < 0.5 or center.g < 0.5 or center.b < 0.5, "Center should not be white like icon.svg")
+
+func test_all_player_skin_svgs_valid():
+	assert_eq(Constants.PLAYER_SKINS.size(), 5, "Should define default + 3 style skins + urban camo")
+	for skin in Constants.PLAYER_SKINS:
+		var tex_path := str(skin.get("texture_path", ""))
+		assert_true(ResourceLoader.exists(tex_path), "Skin SVG should exist: " + tex_path)
+		var tex = load(tex_path)
+		assert_not_null(tex, "Skin texture should load: " + tex_path)
+		var img = tex.get_image()
+		assert_eq(img.get_width(), 64, "Skin SVG width should be 64: " + tex_path)
+		assert_eq(img.get_height(), 96, "Skin SVG height should be 96: " + tex_path)
+		assert_eq(img.get_pixel(0, 0).a, 0.0, "Top-left must be transparent: " + tex_path)
+		assert_eq(img.get_pixel(63, 95).a, 0.0, "Bottom-right must be transparent: " + tex_path)
+
+func test_urban_camo_unlocks_after_first_boss():
+	var prev_first := GameManager.first_boss_defeated
+	var prev_killed := GameManager.bosses_killed
+	var prev_ach := GameManager.unlocked_achievements.duplicate()
+	var prev_skin := SettingsManager.get_player_skin()
+
+	GameManager.first_boss_defeated = false
+	GameManager.bosses_killed = 0
+	GameManager.unlocked_achievements.clear()
+	assert_true(GameManager.is_skin_unlocked("default"))
+	assert_true(GameManager.is_skin_unlocked("crimson_viper"))
+	assert_true(GameManager.is_skin_unlocked("toxic_volt"))
+	assert_true(GameManager.is_skin_unlocked("solar_chrome"))
+	assert_false(GameManager.is_skin_unlocked("urban_camo"), "Urban Camo should be locked before 1st boss kill")
+
+	# Trying to equip locked urban_camo in Interceptor falls back to default
+	SettingsManager.set_player_skin("urban_camo")
+	var interceptor = load("res://scenes/player/Interceptor.tscn").instantiate()
+	add_child_autofree(interceptor)
+	assert_eq(interceptor.sprite.texture.resource_path, "res://assets/sprites/player/interceptor.svg", "Locked Urban Camo should not apply")
+
+	# Defeat 1st boss
+	GameManager.record_boss_defeated("boss_bunny")
+	assert_true(GameManager.is_skin_unlocked("urban_camo"), "Urban Camo should unlock after 1st boss kill")
+	interceptor._on_player_skin_changed("urban_camo")
+	assert_eq(interceptor.sprite.texture.resource_path, "res://assets/sprites/player/interceptor_urban_camo.svg", "Unlocked Urban Camo should apply")
+	assert_eq(interceptor.sprite.self_modulate, Color.WHITE, "Custom skin should use full-color WHITE modulate")
+
+	# Restore state
+	SettingsManager.set_player_skin(prev_skin)
+	GameManager.first_boss_defeated = prev_first
+	GameManager.bosses_killed = prev_killed
+	GameManager.unlocked_achievements = prev_ach

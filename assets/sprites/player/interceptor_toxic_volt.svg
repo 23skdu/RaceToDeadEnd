@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" width="64" height="96">
+  <!-- Toxic Volt: Matte Charcoal & Acid Lime / Yellow Hazard Chevrons -->
+  <path d="M32 4 L44 12 L48 24 L50 40 L50 64 L48 76 L44 84 L32 92 L20 84 L16 76 L14 64 L14 40 L16 24 L20 12 Z" fill="#161b18" stroke="#99ff00" stroke-width="1.5"/>
+
+  <!-- Front armor wedge -->
+  <path d="M32 8 L40 14 L42 22 L32 26 L22 22 L24 14 Z" fill="#232b24" stroke="#99ff00" stroke-width="0.6"/>
+
+  <!-- Forward hazard chevron pattern -->
+  <path d="M23 18 L32 13 L41 18 L41 21 L32 16 L23 21 Z" fill="#ffee00" opacity="0.9"/>
+  <path d="M21 24 L32 19 L43 24 L43 26.5 L32 21.5 L21 26.5 Z" fill="#99ff00" opacity="0.85"/>
+
+  <!-- Rear hazard chevron stripes -->
+  <path d="M21 67 L32 62 L43 67 L43 70 L32 65 L21 70 Z" fill="#ffee00" opacity="0.85"/>
+  <path d="M23 73 L32 68 L41 73 L41 75.5 L32 70.5 L23 75.5 Z" fill="#99ff00" opacity="0.8"/>
+
+  <!-- Hexagonal cyber armor grid lines -->
+  <polygon points="32,42 38,46 38,54 32,58 26,54 26,46" fill="#1e2720" stroke="#99ff00" stroke-width="0.8" opacity="0.9"/>
+
+  <!-- Cockpit canopy -->
+  <path d="M26 28 L38 28 L40 36 L32 40 L24 36 Z" fill="#0d140e" stroke="#99ff00" stroke-width="1"/>
+  <path d="M28 30 L36 30 L37 34 L32 36 L27 34 Z" fill="#99ff00" opacity="0.4"/>
+
+  <!-- Central weapons spine -->
+  <rect x="30" y="42" width="4" height="18" rx="1" fill="#2b362d" stroke="#ffee00" stroke-width="0.6"/>
+
+  <!-- Side armor panels -->
+  <path d="M16 40 L22 40 L22 64 L16 64 Z" fill="#222a23" stroke="#99ff00" stroke-width="0.6"/>
+  <path d="M42 40 L48 40 L48 64 L42 64 Z" fill="#222a23" stroke="#99ff00" stroke-width="0.6"/>
+
+  <!-- Side weapon mounts -->
+  <rect x="14" y="44" width="6" height="8" rx="1" fill="#2b362d" stroke="#ffee00" stroke-width="0.6"/>
+  <circle cx="17" cy="48" r="2" fill="#99ff00" opacity="0.9"/>
+  <rect x="44" y="44" width="6" height="8" rx="1" fill="#2b362d" stroke="#ffee00" stroke-width="0.6"/>
+  <circle cx="47" cy="48" r="2" fill="#99ff00" opacity="0.9"/>
+
+  <!-- Engine exhaust grilles -->
+  <rect x="24" y="74" width="6" height="4" rx="1" fill="#161b18" stroke="#99ff00" stroke-width="0.5"/>
+  <rect x="34" y="74" width="6" height="4" rx="1" fill="#161b18" stroke="#99ff00" stroke-width="0.5"/>
+
+  <!-- Rear thruster housing -->
+  <path d="M22 80 L32 86 L42 80 L40 76 L32 80 L24 76 Z" fill="#232b24" stroke="#99ff00" stroke-width="1"/>
+
+  <!-- Front targeting sensors -->
+  <circle cx="28" cy="18" r="1.5" fill="#99ff00" opacity="0.9"/>
+  <circle cx="36" cy="18" r="1.5" fill="#99ff00" opacity="0.9"/>
+
+  <!-- Side running lights -->
+  <circle cx="16" cy="32" r="1.5" fill="#ffee00" opacity="0.85"/>
+  <circle cx="48" cy="32" r="1.5" fill="#ffee00" opacity="0.85"/>
+
+  <!-- Exhaust flames -->
+  <path d="M26 86 L28 93 L30 86 Z" fill="#99ff00" opacity="0.85"/>
+  <path d="M34 86 L36 93 L38 86 Z" fill="#99ff00" opacity="0.85"/>
+</svg>

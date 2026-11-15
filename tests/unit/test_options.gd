@@ -157,3 +157,14 @@ func test_options_fullscreen_toggle_saves_via_settings_manager():
 	options._on_fullscreen_toggled(true)
 	var saved = SettingsManager.get_fullscreen()
 	assert_true(saved, "Fullscreen toggle should save via SettingsManager")
+
+func test_options_has_music_track_selector():
+	var prev_track := AudioManager.get_music_track()
+	var options = _create_options()
+	var opt_btn: OptionButton = options.get_node_or_null("Panel/TabContainer/AudioTab/MusicTrackRow/MusicTrackOption")
+	assert_not_null(opt_btn, "AudioTab should have MusicTrackOption")
+	assert_eq(opt_btn.item_count, AudioManager.get_music_options().size())
+	opt_btn.select(1)
+	options._on_music_track_selected(1)
+	assert_eq(AudioManager.get_music_track(), str(opt_btn.get_item_metadata(1)))
+	AudioManager.set_music_track(prev_track, false)

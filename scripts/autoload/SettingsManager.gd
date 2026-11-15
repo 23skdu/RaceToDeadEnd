@@ -1,5 +1,8 @@
 extends Node
 
+signal player_skin_changed(skin_id: String)
+signal music_track_changed(track_id: String)
+
 const InputRemapUtil = preload("res://scripts/scenes/ui/InputRemap.gd")
 
 const SETTINGS_PATH: String = "user://settings.cfg"
@@ -7,6 +10,7 @@ const AUDIO_SECTION: String = "audio"
 const VIDEO_SECTION: String = "video"
 const PACKS_SECTION: String = "packs"
 const CONTROLS_SECTION: String = "controls"
+const APPEARANCE_SECTION: String = "appearance"
 
 var _config: ConfigFile = ConfigFile.new()
 var _loaded: bool = false
@@ -118,3 +122,31 @@ func get_fullscreen(default: bool = false) -> bool:
 	if _config.has_section_key(VIDEO_SECTION, "fullscreen"):
 		return _config.get_value(VIDEO_SECTION, "fullscreen", default)
 	return default
+
+func set_player_skin(skin_id: String) -> void:
+	var clean_id := skin_id.strip_edges()
+	if clean_id.is_empty():
+		clean_id = "default"
+	_config.set_value(APPEARANCE_SECTION, "player_skin", clean_id)
+	save_settings()
+	player_skin_changed.emit(clean_id)
+
+func get_player_skin() -> String:
+	if _config.has_section_key(APPEARANCE_SECTION, "player_skin"):
+		var val := str(_config.get_value(APPEARANCE_SECTION, "player_skin", "default")).strip_edges()
+		return val if not val.is_empty() else "default"
+	return "default"
+
+func set_music_track(track_id: String) -> void:
+	var clean_id := track_id.strip_edges()
+	if clean_id.is_empty():
+		clean_id = "dynamic"
+	_config.set_value(AUDIO_SECTION, "music_track", clean_id)
+	save_settings()
+	music_track_changed.emit(clean_id)
+
+func get_music_track() -> String:
+	if _config.has_section_key(AUDIO_SECTION, "music_track"):
+		var val := str(_config.get_value(AUDIO_SECTION, "music_track", "dynamic")).strip_edges()
+		return val if not val.is_empty() else "dynamic"
+	return "dynamic"

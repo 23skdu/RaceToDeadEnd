@@ -25,7 +25,8 @@ res://
 │   │   ├── CameraShake.gd   # Screen shake + gamepad rumble
 │   │   ├── TransitionLayer.gd # Fade-to-black scene transitions
 │   │   ├── PackManager.gd   # Asset pack management
-│   │   └── SettingsManager.gd # Audio/video/input settings
+│   │   ├── SettingsManager.gd # Audio/video/input settings
+│   │   └── ScreenshotManager.gd # In-game F12 viewport screenshot capture + PNG export
 │   ├── scenes/              # Scripts attached to scene nodes
 │   │   ├── Game.gd          # Game root: init pools, connect signals, pause/game-over
 │   │   ├── Main.gd          # Main menu
@@ -80,7 +81,7 @@ res://
 - Enemy bullet speed is constant `BULLET_SPEED (500)`
 - Homing bullets use distance-bounded targeting (MAX_HOMING_RANGE = 400px)
 - Enemy types: Bunny (contact-damage only, gated before 1st boss kill), Rotor (swarm, gated behind 1st boss kill), Scav (flank + shoot, gated behind 2nd boss kill), Sasquatch (wandering brute, gated behind 2nd boss kill), Drone (hover + bomb, gated behind 3rd boss kill)
-- 4 boss types: BossBunny, BossGiantBiker (zombie giant on motorcycle with chain weapon), BossWarRig, BossVoidDrone (3-phase: ram → ram+bullets → ram+bullets+minions)
+- 4 main boss encounters (Cyber Bunny, Giant Biker, War Rig, Void Drone) plus the repurposed Sasquatch mini-boss — see [Boss Guide](bosses.md) for full details and screenshots
 - Sasquatch: repurposed from 2nd boss to a random wandering monster that appears after the 2nd boss kill
 
 ### Difficulty & Speed Scaling

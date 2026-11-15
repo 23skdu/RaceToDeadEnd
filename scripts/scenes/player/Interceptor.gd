@@ -61,20 +61,22 @@ var _trail_gradient: Gradient
 var _trail_points: Array[Vector2] = []
 var _trail_spacing_counter: float = 0.0
 var _default_sprite_texture: Texture2D = null
+var _default_sprite_modulate: Color = Color(0.2, 0.6, 1.0, 1.0)
 
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1 | 2
 	z_index = 1
 	add_to_group("player")
-	if sprite and sprite.texture:
-		_default_sprite_texture = sprite.texture
-	if PackManager and PackManager.has_method("get_custom_skin"):
-		var custom_tex: Texture2D = PackManager.get_custom_skin("player")
-		if custom_tex and sprite:
-			sprite.texture = custom_tex
+	if sprite:
+		if sprite.texture:
+			_default_sprite_texture = sprite.texture
+		_default_sprite_modulate = sprite.self_modulate
 	if PackManager and PackManager.has_signal("skin_loaded") and not PackManager.skin_loaded.is_connected(_on_pack_skin_loaded):
 		PackManager.skin_loaded.connect(_on_pack_skin_loaded)
+	if SettingsManager and SettingsManager.has_signal("player_skin_changed") and not SettingsManager.player_skin_changed.is_connected(_on_player_skin_changed):
+		SettingsManager.player_skin_changed.connect(_on_player_skin_changed)
+	_apply_selected_skin()
 	_scale_sprite()
 	$Camera2D.position.y = Constants.CAMERA_Y_OFFSET
 	$Camera2D.position_smoothing_enabled = false
@@ -343,13 +345,45 @@ func _update_boost_trail() -> void:
 		_trail_spacing_counter = 0.0
 		_trail_line.points = PackedVector2Array()
 
+func _on_player_skin_changed(_skin_id: String) -> void:
+	_apply_selected_skin()
+	_scale_sprite()
+
+func _apply_selected_skin() -> void:
+	if not sprite:
+		return
+	if PackManager and PackManager.has_method("get_custom_skin"):
+		var custom_tex: Texture2D = PackManager.get_custom_skin("player")
+		if custom_tex:
+			sprite.texture = custom_tex
+			sprite.self_modulate = Color.WHITE
+			return
+	var skin_id := "default"
+	if SettingsManager and SettingsManager.has_method("get_player_skin"):
+		skin_id = SettingsManager.get_player_skin()
+	if GameManager and GameManager.has_method("is_skin_unlocked") and not GameManager.is_skin_unlocked(skin_id):
+		skin_id = "default"
+	for skin_info in Constants.PLAYER_SKINS:
+		if str(skin_info.get("id", "")) == skin_id:
+			var tex_path := str(skin_info.get("texture_path", ""))
+			if not tex_path.is_empty() and ResourceLoader.exists(tex_path):
+				var tex: Texture2D = load(tex_path)
+				if tex:
+					sprite.texture = tex
+					sprite.self_modulate = _default_sprite_modulate if bool(skin_info.get("use_default_modulate", false)) else Color.WHITE
+					return
+	if _default_sprite_texture:
+		sprite.texture = _default_sprite_texture
+		sprite.self_modulate = _default_sprite_modulate
+
 func _on_pack_skin_loaded(entity: String, tex: Texture2D) -> void:
 	if entity != "player" or not sprite:
 		return
 	if tex:
 		sprite.texture = tex
-	elif _default_sprite_texture:
-		sprite.texture = _default_sprite_texture
+		sprite.self_modulate = Color.WHITE
+	else:
+		_apply_selected_skin()
 	_scale_sprite()
 
 func _scale_sprite() -> void:
