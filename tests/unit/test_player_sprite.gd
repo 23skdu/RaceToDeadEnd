@@ -60,29 +60,37 @@ func test_interceptor_scene_loads():
 
 func test_interceptor_scene_has_sprite():
 	var scene = load("res://scenes/player/Interceptor.tscn")
+	Engine.physics_interpolation = false
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
+	Engine.physics_interpolation = true
 	var sprite = instance.get_node_or_null("Sprite2D")
 	assert_not_null(sprite, "Should have Sprite2D node")
 
 func test_interceptor_scene_has_collision():
 	var scene = load("res://scenes/player/Interceptor.tscn")
+	Engine.physics_interpolation = false
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
+	Engine.physics_interpolation = true
 	var col = instance.get_node_or_null("CollisionShape2D")
 	assert_not_null(col, "Should have CollisionShape2D node")
 
 func test_interceptor_scene_has_weapon_mount():
 	var scene = load("res://scenes/player/Interceptor.tscn")
+	Engine.physics_interpolation = false
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
+	Engine.physics_interpolation = true
 	var mount = instance.get_node_or_null("WeaponMount")
 	assert_not_null(mount, "Should have WeaponMount node")
 
 func test_interceptor_scene_has_camera():
 	var scene = load("res://scenes/player/Interceptor.tscn")
+	Engine.physics_interpolation = false
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
+	Engine.physics_interpolation = true
 	var cam = instance.get_node_or_null("Camera2D")
 	assert_not_null(cam, "Should have Camera2D node")
 
@@ -107,6 +115,18 @@ func test_interceptor_has_neon_lights() -> void:
 	assert_gt(ug.energy, 0.0)
 	assert_not_null(hl.texture)
 	assert_not_null(ug.texture)
+
+func test_interceptor_has_gpu_particle_effects() -> void:
+	var interceptor = load("res://scenes/player/Interceptor.tscn").instantiate()
+	add_child_autofree(interceptor)
+	assert_not_null(interceptor.get_node_or_null("BoostExhaust"), "Interceptor should have BoostExhaust GPUParticles2D")
+	assert_not_null(interceptor.get_node_or_null("MuzzleFlash"), "Interceptor should have MuzzleFlash GPUParticles2D")
+	var exhaust: GPUParticles2D = interceptor.get_node("BoostExhaust")
+	var flash: GPUParticles2D = interceptor.get_node("MuzzleFlash")
+	assert_true(exhaust is GPUParticles2D)
+	assert_true(flash is GPUParticles2D)
+	assert_false(exhaust.emitting, "Boost exhaust should be off by default")
+	assert_false(flash.emitting, "Muzzle flash should be off by default")
 
 func test_all_player_skin_svgs_valid():
 	assert_eq(Constants.PLAYER_SKINS.size(), 7, "Should define default + 5 style skins + urban camo")

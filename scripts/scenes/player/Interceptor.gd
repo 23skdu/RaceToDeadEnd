@@ -65,6 +65,9 @@ var _default_sprite_modulate: Color = Color(0.2, 0.6, 1.0, 1.0)
 var _headlight: PointLight2D = null
 var _underglow: PointLight2D = null
 
+var _boost_exhaust: GPUParticles2D = null
+var _muzzle_flash: GPUParticles2D = null
+
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1 | 2
@@ -81,6 +84,7 @@ func _ready() -> void:
 	_apply_selected_skin()
 	_scale_sprite()
 	_setup_lights()
+	_setup_particles()
 	$Camera2D.position.y = Constants.CAMERA_Y_OFFSET
 	$Camera2D.position_smoothing_enabled = false
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
@@ -280,6 +284,9 @@ func _fire_primary() -> void:
 	var cooldown = clampf(Constants.PRIMARY_FIRE_COOLDOWN - (fr_level - 1) * Constants.FIRE_RATE_STEP, Constants.FIRE_RATE_MIN, Constants.FIRE_RATE_MAX)
 	primary_fire_timer = cooldown
 	weapon_fired.emit("machine_gun", weapon_mount.global_position, Vector2.UP)
+	if is_instance_valid(_muzzle_flash):
+		_muzzle_flash.restart()
+		_muzzle_flash.emitting = true
 
 func _fire_secondary() -> void:
 	if secondary_ammo[current_weapon] <= 0:
@@ -313,11 +320,15 @@ func _activate_boost() -> void:
 	AudioManager.play_synth_boost()
 	CameraShake.shake(0.2, 0.15, 3.0)
 	CameraShake.rumble(0.2, 0.15)
+	if is_instance_valid(_boost_exhaust):
+		_boost_exhaust.emitting = true
 
 func _deactivate_boost() -> void:
 	boost_active = false
 	boost_recharge_timer = Constants.BOOST_RECHARGE_TIME
 	boost_depleted.emit()
+	if is_instance_valid(_boost_exhaust):
+		_boost_exhaust.emitting = false
 
 func take_damage(amount: int = 1) -> void:
 	if invincible or boost_active:
@@ -434,9 +445,58 @@ func _create_light_texture(size: int, tint: Color) -> Texture2D:
 			alpha = pow(alpha, 2.0)
 			img.set_pixel(x, y, Color(tint.r, tint.g, tint.b, alpha * tint.a))
 	return ImageTexture.create_from_image(img)
-	if collision and collision.shape:
-		collision.shape = collision.shape.duplicate()
-		collision.shape.size = Vector2(28, 40) * (sprite.scale.y / 0.875)
+
+func _setup_particles() -> void:
+	# Boost exhaust trail
+	_boost_exhaust = GPUParticles2D.new()
+	_boost_exhaust.name = "BoostExhaust"
+	_boost_exhaust.z_index = -1
+	_boost_exhaust.amount = 64
+	_boost_exhaust.lifetime = 0.6
+	_boost_exhaust.one_shot = false
+	_boost_exhaust.emitting = false
+	_boost_exhaust.local_coords = false
+	var exhaust_img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	exhaust_img.fill(Color(1.0, 0.5, 0.1, 0.8))
+	_boost_exhaust.texture = ImageTexture.create_from_image(exhaust_img)
+	var exhaust_mat := ParticleProcessMaterial.new()
+	exhaust_mat.direction = Vector3(0, 1, 0)
+	exhaust_mat.spread = 25.0
+	exhaust_mat.gravity = Vector3.ZERO
+	exhaust_mat.initial_velocity_min = 80.0
+	exhaust_mat.initial_velocity_max = 140.0
+	exhaust_mat.scale_min = 0.6
+	exhaust_mat.scale_max = 1.2
+	exhaust_mat.color = Color(1.0, 0.5, 0.1, 0.7)
+	exhaust_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINT
+	_boost_exhaust.process_material = exhaust_mat
+	_boost_exhaust.position = Vector2(0.0, 24.0)
+	add_child(_boost_exhaust)
+
+	# Muzzle flash
+	_muzzle_flash = GPUParticles2D.new()
+	_muzzle_flash.name = "MuzzleFlash"
+	_muzzle_flash.z_index = 2
+	_muzzle_flash.amount = 12
+	_muzzle_flash.lifetime = 0.12
+	_muzzle_flash.one_shot = true
+	_muzzle_flash.emitting = false
+	_muzzle_flash.local_coords = false
+	var flash_img := Image.create(6, 6, false, Image.FORMAT_RGBA8)
+	flash_img.fill(Color(1.0, 0.9, 0.4, 1.0))
+	_muzzle_flash.texture = ImageTexture.create_from_image(flash_img)
+	var flash_mat := ParticleProcessMaterial.new()
+	flash_mat.direction = Vector3(0, -1, 0)
+	flash_mat.spread = 60.0
+	flash_mat.gravity = Vector3.ZERO
+	flash_mat.initial_velocity_min = 120.0
+	flash_mat.initial_velocity_max = 200.0
+	flash_mat.scale_min = 0.4
+	flash_mat.scale_max = 0.9
+	flash_mat.color = Color(1.0, 0.9, 0.4, 1.0)
+	_muzzle_flash.process_material = flash_mat
+	_muzzle_flash.position = Vector2(0.0, -30.0)
+	add_child(_muzzle_flash)
 
 func _draw() -> void:
 	var wheel_color = Color(0.12, 0.12, 0.15, 1.0)

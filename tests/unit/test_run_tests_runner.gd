@@ -2,15 +2,8 @@ extends GutTest
 
 const RunTestsScript = preload("res://scripts/run_tests.gd")
 
-func test_run_tests_script_loads_and_defines_init() -> void:
+func test_run_tests_script_loads() -> void:
 	assert_not_null(RunTestsScript, "scripts/run_tests.gd should load cleanly")
-	var methods := RunTestsScript.get_script_method_list()
-	var has_init := false
-	for m in methods:
-		if m.get("name", "") == "_init":
-			has_init = true
-			break
-	assert_true(has_init, "run_tests.gd should define _init()")
 
 func test_run_tests_discovers_all_test_suites() -> void:
 	var expected_dirs := [

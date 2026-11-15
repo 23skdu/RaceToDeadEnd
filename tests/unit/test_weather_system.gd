@@ -333,7 +333,7 @@ func test_lightning_bolt_cleaned_after_tween():
 	await get_tree().process_frame
 	assert_false(is_instance_valid(bolt), "Bolt should be freed after tween")
 func test_get_color_grading_tint_returns_distinct_colors() -> void:
-	var ws = WeatherSystemScript.new()
+	var ws = load("res://scenes/world/WeatherSystem.tscn").instantiate()
 	add_child_autofree(ws)
 	var clear_tint: Color = ws.get_color_grading_tint(ws.WeatherType.CLEAR)
 	var acid_tint: Color = ws.get_color_grading_tint(ws.WeatherType.ACID_RAIN)

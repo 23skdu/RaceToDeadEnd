@@ -168,3 +168,10 @@ func test_options_has_music_track_selector():
 	options._on_music_track_selected(1)
 	assert_eq(AudioManager.get_music_track(), str(opt_btn.get_item_metadata(1)))
 	AudioManager.set_music_track(prev_track, false)
+
+func test_options_has_resolution_selector():
+	var options = _create_options()
+	var res_btn: OptionButton = options.get_node_or_null("Panel/TabContainer/AudioTab/ResolutionRow/ResolutionOption")
+	assert_not_null(res_btn, "AudioTab should have ResolutionOption")
+	assert_eq(res_btn.item_count, 4, "Should offer 4 resolution options")
+	assert_gt(res_btn.item_count, 0)

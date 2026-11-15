@@ -97,8 +97,10 @@ func test_boss_and_weapon_textures_cached():
 # --- Regression 3 & 9: Interceptor boost trail & bridge fall ---
 
 func test_interceptor_boost_trail_reuses_gradient_and_is_visible():
+	Engine.physics_interpolation = false
 	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	add_child_autofree(player)
+	Engine.physics_interpolation = true
 	var grad = player._trail_gradient
 	assert_not_null(grad, "Pre-allocated gradient should exist")
 	assert_eq(player._trail_line.gradient, grad, "Line2D should use pre-allocated gradient")
@@ -113,8 +115,10 @@ func test_interceptor_boost_trail_reuses_gradient_and_is_visible():
 	assert_gt(player._trail_line.gradient.colors[0].a, 0.0, "Gradient start color should be visible")
 
 func test_interceptor_bridge_fall_right_half_snaps_to_right_lane():
+	Engine.physics_interpolation = false
 	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	add_child_autofree(player)
+	Engine.physics_interpolation = true
 	GameManager.start_game()
 	player.position.x = 500.0
 	player.on_bridge_fall(player)

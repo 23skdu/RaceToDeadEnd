@@ -12,6 +12,14 @@ signal back_to_menu_requested
 @onready var back_button: Button = $Panel/BackButton
 
 var _music_track_option: OptionButton = null
+var _resolution_option: OptionButton = null
+
+const RESOLUTION_OPTIONS: Array[Dictionary] = [
+	{"label": "1280x720 (HD)", "size": Vector2i(1280, 720)},
+	{"label": "1920x1080 (Full HD)", "size": Vector2i(1920, 1080)},
+	{"label": "2560x1440 (QHD)", "size": Vector2i(2560, 1440)},
+	{"label": "3840x2160 (4K UHD)", "size": Vector2i(3840, 2160)},
+]
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
@@ -23,6 +31,7 @@ func _ready() -> void:
 	_load_volume_settings()
 	_load_fullscreen_setting()
 	_setup_music_track_selector()
+	_setup_resolution_selector()
 	_setup_touch_toggle()
 
 	if not input_remap.is_inside_tree():
@@ -65,6 +74,42 @@ func _on_music_track_selected(index: int) -> void:
 	var track_id := str(_music_track_option.get_item_metadata(index))
 	if AudioManager and AudioManager.has_method("set_music_track"):
 		AudioManager.set_music_track(track_id)
+
+func _setup_resolution_selector() -> void:
+	var audio_tab = get_node_or_null("Panel/TabContainer/AudioTab")
+	if not audio_tab:
+		return
+	var row = HBoxContainer.new()
+	row.name = "ResolutionRow"
+	row.add_theme_constant_override("separation", 10)
+
+	var lbl = Label.new()
+	lbl.text = "RESOLUTION"
+	row.add_child(lbl)
+
+	_resolution_option = OptionButton.new()
+	_resolution_option.name = "ResolutionOption"
+	_resolution_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var current_size := DisplayServer.window_get_size()
+	var selected_idx := 0
+	for i in RESOLUTION_OPTIONS.size():
+		var opt := RESOLUTION_OPTIONS[i]
+		_resolution_option.add_item(str(opt["label"]), i)
+		_resolution_option.set_item_metadata(i, opt["size"])
+		var sz: Vector2i = opt["size"]
+		if sz == current_size:
+			selected_idx = i
+	_resolution_option.select(selected_idx)
+	_resolution_option.item_selected.connect(_on_resolution_selected)
+	row.add_child(_resolution_option)
+	audio_tab.add_child(row)
+
+func _on_resolution_selected(index: int) -> void:
+	if not is_instance_valid(_resolution_option):
+		return
+	var sz: Vector2i = _resolution_option.get_item_metadata(index)
+	if sz.x > 0 and sz.y > 0:
+		DisplayServer.window_set_size(sz)
 
 func _setup_touch_toggle() -> void:
 	var audio_tab = get_node_or_null("Panel/TabContainer/AudioTab")

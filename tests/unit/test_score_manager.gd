@@ -70,9 +70,11 @@ func test_register_pickup_multiplier_is_temporary():
 	assert_eq(GameManager._multiplier_timer, 10.0, "Multiplier timer should be 10 seconds")
 
 func test_register_pickup_boost():
+	Engine.physics_interpolation = false
 	var player = load("res://scenes/player/Interceptor.tscn").instantiate()
 	player.add_to_group("player")
 	add_child_autofree(player)
+	Engine.physics_interpolation = true
 	player.boost_charges = 1
 	GameManager.start_game()
 	var initial_charges = player.boost_charges

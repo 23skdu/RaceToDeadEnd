@@ -134,3 +134,10 @@ func test_main_info_back_callback_queues_free():
 
 func test_main_info_scene_path():
 	assert_true(ResourceLoader.exists("res://scenes/ui/InterceptorInfo.tscn"), "InterceptorInfo scene should exist")
+
+func test_physics_interpolation_enabled_in_project() -> void:
+	var cfg := ConfigFile.new()
+	var err := cfg.load("res://project.godot")
+	assert_eq(err, OK, "project.godot should load")
+	assert_true(cfg.has_section("physics"), "project.godot should have [physics] section")
+	assert_true(cfg.get_value("physics", "common/physics_interpolation", false), "Physics interpolation should be enabled")

@@ -36,7 +36,7 @@ func test_process_decreases_trauma():
 	_cam_shake._trauma = 1.0
 	_cam_shake._decay = 5.0
 	_cam_shake._camera = Camera2D.new()
-	add_child_autofree(_cam_shake._camera)
+	autofree(_cam_shake._camera)
 	_cam_shake._process(0.1)
 	assert_lt(_cam_shake._trauma, 1.0)
 
@@ -44,14 +44,14 @@ func test_process_decays_to_zero():
 	_cam_shake._trauma = 0.5
 	_cam_shake._decay = 10.0
 	_cam_shake._camera = Camera2D.new()
-	add_child_autofree(_cam_shake._camera)
+	autofree(_cam_shake._camera)
 	_cam_shake._process(1.0)
 	assert_eq(_cam_shake._trauma, 0.0)
 
 func test_process_does_nothing_when_trauma_zero():
 	_cam_shake._trauma = 0.0
 	var camera = Camera2D.new()
-	add_child_autofree(camera)
+	autofree(camera)
 	camera.offset = Vector2(100, 100)
 	_cam_shake._camera = camera
 	_cam_shake._process(0.1)
@@ -88,7 +88,7 @@ func test_process_applies_camera_offset():
 	_cam_shake._trauma = 1.0
 	_cam_shake._decay = 0.0
 	var camera = Camera2D.new()
-	add_child_autofree(camera)
+	autofree(camera)
 	_cam_shake._camera = camera
 	_cam_shake._process(0.016)
 	assert_ne(camera.offset, Vector2.ZERO)
