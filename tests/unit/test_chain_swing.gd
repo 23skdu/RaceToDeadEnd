@@ -56,6 +56,7 @@ func test_swing_body_entered_calls_take_damage():
 func test_swing_body_entered_non_player_ignored():
 	var s = _create_chain_swing()
 	var non_player = Node2D.new()
+	add_child_autofree(non_player)
 	s._on_body_entered(non_player)
 	assert_true(true, "Should not crash with non-player")
 
@@ -90,3 +91,12 @@ func test_swing_body_entered_player_requires_group():
 	add_child_autofree(player)
 	s._on_body_entered(player)
 	assert_eq(player.damage_taken, 0, "Non-group player should not take damage")
+
+func test_swing_pool_release_kills_active_tween():
+	var s = _create_chain_swing()
+	s.swing()
+	assert_not_null(s._tween, "Active tween should exist after swing()")
+	assert_true(s._tween.is_valid(), "Tween should be valid while swinging")
+	s.on_pool_release()
+	assert_null(s._tween, "Tween should be cleared on pool release")
+	assert_false(s.swung, "Swung flag should reset on pool release")

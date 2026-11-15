@@ -3,7 +3,6 @@ extends "res://scripts/scenes/enemies/Enemy.gd"
 var attack_timer: float = 0.0
 var minion_spawned: bool = false
 var phase: int = 1
-var _phase_2_done: bool = false
 
 signal boss_phase_changed(p: int)
 
@@ -18,7 +17,6 @@ func _reset_state() -> void:
 	speed = 80.0
 	attack_timer = 0.0
 	minion_spawned = false
-	_phase_2_done = false
 	phase = 1
 
 func on_pool_acquire() -> void:
@@ -87,25 +85,24 @@ func _execute_attack() -> void:
 	_ram_player()
 
 func _ram_player() -> void:
-	velocity.x = move_toward(velocity.x, Constants.BOSS_RAM_FORCE * (1 if player and player.global_position.x > global_position.x else -1), Constants.BOSS_RAM_SPEED * get_process_delta_time())
+	velocity.x = move_toward(velocity.x, Constants.BOSS_RAM_FORCE * (1 if player and player.global_position.x > global_position.x else -1), Constants.BOSS_RAM_SPEED * get_physics_process_delta_time())
 	CameraShake.shake(0.4, 0.2, 6.0)
 	CameraShake.rumble(0.5, 0.2)
 
 func _fire_bullet_spread() -> void:
-	if not _spawner or not _spawner.has_signal("spawn_minion_requested"):
-		return
 	const BULLET_SCENE = preload("res://scenes/weapons/Bullet.tscn")
+	var parent = get_parent()
+	if not parent:
+		return
 	for angle_offset in [-15.0, 0.0, 15.0]:
 		var bullet = ObjectPool.acquire("bullet")
 		if not bullet:
 			bullet = BULLET_SCENE.instantiate()
-		var parent = get_parent()
-		if parent:
-			parent.add_child(bullet)
+		parent.add_child(bullet)
 		bullet.global_position = global_position + Vector2(0, 48)
 		var dir = Vector2.DOWN.rotated(deg_to_rad(angle_offset))
 		bullet.init(bullet.global_position, dir, false)
-		AudioManager.play_synth_laser(global_position)
+	AudioManager.play_synth_laser(global_position)
 
 func _spawn_minions() -> void:
 	if _spawner and _spawner.has_signal("spawn_minion_requested"):

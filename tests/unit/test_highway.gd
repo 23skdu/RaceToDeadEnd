@@ -7,6 +7,7 @@ func before_all():
 
 func test_chunk_constants():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h.CHUNK_HEIGHT, 14, "Chunk height should be 14")
 	assert_eq(h.CHUNK_WIDTH, 14, "Chunk width should be 14")
 	assert_eq(h.TILE_SIZE, Vector2i(48, 24), "Tile size should be 48x24")
@@ -20,6 +21,7 @@ func test_chunk_constants():
 
 func test_chunk_type_enum():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h.ChunkType.STANDARD, 0, "STANDARD = 0")
 	assert_eq(h.ChunkType.DEBRIS, 1, "DEBRIS = 1")
 	assert_eq(h.ChunkType.ICE, 2, "ICE = 2")
@@ -28,6 +30,7 @@ func test_chunk_type_enum():
 
 func test_chunk_weights_sum():
 	var h = Highway.new()
+	autofree(h)
 	var total = 0
 	for w in h.chunk_weights.values():
 		total += w
@@ -35,6 +38,7 @@ func test_chunk_weights_sum():
 
 func test_chunk_weights_use_constants():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h.chunk_weights[h.ChunkType.STANDARD], Constants.CHUNK_WEIGHT_STANDARD_BASE, "Standard weight should use constant")
 	assert_eq(h.chunk_weights[h.ChunkType.DEBRIS], Constants.CHUNK_WEIGHT_DEBRIS_BASE, "Debris weight should use constant")
 	assert_eq(h.chunk_weights[h.ChunkType.ICE], Constants.CHUNK_WEIGHT_ICE_BASE, "Ice weight should use constant")
@@ -43,6 +47,7 @@ func test_chunk_weights_use_constants():
 
 func test_chunk_weights_scale_with_difficulty():
 	var h = Highway.new()
+	autofree(h)
 	var gm = load("res://scripts/autoload/GameManager.gd").new()
 	add_child_autofree(gm)
 	gm.start_game()
@@ -55,6 +60,7 @@ func test_chunk_weights_scale_with_difficulty():
 
 func test_pick_chunk_type_returns_valid():
 	var h = Highway.new()
+	autofree(h)
 	for i in range(20):
 		var result = h._pick_chunk_type()
 		assert_true(result >= 0 and result <= 4, "Should return valid chunk type")
@@ -90,6 +96,7 @@ func test_current_segment_increments():
 
 func test_remove_tiles_node_from_chunk():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	var tiles = Node2D.new()
 	tiles.name = "Tiles"
@@ -97,6 +104,7 @@ func test_remove_tiles_node_from_chunk():
 	add_child_autofree(chunk)
 	chunk.remove_child(tiles)
 	tiles.queue_free()
+	autofree(tiles)
 	assert_false(chunk.has_node("Tiles"), "Tiles node should be removed")
 
 func test_ice_entered_emits_signal():
@@ -104,6 +112,7 @@ func test_ice_entered_emits_signal():
 	add_child_autofree(h)
 	watch_signals(h)
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	h._on_ice_entered(mock_body)
 	assert_signal_emitted(h, "ice_entered", "Should emit ice_entered signal")
 
@@ -112,6 +121,7 @@ func test_ice_exited_emits_signal():
 	add_child_autofree(h)
 	watch_signals(h)
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	h._on_ice_exited(mock_body)
 	assert_signal_emitted(h, "ice_exited", "Should emit ice_exited signal")
 
@@ -120,6 +130,7 @@ func test_bridge_fall_emits_signal():
 	add_child_autofree(h)
 	watch_signals(h)
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	h._on_bridge_fall(mock_body)
 	assert_signal_emitted(h, "bridge_fall", "Should emit bridge_fall signal")
 
@@ -128,6 +139,7 @@ func test_highway_does_not_call_player_methods_directly():
 	add_child_autofree(h)
 	watch_signals(h)
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	h._on_ice_entered(mock_body)
 	h._on_ice_exited(mock_body)
 	h._on_bridge_fall(mock_body)
@@ -137,31 +149,37 @@ func test_highway_does_not_call_player_methods_directly():
 
 func test_get_tile_variant_standard():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h._get_tile_variant(h.ChunkType.STANDARD, 0, 0), 0, "Standard always 0")
 	assert_eq(h._get_tile_variant(h.ChunkType.STANDARD, 5, 3), 0, "Standard always 0")
 
 func test_get_tile_variant_debris():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 3), 1, "Debris at row 0 col 3 (first lane col)")
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 0), 0, "No Debris at row 0 col 0 (shoulder)")
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 1, 4), 0, "No Debris at row 1 col 4")
 
 func test_get_tile_variant_ice():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h._get_tile_variant(h.ChunkType.ICE, 0, 0), 2, "Ice always 2")
 
 func test_get_tile_variant_construction():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 2), 3, "Construction at col 2 (left of lane)")
 	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 11), 3, "Construction at col 11 (right of lane)")
 	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 5), 0, "No Construction at col 5 (mid lane)")
 
 func test_get_tile_variant_bridge():
 	var h = Highway.new()
+	autofree(h)
 	assert_eq(h._get_tile_variant(h.ChunkType.BRIDGE, 0, 0), 4, "Bridge always 4")
 
 func _create_mock_player(pos: Vector2) -> Node2D:
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.position = pos
 	player.global_position = pos
 	return player
@@ -204,6 +222,7 @@ func test_recycle_chunk_emits_signal():
 
 func test_create_diamond_mesh_returns_array_mesh():
 	var h = Highway.new()
+	autofree(h)
 	var mesh = h._create_diamond_mesh()
 	assert_is(mesh, ArrayMesh, "Should return ArrayMesh")
 
@@ -217,6 +236,7 @@ func test_chunk_tiles_have_y_sort_enabled():
 
 func test_generate_chunk_tiles_creates_obstacles_for_debris():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.DEBRIS)
@@ -230,6 +250,7 @@ func test_generate_chunk_tiles_creates_obstacles_for_debris():
 
 func test_generate_chunk_tiles_creates_ice_area():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.ICE)
@@ -243,6 +264,7 @@ func test_generate_chunk_tiles_creates_ice_area():
 
 func test_generate_chunk_tiles_creates_bridge_areas():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.BRIDGE)
@@ -283,6 +305,7 @@ func test_segment_completed_signal_emits_segment_number():
 
 func test_generate_chunk_tiles_creates_rails():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.STANDARD)
@@ -296,6 +319,7 @@ func test_generate_chunk_tiles_creates_rails():
 
 func test_generate_chunk_tiles_standard_no_ice_area():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.STANDARD)
@@ -308,6 +332,7 @@ func test_generate_chunk_tiles_standard_no_ice_area():
 
 func test_chunk_weights_adjusted_at_high_tier():
 	var h = Highway.new()
+	autofree(h)
 	var gm = load("res://scripts/autoload/GameManager.gd").new()
 	add_child_autofree(gm)
 	gm.start_game()
@@ -319,7 +344,9 @@ func test_chunk_weights_adjusted_at_high_tier():
 
 func test_build_tiles_into_standard_creates_tiles():
 	var h = Highway.new()
+	autofree(h)
 	var standard_tiles = Node2D.new()
+	add_child_autofree(standard_tiles)
 	h._build_tiles_into(standard_tiles, h.ChunkType.STANDARD)
 	assert_gt(standard_tiles.get_child_count(), 0, "STANDARD type should create tile nodes")
 	var has_mesh = false
@@ -331,7 +358,9 @@ func test_build_tiles_into_standard_creates_tiles():
 
 func test_build_tiles_into_bridge_creates_fewer_tiles():
 	var h = Highway.new()
+	autofree(h)
 	var bridge_tiles = Node2D.new()
+	add_child_autofree(bridge_tiles)
 	h._build_tiles_into(bridge_tiles, h.ChunkType.BRIDGE)
 	assert_gt(bridge_tiles.get_child_count(), 0, "BRIDGE type should create some tiles")
 	var has_mesh = false
@@ -343,7 +372,9 @@ func test_build_tiles_into_bridge_creates_fewer_tiles():
 
 func test_build_tiles_into_construction_creates_tiles():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.CONSTRUCTION)
 	assert_gt(tiles.get_child_count(), 0, "CONSTRUCTION type should create tile nodes")
 	var has_shoulder = false
@@ -355,6 +386,7 @@ func test_build_tiles_into_construction_creates_tiles():
 
 func test_reserve_tiles_pool_allocates():
 	var h = Highway.new()
+	autofree(h)
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var first = h._reserve_tiles(h.ChunkType.STANDARD)
@@ -368,9 +400,12 @@ func test_reserve_tiles_pool_allocates():
 
 func test_reconnect_chunk_signals_connects_ice_areas():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.ICE)
 	var clone = tiles.duplicate()
+	add_child_autofree(clone)
 	h._reconnect_chunk_signals(clone, h.ChunkType.ICE)
 	var found_connected = false
 	for child in clone.get_children():
@@ -382,8 +417,11 @@ func test_reconnect_chunk_signals_connects_ice_areas():
 
 func test_guardrail_color_varies_by_chunk_type():
 	var h = Highway.new()
+	autofree(h)
 	var standard_tiles = Node2D.new()
+	add_child_autofree(standard_tiles)
 	var bridge_tiles = Node2D.new()
+	add_child_autofree(bridge_tiles)
 	h._build_tiles_into(standard_tiles, h.ChunkType.STANDARD)
 	h._build_tiles_into(bridge_tiles, h.ChunkType.BRIDGE)
 	var standard_color = Color(1.0, 1.0, 0.8)
@@ -403,12 +441,15 @@ func test_guardrail_color_varies_by_chunk_type():
 
 func test_create_desert_decoration_creates_child_nodes():
 	var h = Highway.new()
+	autofree(h)
 	for decor_type in range(4):
 		var decor = h._create_desert_decoration(decor_type)
+		add_child_autofree(decor)
 		assert_gt(decor.get_child_count(), 0, "Decoration type " + str(decor_type) + " should have child Polygon2D nodes")
 
 func test_ice_chunk_area_signals_connected():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.ICE)
@@ -424,6 +465,7 @@ func test_ice_chunk_area_signals_connected():
 
 func test_bridge_chunk_area_has_bridge_fall_connections():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
 	add_child_autofree(chunk)
 	h._generate_chunk_tiles(chunk, h.ChunkType.BRIDGE)
@@ -440,6 +482,7 @@ func test_bridge_chunk_area_has_bridge_fall_connections():
 
 func test_mark_buffer_free_reuses_buffer():
 	var h = Highway.new()
+	autofree(h)
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var first = h._reserve_tiles(h.ChunkType.STANDARD)
@@ -455,14 +498,17 @@ func test_mark_buffer_free_reuses_buffer():
 
 func test_mark_buffer_free_unknown_buffer_does_nothing():
 	var h = Highway.new()
+	autofree(h)
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var unknown = Node2D.new()
+	add_child_autofree(unknown)
 	h._mark_buffer_free(unknown)
 	assert_true(true, "Should not crash when marking unknown buffer free")
 
 func test_mark_buffer_free_skips_other_types():
 	var h = Highway.new()
+	autofree(h)
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var standard = h._reserve_tiles(h.ChunkType.STANDARD)
@@ -473,6 +519,7 @@ func test_mark_buffer_free_skips_other_types():
 
 func test_reserve_tiles_reuses_freed_buffer_across_types():
 	var h = Highway.new()
+	autofree(h)
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var standard = h._reserve_tiles(h.ChunkType.STANDARD)
@@ -482,6 +529,7 @@ func test_reserve_tiles_reuses_freed_buffer_across_types():
 
 func test_reserve_tiles_reconnect_signals_on_reuse():
 	var h = Highway.new()
+	autofree(h)
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var buf = h._reserve_tiles(h.ChunkType.ICE)
@@ -519,6 +567,7 @@ func _force_prewarm_empty(h):
 
 func test_generate_chunk_tiles_into_creates_tiles():
 	var h = Highway.new()
+	autofree(h)
 	var parent = Node2D.new()
 	add_child_autofree(parent)
 	h._generate_chunk_tiles_into(parent, h.ChunkType.STANDARD)
@@ -528,12 +577,14 @@ func test_generate_chunk_tiles_into_creates_tiles():
 
 func test_create_rect_mesh_returns_array_mesh():
 	var h = Highway.new()
+	autofree(h)
 	var mesh = h._create_rect_mesh(Vector2(4, 14))
 	assert_is(mesh, ArrayMesh, "Should return ArrayMesh")
 	assert_eq(mesh.get_surface_count(), 1, "Should have 1 surface")
 
 func test_create_rect_mesh_has_correct_vertex_count():
 	var h = Highway.new()
+	autofree(h)
 	var mesh = h._create_rect_mesh(Vector2(10, 20))
 	var arrays = mesh.surface_get_arrays(0)
 	var verts = arrays[Mesh.ARRAY_VERTEX] as PackedVector2Array
@@ -541,13 +592,17 @@ func test_create_rect_mesh_has_correct_vertex_count():
 
 func test_get_tiles_node_returns_null_for_empty_chunk():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
+	add_child_autofree(chunk)
 	var result = h._get_tiles_node(chunk)
 	assert_null(result, "Empty chunk should return null")
 
 func test_get_tiles_node_returns_first_child():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
+	add_child_autofree(chunk)
 	var child = Node2D.new()
 	child.name = "Tiles"
 	chunk.add_child(child)
@@ -556,6 +611,7 @@ func test_get_tiles_node_returns_first_child():
 
 func test_get_tile_variant_default_returns_zero():
 	var h = Highway.new()
+	autofree(h)
 	var result = h._get_tile_variant(-1, 0, 0)
 	assert_eq(result, 0, "Invalid chunk type should return 0")
 
@@ -586,9 +642,12 @@ func test_process_does_not_recycle_below_threshold():
 
 func test_reconnect_chunk_signals_bridge_connects_areas():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.BRIDGE)
 	var clone = tiles.duplicate()
+	add_child_autofree(clone)
 	h._reconnect_chunk_signals(clone, h.ChunkType.BRIDGE)
 	var found_connected = false
 	for child in clone.get_children():
@@ -599,9 +658,12 @@ func test_reconnect_chunk_signals_bridge_connects_areas():
 
 func test_reconnect_chunk_signals_standard_does_nothing():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.STANDARD)
 	var clone = tiles.duplicate()
+	add_child_autofree(clone)
 	h._reconnect_chunk_signals(clone, h.ChunkType.STANDARD)
 	for child in clone.get_children():
 		if child is Area2D:
@@ -610,23 +672,31 @@ func test_reconnect_chunk_signals_standard_does_nothing():
 
 func test_reconnect_chunk_signals_debris_does_nothing():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.DEBRIS)
 	var clone = tiles.duplicate()
+	add_child_autofree(clone)
 	h._reconnect_chunk_signals(clone, h.ChunkType.DEBRIS)
 	assert_true(true, "DEBRIS reconnect should not error")
 
 func test_reconnect_chunk_signals_construction_does_nothing():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.CONSTRUCTION)
 	var clone = tiles.duplicate()
+	add_child_autofree(clone)
 	h._reconnect_chunk_signals(clone, h.ChunkType.CONSTRUCTION)
 	assert_true(true, "CONSTRUCTION reconnect should not error")
 
 func test_reconnect_chunk_signals_already_connected_does_not_duplicate():
 	var h = Highway.new()
+	autofree(h)
 	var tiles = Node2D.new()
+	add_child_autofree(tiles)
 	h._build_tiles_into(tiles, h.ChunkType.ICE)
 	h._reconnect_chunk_signals(tiles, h.ChunkType.ICE)
 	var total_body_entered = 0
@@ -640,22 +710,29 @@ func test_reconnect_chunk_signals_already_connected_does_not_duplicate():
 
 func test_remove_tiles_no_tiles_does_not_crash():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
+	add_child_autofree(chunk)
 	assert_true(true, "Should not crash when chunk has no tiles")
 
 func test_remove_tiles_queue_free_tiles():
 	var h = Highway.new()
+	autofree(h)
 	var chunk = Node2D.new()
+	add_child_autofree(chunk)
 	var tiles = Node2D.new()
 	tiles.name = "Tiles"
 	chunk.add_child(tiles)
 	chunk.remove_child(tiles)
 	tiles.queue_free()
+	autofree(tiles)
 	assert_true(tiles.is_queued_for_deletion(), "Tiles should be queued for deletion")
 
 func test_diamond_mesh_is_cached():
 	var h1 = Highway.new()
 	var h2 = Highway.new()
+	autofree(h1)
+	autofree(h2)
 	var mesh1 = h1._create_diamond_mesh()
 	var mesh2 = h2._create_diamond_mesh()
 	assert_eq(mesh1, mesh2, "Diamond mesh should be cached across instances")
@@ -663,12 +740,15 @@ func test_diamond_mesh_is_cached():
 func test_rect_mesh_is_cached():
 	var h1 = Highway.new()
 	var h2 = Highway.new()
+	autofree(h1)
+	autofree(h2)
 	var mesh1 = h1._create_rect_mesh(Vector2(4, 14))
 	var mesh2 = h2._create_rect_mesh(Vector2(4, 14))
 	assert_eq(mesh1, mesh2, "Rect mesh should be cached for same size")
 
 func test_rect_mesh_different_sizes_not_same():
 	var h = Highway.new()
+	autofree(h)
 	var small = h._create_rect_mesh(Vector2(4, 14))
 	var large = h._create_rect_mesh(Vector2(8, 28))
 	assert_ne(small, large, "Different rect sizes should return different cached meshes")

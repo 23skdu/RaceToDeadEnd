@@ -3,6 +3,7 @@ extends Area2D
 var swing_duration: float = 0.6
 var age: float = 0.0
 var swung: bool = false
+var _tween: Tween = null
 
 func _ready() -> void:
 	collision_layer = 4
@@ -42,9 +43,11 @@ func swing() -> void:
 	if swung:
 		return
 	swung = true
-	var tween = create_tween()
-	tween.tween_property(self, "rotation", deg_to_rad(130.0), swing_duration).from(deg_to_rad(-60.0))
-	tween.tween_callback(_finish)
+	if _tween and _tween.is_valid():
+		_tween.kill()
+	_tween = create_tween()
+	_tween.tween_property(self, "rotation", deg_to_rad(130.0), swing_duration).from(deg_to_rad(-60.0))
+	_tween.tween_callback(_finish)
 
 func _on_body_entered(body: Node) -> void:
 	if body.has_method("take_damage") and body.is_in_group("player"):
@@ -59,4 +62,9 @@ func on_pool_acquire() -> void:
 	rotation = 0.0
 
 func on_pool_release() -> void:
-	pass
+	if _tween and _tween.is_valid():
+		_tween.kill()
+	_tween = null
+	age = 0.0
+	swung = false
+	rotation = 0.0

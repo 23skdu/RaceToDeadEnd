@@ -194,6 +194,7 @@ func test_show_floating_text_creates_label():
 func test_get_popup_label_returns_label():
 	var game = _create_game()
 	var label = game._get_popup_label()
+	autofree(label)
 	assert_is(label, Label, "Should return a Label instance")
 
 func test_get_popup_label_creates_new_if_pool_empty():
@@ -201,6 +202,7 @@ func test_get_popup_label_creates_new_if_pool_empty():
 	var old_pool = game._popup_pool.duplicate()
 	game._popup_pool.clear()
 	var label = game._get_popup_label()
+	autofree(label)
 	assert_is(label, Label, "Should create a new Label when pool is empty")
 	game._popup_pool = old_pool
 
@@ -248,3 +250,15 @@ func test_game_viewport_resize_adjusts_world_scale():
 	var game = _create_game()
 	game._on_viewport_size_changed()
 	assert_eq(game.world.scale, Constants.WORLD_SCALE, "World scale should match Constants.WORLD_SCALE at default viewport width")
+
+func test_return_popup_label_caps_at_pool_size():
+	var game = _create_game()
+	var excess_labels: Array[Label] = []
+	for i in game.POPUP_POOL_SIZE + 2:
+		var lbl = Label.new()
+		game._return_popup_label(lbl)
+		if lbl.is_queued_for_deletion():
+			excess_labels.append(lbl)
+	assert_eq(game._popup_pool.size(), game.POPUP_POOL_SIZE, "Popup pool should cap at POPUP_POOL_SIZE")
+	assert_eq(excess_labels.size(), 2, "Excess popup labels should be queued for deletion")
+	await get_tree().process_frame

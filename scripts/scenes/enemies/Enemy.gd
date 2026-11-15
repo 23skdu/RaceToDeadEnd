@@ -13,6 +13,8 @@ const SCAV_TEXTURE = preload("res://assets/sprites/enemies/scav.png")
 const DRONE_TEXTURE = preload("res://assets/sprites/enemies/drone.png")
 
 static var _bunny_texture: Texture2D = null
+static var _sasquatch_fallback_texture: Texture2D = null
+static var _eye_shader_material: ShaderMaterial = null
 
 var enemy_type: EnemyType = EnemyType.ROTOR
 var boss_key: String = ""
@@ -36,6 +38,16 @@ func _ready() -> void:
 	add_to_group("enemy")
 	if not get_viewport().size_changed.is_connected(_scale_sprite):
 		get_viewport().size_changed.connect(_scale_sprite)
+	if PackManager and PackManager.has_signal("skin_loaded") and not PackManager.skin_loaded.is_connected(_on_pack_skin_loaded):
+		PackManager.skin_loaded.connect(_on_pack_skin_loaded)
+
+func _on_pack_skin_loaded(entity: String, tex: Texture2D) -> void:
+	if entity == TYPE_NAMES[enemy_type] or (boss_key != "" and entity == boss_key):
+		if tex:
+			sprite.texture = tex
+			_scale_sprite()
+		else:
+			_update_sprite()
 
 func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float, spawner: Node = null) -> void:
 	enemy_type = type
@@ -66,6 +78,13 @@ func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float,
 	_update_sprite()
 
 func _update_sprite() -> void:
+	var type_key: String = boss_key if boss_key != "" else TYPE_NAMES[enemy_type]
+	if PackManager and PackManager.has_method("get_custom_skin"):
+		var custom_tex: Texture2D = PackManager.get_custom_skin(type_key)
+		if custom_tex:
+			sprite.texture = custom_tex
+			_scale_sprite()
+			return
 	match enemy_type:
 		EnemyType.BUNNY:
 			if not _bunny_texture:
@@ -80,17 +99,20 @@ func _update_sprite() -> void:
 			sprite.texture = DRONE_TEXTURE
 		EnemyType.SASQUATCH:
 			if not sprite.texture:
-				var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
-				img.fill(Color(0.5, 0.25, 0.1, 1.0))
-				sprite.texture = ImageTexture.create_from_image(img)
+				if not _sasquatch_fallback_texture:
+					var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
+					img.fill(Color(0.5, 0.25, 0.1, 1.0))
+					_sasquatch_fallback_texture = ImageTexture.create_from_image(img)
+				sprite.texture = _sasquatch_fallback_texture
 	_scale_sprite()
 
 func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, Constants.SPRITE_BASE_SIZE, Constants.SPRITE_BASE_VIEWPORT)
 
 func apply_pulsating_eyes_shader() -> void:
-	var eye_shader = Shader.new()
-	eye_shader.code = """
+	if not _eye_shader_material:
+		var eye_shader = Shader.new()
+		eye_shader.code = """
 shader_type canvas_item;
 void fragment() {
 	vec4 c = texture(TEXTURE, UV);
@@ -102,9 +124,9 @@ void fragment() {
 	}
 }
 """
-	var mat = ShaderMaterial.new()
-	mat.shader = eye_shader
-	sprite.material = mat
+		_eye_shader_material = ShaderMaterial.new()
+		_eye_shader_material.shader = eye_shader
+	sprite.material = _eye_shader_material
 
 static func _create_bunny_texture() -> ImageTexture:
 	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)

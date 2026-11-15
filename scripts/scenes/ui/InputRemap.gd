@@ -24,7 +24,7 @@ func _ready() -> void:
 func _build_action_list() -> void:
 	for child in action_list.get_children():
 		action_list.remove_child(child)
-		child.queue_free()
+		child.free()
 	_rows.clear()
 
 	for action in ACTIONS:
@@ -52,16 +52,20 @@ func _build_action_list() -> void:
 			btn.pressed.connect(_on_rebind_pressed.bind(captured_action, captured_idx, btn))
 			row.add_child(btn)
 
-		var clear_btn = Button.new()
-		clear_btn.text = "X"
-		clear_btn.custom_minimum_size.x = 30
-		var captured_action2 = action
-		var captured_idx2 = 0
-		clear_btn.pressed.connect(_on_clear_pressed.bind(captured_action2, captured_idx2))
-		row.add_child(clear_btn)
+			var clear_btn = Button.new()
+			clear_btn.text = "X"
+			clear_btn.custom_minimum_size.x = 30
+			clear_btn.pressed.connect(_on_clear_pressed.bind(captured_action, captured_idx))
+			row.add_child(clear_btn)
 
 		action_list.add_child(row)
 		_rows.append({"action": action, "buttons": []})
+
+	var reset_btn = Button.new()
+	reset_btn.name = "ResetDefaultsButton"
+	reset_btn.text = "Reset to Defaults"
+	reset_btn.pressed.connect(reset_to_defaults)
+	action_list.add_child(reset_btn)
 
 func _event_to_string(event: InputEvent) -> String:
 	if event is InputEventKey:
@@ -151,6 +155,25 @@ func _on_clear_pressed(action: String, idx: int) -> void:
 func _rebuild() -> void:
 	_build_action_list()
 
+func reset_to_defaults() -> void:
+	for action in ACTIONS:
+		InputMap.action_erase_events(action)
+		var setting_key := "input/" + action
+		if ProjectSettings.has_setting(setting_key):
+			var cfg = ProjectSettings.get_setting(setting_key)
+			if cfg is Dictionary and cfg.has("events"):
+				for ev in cfg["events"]:
+					if ev is InputEvent:
+						InputMap.action_add_event(action, ev.duplicate())
+	if GameManager and GameManager.has_method("_add_input_mappings"):
+		GameManager._add_input_mappings()
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+	for action in ACTIONS:
+		binding_changed.emit(action)
+	if action_list:
+		_rebuild()
+
 func save_bindings() -> void:
 	var config = ConfigFile.new()
 	for action in ACTIONS:
@@ -164,18 +187,29 @@ func save_bindings() -> void:
 	config.save(SAVE_PATH)
 
 func load_bindings() -> void:
+	load_saved_bindings()
+
+static func load_saved_bindings() -> void:
 	var config = ConfigFile.new()
 	var err = config.load(SAVE_PATH)
 	if err != OK:
 		return
 	for action in ACTIONS:
+		if not config.has_section_key("bindings", action):
+			continue
 		var serialized = config.get_value("bindings", action, [])
-		if serialized.size() > 0:
-			InputMap.action_erase_events(action)
-			for s in serialized:
-				var e = _deserialize_event(s)
+		if not (serialized is Array):
+			continue
+		var parsed: Array[InputEvent] = []
+		for s in serialized:
+			if typeof(s) == TYPE_STRING:
+				var e = deserialize_event_safe(s)
 				if e:
-					InputMap.action_add_event(action, e)
+					parsed.append(e)
+		if parsed.size() > 0:
+			InputMap.action_erase_events(action)
+			for e in parsed:
+				InputMap.action_add_event(action, e)
 
 func _serialize_event(event: InputEvent) -> String:
 	if event is InputEventKey:
@@ -187,20 +221,49 @@ func _serialize_event(event: InputEvent) -> String:
 	return ""
 
 func _deserialize_event(s: String) -> InputEvent:
+	return deserialize_event_safe(s)
+
+static func deserialize_event_safe(s: String) -> InputEvent:
+	if s.is_empty():
+		return null
 	var parts = s.split(":")
 	if parts.size() < 2:
 		return null
 	if parts[0] == "key":
+		var code := 0
+		if parts[1] != "":
+			if not parts[1].is_valid_int():
+				return null
+			code = int(parts[1])
+		if code < 0 or code > 0x7FFFFFFF:
+			return null
 		var e = InputEventKey.new()
-		e.physical_keycode = int(parts[1])
+		e.physical_keycode = code
 		return e
 	if parts[0] == "jbtn":
+		if not parts[1].is_valid_int():
+			return null
+		var btn := int(parts[1])
+		if btn < 0 or btn >= JOY_BUTTON_MAX:
+			return null
 		var e = InputEventJoypadButton.new()
-		e.button_index = int(parts[1])
+		e.button_index = btn
 		return e
 	if parts[0] == "jaxis":
+		if not parts[1].is_valid_int():
+			return null
+		var axis_idx := int(parts[1])
+		if axis_idx < 0 or axis_idx >= JOY_AXIS_MAX:
+			return null
+		var axis_val := 1.0
+		if parts.size() >= 3 and parts[2] != "":
+			if not parts[2].is_valid_float():
+				return null
+			axis_val = float(parts[2])
+			if is_nan(axis_val) or is_inf(axis_val) or absf(axis_val) > 1.0:
+				return null
 		var e = InputEventJoypadMotion.new()
-		e.axis = int(parts[1])
-		e.axis_value = float(parts[2]) if parts.size() >= 3 and parts[2] != "" else 1.0
+		e.axis = axis_idx
+		e.axis_value = axis_val
 		return e
 	return null

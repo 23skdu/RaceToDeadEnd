@@ -47,6 +47,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 - <<'PY'
+          import hashlib
           import json
           import os
           import re
@@ -65,8 +66,11 @@ jobs:
           gut_tag = fetch_json("https://api.github.com/repos/bitwes/Gut/releases/latest")["tag_name"]
           gut_ver = gut_tag.lstrip("v")
           coi_sha = fetch_json("https://api.github.com/repos/gzuidhof/coi-serviceworker/commits/master")["sha"]
+          coi_url = f"https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/{coi_sha}/coi-serviceworker.js"
+          with urllib.request.urlopen(coi_url, timeout=20) as resp:
+              coi_sha256 = hashlib.sha256(resp.read()).hexdigest()
 
-          print(f"Latest Godot: {godot_ver}, GUT: {gut_ver}, coi-serviceworker: {coi_sha}")
+          print(f"Latest Godot: {godot_ver}, GUT: {gut_ver}, coi-serviceworker: {coi_sha} ({coi_sha256})")
 
           changed = False
 
@@ -86,12 +90,14 @@ jobs:
               (r'^(  GODOT_VERSION:\s*)"[^"]+"', rf'\1"{godot_ver}"'),
               (r'^(  GUT_VERSION:\s*)"[^"]+"', rf'\1"{gut_ver}"'),
               (r'^(  COI_SW_SHA:\s*)"[^"]+"', rf'\1"{coi_sha}"'),
+              (r'^(  COI_SW_SHA256:\s*)"[^"]+"', rf'\1"{coi_sha256}"'),
           ])
 
           update_file("Makefile", [
               (r'^(GODOT_VERSION\s*\?=\s*).*$', rf'\g<1>{godot_ver}'),
               (r'^(GUT_VERSION\s*\?=\s*).*$', rf'\g<1>{gut_ver}'),
               (r'^(COI_SW_SHA\s*\?=\s*).*$', rf'\g<1>{coi_sha}'),
+              (r'^(COI_SW_SHA256\s*\?=\s*).*$', rf'\g<1>{coi_sha256}'),
           ])
 
           godot_minor = ".".join(godot_ver.split(".")[:2])

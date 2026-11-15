@@ -20,10 +20,30 @@ func _ready() -> void:
 
 	_load_volume_settings()
 	_load_fullscreen_setting()
+	_setup_touch_toggle()
 
 	if not input_remap.is_inside_tree():
 		await input_remap.ready
 	input_remap.load_bindings()
+
+func _setup_touch_toggle() -> void:
+	var audio_tab = get_node_or_null("Panel/TabContainer/AudioTab")
+	if not audio_tab:
+		return
+	var btn = Button.new()
+	btn.name = "TouchControlsModeButton"
+	_update_touch_button_text(btn)
+	btn.pressed.connect(func():
+		var modes = ["auto", "on", "off"]
+		var cur = SettingsManager.get_touch_controls_mode()
+		var next_idx = (modes.find(cur) + 1) % modes.size()
+		SettingsManager.set_touch_controls_mode(modes[next_idx])
+		_update_touch_button_text(btn)
+	)
+	audio_tab.add_child(btn)
+
+func _update_touch_button_text(btn: Button) -> void:
+	btn.text = "Touch Controls: " + SettingsManager.get_touch_controls_mode().to_upper()
 
 func _load_volume_settings() -> void:
 	master_slider.value = SettingsManager.get_volume("Master", db_to_linear(AudioServer.get_bus_volume_db(0)))

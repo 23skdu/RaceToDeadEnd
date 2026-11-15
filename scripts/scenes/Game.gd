@@ -77,9 +77,15 @@ func _ready() -> void:
 	spawner.world_node = world
 	spawner.enemy_spawned.connect(GameManager.register_enemy_spawned)
 	spawner.enemy_destroyed.connect(GameManager.register_enemy_destroyed)
+	if hud and hud.has_method("bind_boss") and spawner.has_signal("boss_spawned"):
+		spawner.boss_spawned.connect(hud.bind_boss)
 	if spawner.has_signal("boss_defeated"):
 		spawner.boss_defeated.connect(_on_boss_defeated)
+		if hud and hud.has_method("unbind_boss"):
+			spawner.boss_defeated.connect(func(_bt): hud.unbind_boss())
 	highway.player = player
+	if hud and hud.has_method("set_player"):
+		hud.set_player(player)
 	
 	if weather:
 		weather.set_player(player)
@@ -418,13 +424,30 @@ func _get_popup_label() -> Label:
 	return Label.new()
 
 func _return_popup_label(pop: Label) -> void:
+	if not is_instance_valid(pop):
+		return
+	if _popup_pool.size() >= POPUP_POOL_SIZE:
+		if pop.get_parent():
+			pop.get_parent().remove_child(pop)
+		pop.queue_free()
+		return
 	pop.text = ""
 	pop.position = Vector2.ZERO
 	pop.modulate = Color.WHITE
 	pop.visible = false
-	if pop.get_parent():
-		pop.get_parent().remove_child(pop)
-	_popup_pool.append(pop)
+	if is_instance_valid(score_popup_container) and pop.get_parent() != score_popup_container:
+		if pop.get_parent():
+			pop.get_parent().remove_child(pop)
+		score_popup_container.add_child(pop)
+	if not _popup_pool.has(pop):
+		_popup_pool.append(pop)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for pop in _popup_pool:
+			if is_instance_valid(pop) and pop.get_parent() == null:
+				pop.free()
+		_popup_pool.clear()
 
 func _show_floating_text(pos: Vector2, text: String, color: Color, size: int = 18) -> void:
 	var popup = _get_popup_label()
@@ -433,7 +456,10 @@ func _show_floating_text(pos: Vector2, text: String, color: Color, size: int = 1
 	popup.add_theme_font_size_override("font_size", size)
 	popup.position = pos
 	popup.visible = true
-	score_popup_container.add_child(popup)
+	if popup.get_parent() != score_popup_container:
+		if popup.get_parent():
+			popup.get_parent().remove_child(popup)
+		score_popup_container.add_child(popup)
 	var tween = create_tween()
 	tween.tween_property(popup, "position:y", pos.y - 40.0, 0.6)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
@@ -446,7 +472,10 @@ func _on_score_popped(pos: Vector2, _points: int, label: String) -> void:
 	popup.add_theme_font_size_override("font_size", 18)
 	popup.position = pos
 	popup.visible = true
-	score_popup_container.add_child(popup)
+	if popup.get_parent() != score_popup_container:
+		if popup.get_parent():
+			popup.get_parent().remove_child(popup)
+		score_popup_container.add_child(popup)
 	var tween = create_tween()
 	tween.tween_property(popup, "position:y", pos.y - 60.0, 0.8)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
@@ -454,7 +483,6 @@ func _on_score_popped(pos: Vector2, _points: int, label: String) -> void:
 
 func _on_boss_defeated(boss_type: String) -> void:
 	GameManager.bosses_killed += 1
-	get_tree().paused = true
 	var demo_scene = null
 	if boss_type == "boss_bunny":
 		demo_scene = DEMO_BUNNY_SCENE.instantiate()
@@ -466,8 +494,11 @@ func _on_boss_defeated(boss_type: String) -> void:
 		demo_scene = DEMO_WAR_SCENE.instantiate()
 		
 	if demo_scene:
+		get_tree().paused = true
 		$UI.add_child(demo_scene)
 		demo_scene.demo_finished.connect(_on_demo_finished)
+	else:
+		get_tree().paused = false
 
 func _on_demo_finished() -> void:
 	get_tree().paused = false

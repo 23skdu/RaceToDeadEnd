@@ -88,6 +88,7 @@ func test_execute_attack_calls_ram_player_in_phase_1():
 	var boss = _create_boss()
 	boss.phase = 1
 	var mock_player = Node2D.new()
+	add_child_autofree(mock_player)
 	mock_player.global_position = Vector2(100, 0)
 	boss.player = mock_player
 	boss.attack_timer = Constants.BOSS_ATTACK_INTERVAL
@@ -127,6 +128,7 @@ func test_execute_attack_phase_3_does_not_spawn_twice():
 func test_ram_player_sets_velocity_x_toward_player():
 	var boss = _create_boss()
 	var mock_player = Node2D.new()
+	add_child_autofree(mock_player)
 	mock_player.global_position = Vector2(100, 0)
 	boss.player = mock_player
 	boss._ram_player()

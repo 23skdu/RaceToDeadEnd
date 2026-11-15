@@ -16,10 +16,15 @@ func before_each():
 	GameManager.score = 0
 	GameManager.bosses_killed = 3
 	GameManager.boss_active = false
+	GameManager.enemy_list.clear()
+
+func after_each():
+	GameManager.enemy_list.clear()
 
 
 func test_wave_interval_default():
 	var s = Spawner.new()
+	autofree(s)
 	assert_eq(s.wave_interval, 5.0, "Default wave interval should be 5 seconds")
 
 func test_base_speed_constant():
@@ -27,6 +32,7 @@ func test_base_speed_constant():
 
 func test_wave_timer_decrements():
 	var s = Spawner.new()
+	autofree(s)
 	s.player = _create_mock_player()
 	s.wave_timer = 3.0
 	GameManager.state = GameManager.GameState.PLAYING
@@ -35,6 +41,7 @@ func test_wave_timer_decrements():
 
 func test_wave_timer_resets_after_spawn():
 	var s = Spawner.new()
+	autofree(s)
 	s.player = _create_mock_player()
 	s.wave_timer = 0.0
 	GameManager.state = GameManager.GameState.PLAYING
@@ -43,6 +50,7 @@ func test_wave_timer_resets_after_spawn():
 
 func test_wave_interval_scales_with_difficulty():
 	var s = Spawner.new()
+	autofree(s)
 	s.player = _create_mock_player()
 	GameManager.difficulty_tier = 1
 	s.wave_timer = 0.0
@@ -52,6 +60,7 @@ func test_wave_interval_scales_with_difficulty():
 
 func test_wave_interval_decreases_at_higher_tiers():
 	var s = Spawner.new()
+	autofree(s)
 	s.player = _create_mock_player()
 	GameManager.difficulty_tier = 5
 	s.wave_timer = 0.0
@@ -62,6 +71,7 @@ func test_wave_interval_decreases_at_higher_tiers():
 
 func test_wave_composition_tier_1():
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(1)
 	assert_eq(comp["rotor"], 1, "Tier 1 should have 1 rotor")
 	assert_false(comp.has("scav"), "Tier 1 should not have scavs")
@@ -69,12 +79,14 @@ func test_wave_composition_tier_1():
 
 func test_wave_composition_tier_2():
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(2)
 	assert_eq(comp["rotor"], 2, "Tier 2 should have 2 rotors")
 	assert_eq(comp["scav"], 1, "Tier 2 should have 1 scav")
 
 func test_wave_composition_tier_3():
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(3)
 	assert_eq(comp["rotor"], 1, "Tier 3 should have 1 rotor")
 	assert_eq(comp["scav"], 1, "Tier 3 should have 1 scav")
@@ -82,6 +94,7 @@ func test_wave_composition_tier_3():
 
 func test_wave_composition_tier_6():
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(6)
 	assert_eq(comp["rotor"], clampi(1 + floori(6 / 3.0), 1, 6), "Tier 6 rotor count")
 	assert_eq(comp["scav"], clampi(floori(6 / 4.0), 1, 3), "Tier 6 scav count")
@@ -89,6 +102,7 @@ func test_wave_composition_tier_6():
 
 func test_wave_composition_tier_12():
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(12)
 	assert_eq(comp["rotor"], 5, "Tier 12 should have 5 rotors (capped at 6)")
 	assert_eq(comp["scav"], 3, "Tier 12 should have 3 scavs (capped at 3)")
@@ -97,12 +111,14 @@ func test_wave_composition_tier_12():
 func test_wave_composition_tier_2_no_boss_kills():
 	GameManager.bosses_killed = 0
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(2)
 	assert_false(comp.has("scav"), "Tier 2 should not have scavs when no bosses killed")
 
 func test_wave_composition_tier_3_no_boss_kills():
 	GameManager.bosses_killed = 0
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(3)
 	assert_false(comp.has("scav"), "Tier 3 should not have scavs when no bosses killed")
 	assert_false(comp.has("drone"), "Tier 3 should not have drones when no bosses killed")
@@ -110,6 +126,7 @@ func test_wave_composition_tier_3_no_boss_kills():
 func test_wave_composition_tier_3_one_boss_kill():
 	GameManager.bosses_killed = 1
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(3)
 	assert_false(comp.has("scav"), "Tier 3 should not have scav when only 1 boss killed")
 	assert_false(comp.has("drone"), "Tier 3 should not have drones when only 1 boss killed")
@@ -117,18 +134,23 @@ func test_wave_composition_tier_3_one_boss_kill():
 func test_wave_composition_tier_3_two_boss_kills():
 	GameManager.bosses_killed = 2
 	var s = Spawner.new()
+	autofree(s)
 	var comp = s._get_wave_composition(3)
 	assert_eq(comp.get("scav"), 1, "Tier 3 should have scav when 2 bosses killed")
 	assert_false(comp.has("drone"), "Tier 3 should not have drones when only 2 bosses killed")
 
 func test_pick_pickup_type_returns_valid():
 	var s = Spawner.new()
+	autofree(s)
 	for i in range(20):
 		var result = s._pick_pickup_type()
 		assert_true(result in ["repair", "ammo", "boost", "multiplier"], "Should return valid pickup type")
 
 func test_drop_pickup_under_threshold():
+	var parent = Node.new()
+	add_child_autofree(parent)
 	var s = Spawner.new()
+	parent.add_child(s)
 	var child_count_before = s.get_child_count()
 	s._drop_pickup(Vector2.ZERO)
 	var child_count_after = s.get_child_count()
@@ -186,6 +208,7 @@ func test_garbage_collection_removes_invalid_enemies():
 	var s = Spawner.new()
 	s.player = _create_mock_player()
 	var mock_enemy = Node2D.new()
+	add_child_autofree(mock_enemy)
 	GameManager.enemy_list.append(mock_enemy)
 	mock_enemy.queue_free()
 	add_child_autofree(s)
@@ -203,6 +226,7 @@ func test_spawn_enemy_missing_scene():
 
 func test_process_does_not_spawn_when_not_playing():
 	var s = Spawner.new()
+	autofree(s)
 	s.player = _create_mock_player()
 	s.wave_timer = 0.0
 	GameManager.state = GameManager.GameState.MENU
@@ -211,12 +235,15 @@ func test_process_does_not_spawn_when_not_playing():
 
 func test_world_node_reference():
 	var s = Spawner.new()
+	autofree(s)
 	var world = Node2D.new()
+	add_child_autofree(world)
 	s.world_node = world
 	assert_eq(s.world_node, world, "World node reference should be set")
 
 func _create_mock_player() -> Node2D:
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, 0)
 	player.position = Vector2(0, 0)
 	return player
@@ -271,7 +298,9 @@ func test_on_enemy_destroyed_registers_score():
 	s.player = _create_mock_player()
 	add_child_autofree(s)
 	GameManager.start_game()
-	s._on_enemy_destroyed(Vector2.ZERO, "rotor", Node2D.new())
+	var dummy_enemy = Node2D.new()
+	add_child_autofree(dummy_enemy)
+	s._on_enemy_destroyed(Vector2.ZERO, "rotor", dummy_enemy)
 	assert_gt(GameManager.score, 0, "Should register score on enemy destroy")
 
 func test_on_pickup_collected_ignores_non_player():
@@ -304,7 +333,10 @@ func test_process_finds_player_from_group():
 	assert_eq(s.player, mock_player, "Should find player from group")
 
 func test_pickup_type_multiplier():
+	var parent = Node.new()
+	add_child_autofree(parent)
 	var s = Spawner.new()
+	parent.add_child(s)
 	GameManager.start_game()
 	s._drop_pickup(Vector2.ZERO)
 	assert_true(true, "Should handle multiplier pickup type")
@@ -320,6 +352,7 @@ func test_wave_spawned_signal_contains_wave_number():
 
 func test_spawner_has_spawn_minion_requested_signal():
 	var s = Spawner.new()
+	autofree(s)
 	assert_true(s.has_signal("spawn_minion_requested"), "Spawner should have spawn_minion_requested signal")
 
 class MockBossNode extends Node2D:
@@ -342,12 +375,14 @@ func _make_boss_scene() -> PackedScene:
 	var n = MockBossNode.new()
 	var ps = PackedScene.new()
 	ps.pack(n)
+	n.free()
 	return ps
 
 func _make_civilian_scene() -> PackedScene:
 	var n = MockCivilianNode.new()
 	var ps = PackedScene.new()
 	ps.pack(n)
+	n.free()
 	return ps
 
 func test_spawn_boss_creates_node():
@@ -466,6 +501,7 @@ func test_spawn_civilian_sets_position_offset():
 
 func test_should_spawn_boss_returns_true_at_threshold():
 	var s = Spawner.new()
+	autofree(s)
 	s._ready()
 	var boss_key = s._get_next_boss_key()
 	s.enemy_scenes[boss_key] = _make_boss_scene()
@@ -474,6 +510,7 @@ func test_should_spawn_boss_returns_true_at_threshold():
 
 func test_should_spawn_boss_returns_false_below_threshold():
 	var s = Spawner.new()
+	autofree(s)
 	s._ready()
 	var boss_key = s._get_next_boss_key()
 	s.enemy_scenes[boss_key] = _make_boss_scene()
@@ -486,6 +523,7 @@ func test_on_civilian_safe_exit_calls_register():
 	add_child_autofree(s)
 	GameManager.start_game()
 	var civilian = Node2D.new()
+	add_child_autofree(civilian)
 	s._on_civilian_safe_exit(civilian)
 	assert_eq(GameManager.score, 500, "Should register civilian protected for 500 points")
 
@@ -502,15 +540,21 @@ func test_on_civilian_hit_calls_register():
 	add_child_autofree(s)
 	GameManager.start_game()
 	var health_before = GameManager.health
-	s._on_civilian_hit(MockCivilianNode.new())
+	var civ = MockCivilianNode.new()
+	add_child_autofree(civ)
+	s._on_civilian_hit(civ)
 	assert_eq(GameManager.health, health_before - Constants.CIVILIAN_PENALTY, "Player should take civilian penalty damage")
 
 func test_on_civilian_hit():
 	var s = Spawner.new()
-	s.player = PlayerWithDamage.new()
+	var mock_player = PlayerWithDamage.new()
+	add_child_autofree(mock_player)
+	s.player = mock_player
 	add_child_autofree(s)
 	GameManager.start_game()
-	s._on_civilian_hit(MockCivilianNode.new())
+	var civ = MockCivilianNode.new()
+	add_child_autofree(civ)
+	s._on_civilian_hit(civ)
 	assert_true(true, "Should not crash when calling _on_civilian_hit")
 
 func test_enemy_spawned_emitted_when_boss_spawns():
@@ -570,6 +614,7 @@ func test_cleanup_timer_throttles_iteration():
 
 func test_spawner_uses_game_manager_enemy_list_only():
 	var s = Spawner.new()
+	autofree(s)
 	assert_false("active_enemies" in s, "Spawner should not have its own active_enemies list")
 
 func test_spawner_connects_game_started_signal():
@@ -612,6 +657,7 @@ func test_civilian_spawn_accumulator_skips_spawn_below_threshold():
 
 func test_get_next_boss_key():
 	var s = Spawner.new()
+	autofree(s)
 	s._bosses_spawned = 0
 	assert_eq(s._get_next_boss_key(), "boss_bunny", "First boss should be boss_bunny")
 	s._bosses_spawned = 1

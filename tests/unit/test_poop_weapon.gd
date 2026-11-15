@@ -62,7 +62,7 @@ func test_poop_body_entered_applies_damage():
 	var p = _create_poop()
 	p.init(Vector2.ZERO, Vector2.DOWN)
 	var player = MockPlayerDamageable.new()
-	player.name = "Player"
+	player.add_to_group("player")
 	add_child_autofree(player)
 	p._on_body_entered(player)
 	assert_eq(player.damage_taken, 1, "Player should take 1 damage")
@@ -71,7 +71,7 @@ func test_poop_body_entered_applies_slippery():
 	var p = _create_poop()
 	p.init(Vector2.ZERO, Vector2.DOWN)
 	var player = MockPlayerDamageable.new()
-	player.name = "Player"
+	player.add_to_group("player")
 	add_child_autofree(player)
 	p._on_body_entered(player)
 	assert_true(player.is_slippery, "Player should become slippery")

@@ -57,14 +57,24 @@ var last_right_tap_time: float = 0.0
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
 var _trail_line: Line2D
+var _trail_gradient: Gradient
 var _trail_points: Array[Vector2] = []
 var _trail_spacing_counter: float = 0.0
+var _default_sprite_texture: Texture2D = null
 
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1 | 2
 	z_index = 1
 	add_to_group("player")
+	if sprite and sprite.texture:
+		_default_sprite_texture = sprite.texture
+	if PackManager and PackManager.has_method("get_custom_skin"):
+		var custom_tex: Texture2D = PackManager.get_custom_skin("player")
+		if custom_tex and sprite:
+			sprite.texture = custom_tex
+	if PackManager and PackManager.has_signal("skin_loaded") and not PackManager.skin_loaded.is_connected(_on_pack_skin_loaded):
+		PackManager.skin_loaded.connect(_on_pack_skin_loaded)
 	_scale_sprite()
 	$Camera2D.position.y = Constants.CAMERA_Y_OFFSET
 	$Camera2D.position_smoothing_enabled = false
@@ -88,8 +98,12 @@ func _ready() -> void:
 	
 	_trail_line = Line2D.new()
 	_trail_line.width = 6.0
-	_trail_line.default_color = Color(1.0, 0.5, 0.0, 0.6)
+	_trail_line.default_color = Color(1.0, 0.5, 0.0, 0.8)
 	_trail_line.z_index = -1
+	_trail_gradient = Gradient.new()
+	_trail_gradient.offsets = PackedFloat32Array([0.0, 1.0])
+	_trail_gradient.colors = PackedColorArray([Color(1.0, 0.5, 0.0, 0.8), Color(1.0, 0.2, 0.0, 0.0)])
+	_trail_line.gradient = _trail_gradient
 	add_child(_trail_line)
 	
 	target_x = _lane_to_x(current_lane)
@@ -320,18 +334,20 @@ func _update_boost_trail() -> void:
 			_trail_points.push_front(position + Vector2(0, 16))
 			if _trail_points.size() > TRAIL_LENGTH:
 				_trail_points.resize(TRAIL_LENGTH)
-		_trail_line.points = PackedVector2Array(_trail_points)
-		var gradient = Gradient.new()
-		var colors: PackedColorArray = []
-		for j in range(_trail_points.size()):
-			var t = float(j) / max(_trail_points.size() - 1, 1)
-			colors.append(Color(1.0, 0.5, 0.0, 0.6 * (1.0 - t)))
-		_trail_line.gradient = gradient
-		_trail_line.default_color = Color(1.0, 0.5, 0.0, 0.0)
-	else:
+			_trail_line.points = PackedVector2Array(_trail_points)
+	elif not _trail_points.is_empty() or _trail_line.points.size() > 0:
 		_trail_points.clear()
 		_trail_spacing_counter = 0.0
 		_trail_line.points = PackedVector2Array()
+
+func _on_pack_skin_loaded(entity: String, tex: Texture2D) -> void:
+	if entity != "player" or not sprite:
+		return
+	if tex:
+		sprite.texture = tex
+	elif _default_sprite_texture:
+		sprite.texture = _default_sprite_texture
+	_scale_sprite()
 
 func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, 108.0, Constants.SPRITE_BASE_VIEWPORT)
@@ -383,6 +399,6 @@ func on_bridge_fall(_body: Node) -> void:
 		current_lane = 1
 		target_x = _lane_to_x(current_lane)
 	else:
-		position.x = Constants.LANE_POSITIONS[2]
-		current_lane = 2
+		position.x = Constants.LANE_POSITIONS[6]
+		current_lane = 6
 		target_x = _lane_to_x(current_lane)

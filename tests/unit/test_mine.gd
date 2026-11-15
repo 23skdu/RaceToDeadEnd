@@ -45,6 +45,7 @@ func test_mine_explodes_on_body_entered():
 	add_child_autofree(m)
 	m.armed = true
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	m._on_body_entered(mock_body)
 	assert_true(m.is_queued_for_deletion(), "Mine should explode")
 
@@ -53,6 +54,7 @@ func test_mine_ignores_when_not_armed():
 	add_child_autofree(m)
 	m.armed = false
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	m._on_body_entered(mock_body)
 	assert_false(m.is_queued_for_deletion(), "Mine should not explode when not armed")
 
@@ -61,6 +63,7 @@ func test_mine_area_entered():
 	add_child_autofree(m)
 	m.armed = true
 	var mock_area = Area2D.new()
+	add_child_autofree(mock_area)
 	m._on_area_entered(mock_area)
 	assert_true(m.is_queued_for_deletion(), "Mine should explode on area entered")
 
@@ -142,6 +145,7 @@ func test_on_body_entered_calls_take_damage():
 	add_child_autofree(m)
 	m.armed = true
 	var body = MockEnemy.new()
+	add_child_autofree(body)
 	m._on_body_entered(body)
 	assert_eq(body.damage_taken, 2, "Body should take mine damage")
 
@@ -150,6 +154,7 @@ func test_on_body_entered_no_explode_when_not_armed():
 	add_child_autofree(m)
 	m.armed = false
 	var body = MockEnemy.new()
+	add_child_autofree(body)
 	m._on_body_entered(body)
 	assert_eq(body.damage_taken, 0, "Should not damage when not armed")
 	assert_false(m.is_queued_for_deletion(), "Should not explode when not armed")
@@ -159,6 +164,7 @@ func test_on_area_entered_calls_take_damage():
 	add_child_autofree(m)
 	m.armed = true
 	var area = MockAreaWithDamage.new()
+	add_child_autofree(area)
 	m._on_area_entered(area)
 	assert_eq(area.damage_taken, 2, "Area should take mine damage")
 
@@ -183,6 +189,7 @@ func test_explode_calls_object_pool_release():
 
 func test_armed_false_after_instantiation():
 	var m = Mine.new()
+	autofree(m)
 	assert_false(m.armed, "Mine should not be armed when first created")
 
 func test_armed_becomes_true_after_arm_time():

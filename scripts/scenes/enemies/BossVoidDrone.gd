@@ -1,5 +1,7 @@
 extends "res://scripts/scenes/enemies/Enemy.gd"
 
+static var _boss_void_drone_texture: Texture2D = null
+
 var attack_timer: float = 0.0
 
 func _ready() -> void:
@@ -14,7 +16,9 @@ func _reset_state() -> void:
 	attack_timer = 0.0
 	
 	if sprite and (not sprite.texture or sprite.texture is PlaceholderTexture2D):
-		sprite.texture = _create_boss_void_drone_texture()
+		if not _boss_void_drone_texture:
+			_boss_void_drone_texture = _create_boss_void_drone_texture()
+		sprite.texture = _boss_void_drone_texture
 
 static func _create_boss_void_drone_texture() -> ImageTexture:
 	var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)

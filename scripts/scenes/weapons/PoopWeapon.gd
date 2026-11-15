@@ -1,5 +1,7 @@
 extends Area2D
 
+static var _poop_texture: Texture2D = null
+
 var speed: float = Constants.BULLET_SPEED * 0.6
 var direction: Vector2 = Vector2.DOWN
 var damage: int = 1
@@ -11,7 +13,9 @@ func _ready() -> void:
 	$VisibleOnScreenNotifier2D.screen_exited.connect(_on_visible_on_screen_notifier_screen_exited)
 	
 	if not $Sprite2D.texture or $Sprite2D.texture is PlaceholderTexture2D:
-		$Sprite2D.texture = _create_poop_texture()
+		if not _poop_texture:
+			_poop_texture = _create_poop_texture()
+		$Sprite2D.texture = _poop_texture
 
 static func _create_poop_texture() -> ImageTexture:
 	var img = Image.create(16, 16, false, Image.FORMAT_RGBA8)
@@ -67,7 +71,7 @@ func _physics_process(delta: float) -> void:
 	position += direction * speed * delta
 
 func _on_body_entered(body: Node) -> void:
-	if body.name == "Player":
+	if body.is_in_group("player"):
 		if body.has_method("take_damage"):
 			body.take_damage(damage)
 		if body.has_method("set_slippery"):

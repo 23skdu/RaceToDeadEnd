@@ -1,10 +1,5 @@
 extends Area2D
 
-@export_group("Bullet Properties")
-@export var bullet_speed: float = Constants.BULLET_SPEED
-@export var bullet_damage: int = 1
-@export var bullet_homing: float = 0.0
-
 var speed: float = Constants.BULLET_SPEED
 var direction: Vector2 = Vector2.UP
 var damage: int = 1

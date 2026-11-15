@@ -21,6 +21,7 @@ func test_drone_bomb_hit_by_bullet_detonates():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
 	var bullet = Area2D.new()
+	add_child_autofree(bullet)
 	bullet.add_to_group("bullet")
 	db._on_area_entered(bullet)
 	assert_true(db.hit_by_bullet, "Should mark hit_by_bullet true")
@@ -150,6 +151,7 @@ func test_drone_bomb_detonate_damages_player_in_range():
 	var db = DroneBomb.new()
 	add_child_autofree(db)
 	var mock_player = Node2D.new()
+	add_child_autofree(mock_player)
 	mock_player.add_to_group("player")
 	var damage_taken = 0
 	mock_player.set("take_damage", func(amount = 1): damage_taken = amount)

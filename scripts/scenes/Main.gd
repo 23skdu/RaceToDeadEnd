@@ -5,13 +5,17 @@ extends Node
 @onready var info_button: Button = $CanvasLayer/InfoButton
 @onready var options_button: Button = $CanvasLayer/OptionsButton
 @onready var quit_button: Button = $CanvasLayer/QuitButton
+@onready var version_label: Label = get_node_or_null("CanvasLayer/VersionLabel")
 
 func _ready() -> void:
+	if version_label:
+		version_label.text = "v" + str(ProjectSettings.get_setting("application/config/version", "0.0.1"))
 	start_button.pressed.connect(_on_start_pressed)
 	garage_button.pressed.connect(_on_garage_pressed)
 	info_button.pressed.connect(_on_info_pressed)
 	options_button.pressed.connect(_on_options_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
+	_setup_daily_run_button()
 	GameManager.state = GameManager.GameState.MENU
 	AudioManager.play_menu_music()
 	
@@ -33,7 +37,29 @@ func _on_info_pressed() -> void:
 	add_child(info)
 	info.back_to_menu_requested.connect(func(): info.queue_free())
 
+var daily_run_button: Button = null
+
+func _setup_daily_run_button() -> void:
+	var canvas = get_node_or_null("CanvasLayer")
+	if not canvas:
+		return
+	daily_run_button = Button.new()
+	daily_run_button.name = "DailyRunButton"
+	daily_run_button.text = "DAILY RUN"
+	daily_run_button.offset_left = 810.0
+	daily_run_button.offset_top = 300.0
+	daily_run_button.offset_right = 990.0
+	daily_run_button.offset_bottom = 360.0
+	daily_run_button.pressed.connect(_on_daily_run_pressed)
+	canvas.add_child(daily_run_button)
+
+func _on_daily_run_pressed() -> void:
+	GameManager.daily_run_active = true
+	GameManager.daily_seed = GameManager.compute_daily_seed()
+	TransitionLayer.change_scene("res://scenes/Game.tscn")
+
 func _on_start_pressed() -> void:
+	GameManager.daily_run_active = false
 	TransitionLayer.change_scene("res://scenes/Game.tscn")
 
 func _on_garage_pressed() -> void:

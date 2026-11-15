@@ -1,5 +1,7 @@
 extends "res://scripts/scenes/enemies/Enemy.gd"
 
+static var _baby_bunny_bomb_texture: Texture2D = null
+
 var jump_timer: float = 0.0
 
 func _ready() -> void:
@@ -9,7 +11,9 @@ func _ready() -> void:
 	speed = 150.0
 	
 	if not sprite.texture or sprite.texture is PlaceholderTexture2D:
-		sprite.texture = _create_baby_bunny_bomb_texture()
+		if not _baby_bunny_bomb_texture:
+			_baby_bunny_bomb_texture = _create_baby_bunny_bomb_texture()
+		sprite.texture = _baby_bunny_bomb_texture
 	apply_pulsating_eyes_shader()
 
 static func _create_baby_bunny_bomb_texture() -> ImageTexture:

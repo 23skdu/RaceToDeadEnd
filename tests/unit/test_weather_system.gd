@@ -151,6 +151,7 @@ func test_lightning_bolt_has_points():
 func test_lightning_flash_created():
 	var ws = _create_weather()
 	var flash = ws._create_lightning_flash(Vector2(0, -400))
+	add_child_autofree(flash)
 	assert_not_null(flash, "Flash should be created")
 	if flash:
 		assert_gt(flash.color.a, 0.0, "Flash should be visible")

@@ -1,8 +1,12 @@
 extends Node
 
+const InputRemapUtil = preload("res://scripts/scenes/ui/InputRemap.gd")
+
 const SETTINGS_PATH: String = "user://settings.cfg"
 const AUDIO_SECTION: String = "audio"
 const VIDEO_SECTION: String = "video"
+const PACKS_SECTION: String = "packs"
+const CONTROLS_SECTION: String = "controls"
 
 var _config: ConfigFile = ConfigFile.new()
 var _loaded: bool = false
@@ -10,6 +14,8 @@ var _save_debounce_timer: float = 0.0
 
 func _ready() -> void:
 	load_settings()
+	InputRemapUtil.load_saved_bindings()
+	_restore_active_packs()
 
 func _process(delta: float) -> void:
 	if _save_debounce_timer > 0.0:
@@ -34,16 +40,24 @@ func save_settings() -> void:
 	if err != OK:
 		push_warning("SettingsManager: Failed to save settings (", err, ")")
 
+func _sanitize_volume(val: Variant, default: float = 1.0) -> float:
+	if typeof(val) != TYPE_FLOAT and typeof(val) != TYPE_INT:
+		return clampf(default, 0.0, 1.0)
+	var f := float(val)
+	if is_nan(f) or is_inf(f):
+		return clampf(default, 0.0, 1.0)
+	return clampf(f, 0.0, 1.0)
+
 func _apply_settings() -> void:
 	if _config.has_section(AUDIO_SECTION):
 		for bus_name in _config.get_section_keys(AUDIO_SECTION):
 			var bus_idx = AudioServer.get_bus_index(bus_name)
 			if bus_idx >= 0:
-				var val = _config.get_value(AUDIO_SECTION, bus_name, 1.0)
-				AudioServer.set_bus_volume_db(bus_idx, linear_to_db(val) if val > 0 else -80.0)
+				var val = _sanitize_volume(_config.get_value(AUDIO_SECTION, bus_name, 1.0), 1.0)
+				AudioServer.set_bus_volume_db(bus_idx, linear_to_db(val) if val > 0.0 else -80.0)
 	if _config.has_section(VIDEO_SECTION):
 		if _config.has_section_key(VIDEO_SECTION, "fullscreen"):
-			var fs = _config.get_value(VIDEO_SECTION, "fullscreen", false)
+			var fs = bool(_config.get_value(VIDEO_SECTION, "fullscreen", false))
 			if fs:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 			else:
@@ -53,14 +67,44 @@ func set_volume(bus_name: String, linear_value: float) -> void:
 	var bus_idx = AudioServer.get_bus_index(bus_name)
 	if bus_idx < 0:
 		return
-	AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear_value) if linear_value > 0 else -80.0)
-	_config.set_value(AUDIO_SECTION, bus_name, linear_value)
+	var clamped = _sanitize_volume(linear_value, 1.0)
+	AudioServer.set_bus_volume_db(bus_idx, linear_to_db(clamped) if clamped > 0.0 else -80.0)
+	_config.set_value(AUDIO_SECTION, bus_name, clamped)
 	_save_debounce_timer = 0.5
 
 func get_volume(bus_name: String, default: float = 1.0) -> float:
 	if _config.has_section_key(AUDIO_SECTION, bus_name):
-		return _config.get_value(AUDIO_SECTION, bus_name, default)
-	return default
+		return _sanitize_volume(_config.get_value(AUDIO_SECTION, bus_name, default), default)
+	return _sanitize_volume(default, 1.0)
+
+func set_active_pack(content_type: String, pack_id: String) -> void:
+	if not (content_type in ["music", "skin", "theme"]):
+		return
+	_config.set_value(PACKS_SECTION, content_type, pack_id)
+	save_settings()
+
+func get_active_pack(content_type: String) -> String:
+	if _config.has_section_key(PACKS_SECTION, content_type):
+		return str(_config.get_value(PACKS_SECTION, content_type, ""))
+	return ""
+
+func _restore_active_packs() -> void:
+	if not PackManager:
+		return
+	for ctype in ["music", "skin", "theme"]:
+		var pack_id := get_active_pack(ctype)
+		if not pack_id.is_empty() and PackManager.discovered_packs.has(pack_id):
+			if PackManager.get_active_pack_id(ctype) != pack_id:
+				PackManager.activate_pack(pack_id, ctype)
+
+func set_touch_controls_mode(mode: String) -> void:
+	if mode in ["auto", "on", "off"]:
+		_config.set_value(CONTROLS_SECTION, "touch_controls", mode)
+		save_settings()
+
+func get_touch_controls_mode() -> String:
+	var mode = str(_config.get_value(CONTROLS_SECTION, "touch_controls", "auto"))
+	return mode if mode in ["auto", "on", "off"] else "auto"
 
 func set_fullscreen(enabled: bool) -> void:
 	_config.set_value(VIDEO_SECTION, "fullscreen", enabled)

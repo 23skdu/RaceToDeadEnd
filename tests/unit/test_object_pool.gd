@@ -1,6 +1,16 @@
 extends GutTest
 
 func before_each():
+	_cleanup_object_pool()
+
+func after_each():
+	_cleanup_object_pool()
+
+func _cleanup_object_pool():
+	for pool_name in ObjectPool._pools:
+		for node in ObjectPool._pools[pool_name]:
+			if is_instance_valid(node) and node.get_parent() != ObjectPool:
+				node.free()
 	for child in ObjectPool.get_children():
 		child.free()
 	ObjectPool._pending_allocations.clear()
@@ -21,6 +31,7 @@ func test_get_returns_item_from_pool():
 	assert_true(item != null, "Should return an item")
 	assert_false(item.get_meta("_in_pool", true), "Item should be marked as in use")
 	assert_true(item.visible, "Item should be visible")
+	ObjectPool.release(item)
 
 func test_release_returns_item_to_pool():
 	ObjectPool.create_pool("test_emp", preload("res://scenes/weapons/EMPBlast.tscn"), 2)
@@ -35,12 +46,15 @@ func test_get_reuses_released_item():
 	ObjectPool.release(item1)
 	var item2 = ObjectPool.acquire("test_reuse")
 	assert_eq(item1, item2, "Should return the same reused item")
+	ObjectPool.release(item2)
 
 func test_get_creates_fallback_when_pool_exhausted():
 	ObjectPool.create_pool("test_fallback", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	var item1 = ObjectPool.acquire("test_fallback")
 	var item2 = ObjectPool.acquire("test_fallback")
 	assert_ne(item1, item2, "Should create new item when pool exhausted")
+	ObjectPool.release(item1)
+	ObjectPool.release(item2)
 
 func test_release_unknown_node_queues_free():
 	var unknown = Node2D.new()
@@ -80,24 +94,30 @@ func test_release_reattaches_to_pool_parent():
 	assert_true(ObjectPool.has_pool("test_reattach"), "Pool should still exist")
 	var reacquired = ObjectPool.acquire("test_reattach")
 	assert_eq(reacquired, item, "Should get back the same released item")
+	ObjectPool.release(reacquired)
 
 func test_fallback_item_added_to_pool_parent():
 	ObjectPool.create_pool("test_fallback_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	var item1 = ObjectPool.acquire("test_fallback_parent")
 	var item2 = ObjectPool.acquire("test_fallback_parent")
 	assert_null(item2.get_parent(), "Fallback item should have no parent (caller reparents)")
+	ObjectPool.release(item1)
+	ObjectPool.release(item2)
 
 func test_pool_scene_path_stored():
 	ObjectPool.create_pool("test_scene_path", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	assert_true(ObjectPool.has_pool("test_scene_path"), "Pool should be created")
 	var item = ObjectPool.acquire("test_scene_path")
 	assert_true(item.has_method("init"), "Pool should return Bullet with init method")
+	ObjectPool.release(item)
 
 func test_fallback_uses_stored_scene_path():
 	ObjectPool.create_pool("test_fallback_scene", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	var item1 = ObjectPool.acquire("test_fallback_scene")
 	var item2 = ObjectPool.acquire("test_fallback_scene")
 	assert_true(item2.has_method("init"), "Fallback item should be a Bullet")
+	ObjectPool.release(item1)
+	ObjectPool.release(item2)
 
 func test_release_unknown_node_without_meta():
 	var unknown = Node2D.new()
@@ -116,6 +136,7 @@ func test_get_sets_process_mode():
 	ObjectPool.create_pool("test_process", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	var item = ObjectPool.acquire("test_process")
 	assert_eq(item.process_mode, Node.PROCESS_MODE_INHERIT, "Item should have inherit process mode")
+	ObjectPool.release(item)
 
 func test_multiple_pools():
 	ObjectPool.create_pool("pool_a", preload("res://scenes/weapons/Bullet.tscn"), 2)
@@ -124,6 +145,8 @@ func test_multiple_pools():
 	var item_b = ObjectPool.acquire("pool_b")
 	assert_true(item_a.has_method("init"), "Pool A should return Bullet")
 	assert_true(item_b.has_method("init"), "Pool B should return Mine")
+	ObjectPool.release(item_a)
+	ObjectPool.release(item_b)
 
 func test_pool_array_typed():
 	ObjectPool.create_pool("test_typed", preload("res://scenes/weapons/Bullet.tscn"), 2)
@@ -225,6 +248,8 @@ func test_acquire_skips_invalid_instance():
 	stale.free()
 	var healthy = ObjectPool.acquire("test_stale")
 	assert_true(healthy != null, "Should skip stale instance and return healthy one")
+	ObjectPool.release(item)
+	ObjectPool.release(healthy)
 
 func test_acquire_skips_item_not_in_pool():
 	ObjectPool.create_pool("test_not_in_pool", preload("res://scenes/weapons/Bullet.tscn"), 1)
@@ -232,6 +257,8 @@ func test_acquire_skips_item_not_in_pool():
 	var acquired = ObjectPool.acquire("test_not_in_pool")
 	assert_true(acquired != null, "Should return fallback when pool items are all in use")
 	assert_false(acquired.is_queued_for_deletion(), "Fallback should be valid")
+	ObjectPool.release(item)
+	ObjectPool.release(acquired)
 
 func test_acquire_removes_child_from_parent():
 	ObjectPool.create_pool("test_remove_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
@@ -294,18 +321,25 @@ func on_pool_acquire():
 	ObjectPool._pools["pickup"].append(scripted)
 	var acquired = ObjectPool.acquire_pickup("repair", Vector2.ZERO, func(_t, _p): pass)
 	assert_true(acquired.get("acquired"), "on_pool_acquire should be called on pickup acquire")
+	ObjectPool.release(pickup)
+	ObjectPool.release(acquired)
 
 func test_release_pool_item_removes_from_parent():
 	ObjectPool.create_pool("test_rel_parent", preload("res://scenes/weapons/Bullet.tscn"), 1)
 	var item = ObjectPool.acquire("test_rel_parent")
+	var external_parent = Node2D.new()
+	add_child_autofree(external_parent)
+	external_parent.add_child(item)
 	ObjectPool.release(item)
-	assert_null(item.get_parent(), "Released item should be reparented to ObjectPool")
+	assert_ne(item.get_parent(), external_parent, "Released item should be removed from external parent")
+	assert_eq(item.get_parent(), ObjectPool, "Released item should be reparented to ObjectPool")
 
 func test_acquire_auto_creates_pool_with_scene_path():
 	ObjectPool._scene_paths["auto_test"] = "res://scenes/weapons/Bullet.tscn"
 	var item = ObjectPool.acquire("auto_test")
 	assert_true(item != null, "Should auto-create pool from stored scene path")
 	assert_true(item.has_method("init"), "Auto-created pool should return correct type")
+	ObjectPool.release(item)
 
 func test_acquire_returns_null_for_nonexistent_pool():
 	var item = ObjectPool.acquire("pool_does_not_exist_12345")
@@ -401,4 +435,16 @@ func test_progressive_pickup_expansion_triggers():
 	
 	for p in acquired_pickups:
 		ObjectPool.release(p)
+
+func test_fallback_sets_pool_name_and_returns_to_pool():
+	var pool_name = "test_fb_meta"
+	ObjectPool.create_pool(pool_name, preload("res://scenes/weapons/Bullet.tscn"), 1)
+	var first = ObjectPool.acquire(pool_name)
+	var fallback = ObjectPool.acquire(pool_name)
+	assert_eq(fallback.get_meta("_pool_name", ""), pool_name, "Fallback item should have _pool_name meta set")
+	ObjectPool.release(first)
+	ObjectPool.release(fallback)
+	assert_false(fallback.is_queued_for_deletion(), "Fallback should return to pool instead of queue_free")
+	assert_eq(fallback.get_parent(), ObjectPool, "Released fallback should be reparented to ObjectPool")
+	assert_eq(ObjectPool._pools[pool_name].size(), 2, "Pool should hold both returned items")
 

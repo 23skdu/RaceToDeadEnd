@@ -16,6 +16,9 @@ func before_each():
 	for key in GameManager.upgrade_levels:
 		GameManager.upgrade_levels[key] = 1
 
+func after_each():
+	await get_tree().process_frame
+
 func test_upgrade_costs_defined():
 	var script = load("res://scripts/scenes/ui/Garage.gd")
 	assert_true(script.UPGRADE_COSTS.has("max_health"), "max_health costs")

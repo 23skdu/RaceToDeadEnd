@@ -1,5 +1,13 @@
 extends GutTest
 
+func after_each():
+	if TransitionLayer._tween and TransitionLayer._tween.is_valid():
+		TransitionLayer._tween.kill()
+		TransitionLayer._tween = null
+	if TransitionLayer._overlay:
+		TransitionLayer._overlay.modulate.a = 0.0
+		TransitionLayer._overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 func test_main_scene_path():
 	assert_true(ResourceLoader.exists("res://scenes/Main.tscn"), "Main scene should exist")
 

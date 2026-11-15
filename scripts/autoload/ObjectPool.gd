@@ -9,6 +9,9 @@ var _pending_allocations: Array[Dictionary] = []
 
 func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> void:
 	if _pools.has(pool_name):
+		for old_node in _pools[pool_name]:
+			if is_instance_valid(old_node) and old_node.get_parent() != self:
+				old_node.queue_free()
 		for node in get_children():
 			if node.has_meta("_pool_name") and node.get_meta("_pool_name") == pool_name:
 				node.queue_free()
@@ -36,6 +39,9 @@ func create_pool(pool_name: String, scene: PackedScene, initial_size: int) -> vo
 
 func create_pickup_pool(initial_size: int = 20) -> void:
 	if _pools.has("pickup"):
+		for old_node in _pools["pickup"]:
+			if is_instance_valid(old_node) and old_node.get_parent() != self:
+				old_node.queue_free()
 		for node in get_children():
 			if node.has_meta("_pool_name") and node.get_meta("_pool_name") == "pickup":
 				node.queue_free()
@@ -179,6 +185,7 @@ func acquire(pool_name: String) -> Node:
 	if not _scene_cache.has(pool_name):
 		_scene_cache[pool_name] = load(_scene_paths[pool_name])
 	var fallback = _scene_cache[pool_name].instantiate()
+	fallback.set_meta("_pool_name", pool_name)
 	fallback.set_meta("_in_pool", false)
 	if fallback.has_method("on_pool_acquire"):
 		fallback.on_pool_acquire()
@@ -186,11 +193,15 @@ func acquire(pool_name: String) -> Node:
 	return fallback
 
 func release(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
 	var pool_name = null
 	if node.has_meta("_pool_name"):
 		pool_name = node.get_meta("_pool_name")
 	if not pool_name or not _pools.has(pool_name):
 		node.queue_free()
+		return
+	if node.get_meta("_in_pool", false):
 		return
 	if node.has_method("on_pool_release"):
 		node.on_pool_release()
@@ -200,8 +211,10 @@ func release(node: Node) -> void:
 	node.set_meta("_in_pool", true)
 	node.visible = false
 	node.process_mode = Node.PROCESS_MODE_DISABLED
-	if node.get_parent():
+	if node.get_parent() and node.get_parent() != self:
 		node.get_parent().remove_child(node)
+	if node.get_parent() != self:
+		add_child(node)
 	_pools[pool_name].append(node)
 
 func _check_and_trigger_expansion(pool_name: String) -> void:
@@ -251,4 +264,13 @@ func _process(_delta: float) -> void:
 				_pools[pool_name] = []
 			_pools[pool_name].append(node)
 			_pool_max_sizes[pool_name] = _pool_max_sizes.get(pool_name, 0) + 1
+
+func _exit_tree() -> void:
+	for pool_name in _pools:
+		for node in _pools[pool_name]:
+			if is_instance_valid(node) and node.get_parent() != self:
+				node.queue_free()
+	_pools.clear()
+	_pickup_pool_data.clear()
+	_pending_allocations.clear()
 

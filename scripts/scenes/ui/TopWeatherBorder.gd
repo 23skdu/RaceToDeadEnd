@@ -1,9 +1,14 @@
 extends Control
 
+const REDRAW_INTERVAL: float = 0.04 # 25 Hz ambient drift throttle
+
 var current_weather: String = "clear"
 var time_elapsed: float = 0.0
 var flash_active: bool = false
 var flash_timer: float = 0.0
+var _redraw_accum: float = 0.0
+var _redraw_count: int = 0
+var _mountain_cache: Dictionary = {}
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(1280, 72)
@@ -20,11 +25,15 @@ func _ready() -> void:
 
 func _on_weather_changed(weather_type: String) -> void:
 	current_weather = weather_type
+	_redraw_accum = 0.0
+	_redraw_count += 1
 	queue_redraw()
 
 func _on_lightning_strike(_pos: Vector2) -> void:
 	flash_active = true
 	flash_timer = 0.15
+	_redraw_accum = 0.0
+	_redraw_count += 1
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -33,10 +42,14 @@ func _process(delta: float) -> void:
 		flash_timer -= delta
 		if flash_timer <= 0.0:
 			flash_active = false
+		_redraw_count += 1
 		queue_redraw()
 	else:
-		# Slowly redraw to animate drift
-		queue_redraw()
+		_redraw_accum += delta
+		if _redraw_accum >= REDRAW_INTERVAL:
+			_redraw_accum = fmod(_redraw_accum, REDRAW_INTERVAL)
+			_redraw_count += 1
+			queue_redraw()
 
 func _draw() -> void:
 	# 1. Determine sky background top and bottom colors for vertical gradient
@@ -222,15 +235,22 @@ func _draw_star_field() -> void:
 			draw_line(Vector2(sx, sy - 2.5), Vector2(sx, sy + 3.5), Color(1.0, 1.0, 1.0, alpha * 0.45), 1.0)
 
 func _draw_procedural_mountains(y_offset: float, height: float, col: Color, step: float, phase: float) -> void:
-	var points = PackedVector2Array()
-	points.append(Vector2(0.0, 72.0))
-	var x = 0.0
-	while x <= size.x:
-		# Double sine/cosine harmonics for organic wavy mountain ranges
-		var y = y_offset - sin(x * 0.012 + phase) * height - cos(x * 0.004 + phase * 0.6) * (height * 0.5)
-		points.append(Vector2(x, y))
-		x += step
-	points.append(Vector2(size.x, 72.0))
+	var q_phase: float = snappedf(phase, 0.02)
+	var cache_key := Vector3(y_offset, height, step)
+	var cached = _mountain_cache.get(cache_key)
+	var points: PackedVector2Array
+	if cached != null and is_equal_approx(cached["phase"], q_phase) and is_equal_approx(cached["width"], size.x):
+		points = cached["points"]
+	else:
+		points = PackedVector2Array()
+		points.append(Vector2(0.0, 72.0))
+		var x = 0.0
+		while x <= size.x:
+			var y = y_offset - sin(x * 0.012 + q_phase) * height - cos(x * 0.004 + q_phase * 0.6) * (height * 0.5)
+			points.append(Vector2(x, y))
+			x += step
+		points.append(Vector2(size.x, 72.0))
+		_mountain_cache[cache_key] = {"phase": q_phase, "width": size.x, "points": points}
 	draw_polygon(points, PackedColorArray([col]))
 
 func _draw_cloud(pos: Vector2, c_size: float, color: Color = Color(0.5, 0.5, 0.5, 0.7)) -> void:

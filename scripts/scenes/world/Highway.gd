@@ -39,9 +39,18 @@ var _buffer_in_use: Dictionary = {}
 static var _diamond_mesh_cache: ArrayMesh = null
 static var _diamond_mesh_lane_cache: ArrayMesh = null
 static var _diamond_mesh_shoulder_cache: ArrayMesh = null
+static var _bridge_structure_mesh_cache: ArrayMesh = null
 static var _rect_mesh_cache: Dictionary = {}
 static var _decor_mesh_cache: Dictionary = {}
 static var _obstacle_mesh_cache: Dictionary = {}
+
+var _theme_colors: Dictionary = {
+	"lane_color": Color(0.18, 0.18, 0.22),
+	"shoulder_color": Color(0.76, 0.64, 0.42),
+	"stripe_color": Color(1.0, 1.0, 0.8),
+	"guardrail_color": Constants.GUARDRAIL_COLOR,
+}
+var _theme_lane_texture: Texture2D = null
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -50,10 +59,53 @@ func _ready() -> void:
 	img.fill(Color.WHITE)
 	white_texture = ImageTexture.create_from_image(img)
 	
-	_rng.seed = hash("highway_seed")
+	if PackManager:
+		if PackManager.has_method("get_custom_theme_color"):
+			for key in _theme_colors.keys():
+				var col = PackManager.get_custom_theme_color(key)
+				if col != null:
+					_theme_colors[key] = col
+		if PackManager.has_method("get_custom_theme_texture"):
+			_theme_lane_texture = PackManager.get_custom_theme_texture("highway_lane")
+		if PackManager.has_signal("theme_color_loaded") and not PackManager.theme_color_loaded.is_connected(_on_theme_color_loaded):
+			PackManager.theme_color_loaded.connect(_on_theme_color_loaded)
+		if PackManager.has_signal("theme_texture_loaded") and not PackManager.theme_texture_loaded.is_connected(_on_theme_texture_loaded):
+			PackManager.theme_texture_loaded.connect(_on_theme_texture_loaded)
+	
+	if GameManager and GameManager.get("daily_run_active"):
+		_rng.seed = int(GameManager.get("daily_seed"))
+	else:
+		_rng.seed = hash("highway_seed")
 	
 	for i in range(-3, PREWARM_CHUNKS - 3):
 		_spawn_chunk(i)
+
+func _on_theme_color_loaded(key: String, color: Color) -> void:
+	_theme_colors[key] = color
+	_rebuild_active_chunks()
+
+func _on_theme_texture_loaded(key: String, tex: Texture2D) -> void:
+	if key == "highway_lane":
+		_theme_lane_texture = tex
+		_rebuild_active_chunks()
+
+func _rebuild_active_chunks() -> void:
+	for chunk in active_chunks:
+		if is_instance_valid(chunk):
+			var old_tiles = _get_tiles_node(chunk)
+			if old_tiles:
+				chunk.remove_child(old_tiles)
+				old_tiles.queue_free()
+	for chunk_type in _chunk_buffers:
+		for tiles in _chunk_buffers[chunk_type]:
+			if is_instance_valid(tiles) and tiles.get_parent() == null:
+				tiles.queue_free()
+	_chunk_buffers.clear()
+	_buffer_in_use.clear()
+	for chunk in active_chunks:
+		if is_instance_valid(chunk):
+			var chunk_type: ChunkType = chunk.get_meta("chunk_type", ChunkType.STANDARD)
+			chunk.add_child(_reserve_tiles(chunk_type))
 
 func _process(_delta: float) -> void:
 	if not player:
@@ -194,7 +246,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		ChunkType.ICE:
 			bg_color = Color(0.5, 0.8, 0.95, 0.35)
 		_:
-			bg_color = Color(0.76, 0.64, 0.42)
+			bg_color = _theme_colors.get("shoulder_color", Color(0.76, 0.64, 0.42))
 	var bg = Polygon2D.new()
 	var bg_half_w = 640.0
 	bg.polygon = PackedVector2Array([
@@ -254,7 +306,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 					var tile_color = Color(0.65, 0.88, 0.95, 0.45)
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 				else:
-					var tile_color = Color(0.76, 0.64, 0.42)
+					var tile_color: Color = _theme_colors.get("shoulder_color", Color(0.76, 0.64, 0.42))
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 					
 					if _rng.randf() < 0.03:
@@ -270,7 +322,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 					var tile_color = Color(0.35, 0.32, 0.30)
 					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 				else:
-					var tile_color = Color(0.18, 0.18, 0.22)
+					var tile_color: Color = _theme_colors.get("lane_color", Color(0.18, 0.18, 0.22))
 					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 					
 					if col > LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 2 == 0:
@@ -287,14 +339,17 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	
 	if lane_polygons.size() > 0:
 		var lane_merged = MultiMeshInstance2D.new()
-		lane_merged.texture = white_texture
+		lane_merged.name = "LaneMultiMesh"
+		lane_merged.texture = _theme_lane_texture if _theme_lane_texture else white_texture
 		var multimesh = MultiMesh.new()
 		multimesh.mesh = _create_diamond_mesh_lane()
+		multimesh.use_colors = true
 		multimesh.instance_count = lane_polygons.size()
 		for i in lane_polygons.size():
 			multimesh.set_instance_transform_2d(i, Transform2D(0.0, lane_polygons[i]["pos"]))
+			multimesh.set_instance_color(i, lane_polygons[i]["color"])
 		lane_merged.multimesh = multimesh
-		lane_merged.modulate = lane_polygons[0]["color"]
+		lane_merged.modulate = Color.WHITE
 		chunk_local.add_child(lane_merged)
 		
 		var edge_marking_color = Color(0.9, 0.9, 0.5, 0.6)
@@ -316,14 +371,17 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	
 	if shoulder_polygons.size() > 0:
 		var shoulder_merged = MultiMeshInstance2D.new()
+		shoulder_merged.name = "ShoulderMultiMesh"
 		shoulder_merged.texture = white_texture
 		var multimesh = MultiMesh.new()
 		multimesh.mesh = _create_diamond_mesh_shoulder()
+		multimesh.use_colors = true
 		multimesh.instance_count = shoulder_polygons.size()
 		for i in shoulder_polygons.size():
 			multimesh.set_instance_transform_2d(i, Transform2D(0.0, shoulder_polygons[i]["pos"]))
+			multimesh.set_instance_color(i, shoulder_polygons[i]["color"])
 		shoulder_merged.multimesh = multimesh
-		shoulder_merged.modulate = shoulder_polygons[0]["color"]
+		shoulder_merged.modulate = Color.WHITE
 		chunk_local.add_child(shoulder_merged)
 	
 	if stripe_positions.size() > 0:
@@ -335,7 +393,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		for i in stripe_positions.size():
 			smesh.set_instance_transform_2d(i, Transform2D(0.0, stripe_positions[i]["pos"]))
 		stripe_mmi.multimesh = smesh
-		stripe_mmi.modulate = Color(1.0, 1.0, 0.8)
+		stripe_mmi.modulate = _theme_colors.get("stripe_color", Color(1.0, 1.0, 0.8))
 		chunk_local.add_child(stripe_mmi)
 	
 	var decor_positions: Dictionary = {}
@@ -431,10 +489,11 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var left_rail_x = -480.0
 	var right_rail_x = 480.0
 	
+	var rail_color: Color = _theme_colors.get("guardrail_color", Constants.GUARDRAIL_COLOR) if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var left_rail = Line2D.new()
 	left_rail.name = "LeftRail"
 	left_rail.width = Constants.GUARDRAIL_WIDTH
-	left_rail.default_color = Constants.GUARDRAIL_COLOR if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
+	left_rail.default_color = rail_color
 	var left_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
 		var y_pos = row * TILE_SIZE.y
@@ -445,7 +504,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var right_rail = Line2D.new()
 	right_rail.name = "RightRail"
 	right_rail.width = Constants.GUARDRAIL_WIDTH
-	right_rail.default_color = Constants.GUARDRAIL_COLOR if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
+	right_rail.default_color = rail_color
 	var right_points = PackedVector2Array()
 	for row in CHUNK_HEIGHT + 1:
 		var y_pos = row * TILE_SIZE.y
@@ -488,117 +547,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		chunk_local.add_child(ice_area)
 	
 	if chunk_type == ChunkType.BRIDGE:
-		# 1. Concrete deck joints across lanes for modular concrete look
-		for row in range(0, CHUNK_HEIGHT + 1, 2):
-			var joint_y = row * TILE_SIZE.y
-			var joint = Line2D.new()
-			joint.width = 1.5
-			joint.default_color = Color(0.05, 0.05, 0.07, 0.5)
-			joint.points = PackedVector2Array([Vector2(-480, joint_y), Vector2(480, joint_y)])
-			chunk_local.add_child(joint)
-
-		# 2. repeating diagonal X-trusses on outer shoulders (girder structure)
-		var truss_color = Color(0.25, 0.28, 0.35, 1.0) # steel blue-gray
-		var truss_dark = Color(0.12, 0.14, 0.18, 1.0)
-		for row in range(0, CHUNK_HEIGHT):
-			var y1 = row * TILE_SIZE.y
-			var y2 = (row + 1) * TILE_SIZE.y
-			
-			# Left shoulder X-truss
-			var lx1 = left_rail_x - 30
-			var lx2 = left_rail_x - 5
-			var lt1 = Line2D.new()
-			lt1.width = 2.5
-			lt1.default_color = truss_color
-			lt1.points = PackedVector2Array([Vector2(lx1, y1), Vector2(lx2, y2)])
-			chunk_local.add_child(lt1)
-			
-			var lt2 = Line2D.new()
-			lt2.width = 2.5
-			lt2.default_color = truss_color
-			lt2.points = PackedVector2Array([Vector2(lx2, y1), Vector2(lx1, y2)])
-			chunk_local.add_child(lt2)
-			
-			# Right shoulder X-truss
-			var rx1 = right_rail_x + 5
-			var rx2 = right_rail_x + 30
-			var rt1 = Line2D.new()
-			rt1.width = 2.5
-			rt1.default_color = truss_color
-			rt1.points = PackedVector2Array([Vector2(rx1, y1), Vector2(rx2, y2)])
-			chunk_local.add_child(rt1)
-			
-			var rt2 = Line2D.new()
-			rt2.width = 2.5
-			rt2.default_color = truss_color
-			rt2.points = PackedVector2Array([Vector2(rx2, y1), Vector2(rx1, y2)])
-			chunk_local.add_child(rt2)
-			
-			# Longitudinal steel edge beams
-			if row == 0:
-				var left_edge = Line2D.new()
-				left_edge.width = 4.0
-				left_edge.default_color = truss_dark
-				left_edge.points = PackedVector2Array([Vector2(lx1, 0), Vector2(lx1, CHUNK_PIXEL_HEIGHT)])
-				chunk_local.add_child(left_edge)
-				
-				var right_edge = Line2D.new()
-				right_edge.width = 4.0
-				right_edge.default_color = truss_dark
-				right_edge.points = PackedVector2Array([Vector2(rx2, 0), Vector2(rx2, CHUNK_PIXEL_HEIGHT)])
-				chunk_local.add_child(right_edge)
-
-		# 3. Structural Concrete Pillars at chunk boundaries
-		for py in [0.0, CHUNK_PIXEL_HEIGHT]:
-			var lp = Polygon2D.new()
-			lp.polygon = PackedVector2Array([
-				Vector2(left_rail_x - 35, py - 6), Vector2(left_rail_x - 2, py - 6),
-				Vector2(left_rail_x - 2, py + 6), Vector2(left_rail_x - 35, py + 6)
-			])
-			lp.color = Color(0.35, 0.35, 0.38)
-			chunk_local.add_child(lp)
-			
-			var rp = Polygon2D.new()
-			rp.polygon = PackedVector2Array([
-				Vector2(right_rail_x + 2, py - 6), Vector2(right_rail_x + 35, py - 6),
-				Vector2(right_rail_x + 35, py + 6), Vector2(right_rail_x + 2, py + 6)
-			])
-			rp.color = Color(0.35, 0.35, 0.38)
-			chunk_local.add_child(rp)
-
-		# 4. Safety Guardrail thin steel cables
-		var left_cable = Line2D.new()
-		left_cable.width = 1.0
-		left_cable.default_color = Color(0.75, 0.85, 0.95, 0.7)
-		left_cable.points = PackedVector2Array([Vector2(left_rail_x - 4, 0), Vector2(left_rail_x - 4, CHUNK_PIXEL_HEIGHT)])
-		chunk_local.add_child(left_cable)
-		
-		var right_cable = Line2D.new()
-		right_cable.width = 1.0
-		right_cable.default_color = Color(0.75, 0.85, 0.95, 0.7)
-		right_cable.points = PackedVector2Array([Vector2(right_rail_x + 4, 0), Vector2(right_rail_x + 4, CHUNK_PIXEL_HEIGHT)])
-		chunk_local.add_child(right_cable)
-
-		# 5. horizontal cross girder support beams
-		var beam_every = 3
-		for beam_row in range(0, CHUNK_HEIGHT + 1, beam_every):
-			var beam_y = beam_row * TILE_SIZE.y
-			var beam = Line2D.new()
-			beam.width = 5.0
-			beam.default_color = Color(0.08, 0.08, 0.12)
-			beam.points = PackedVector2Array([
-				Vector2(left_rail_x - 12, beam_y),
-				Vector2(right_rail_x + 12, beam_y)
-			])
-			chunk_local.add_child(beam)
-			var beam_highlight = Line2D.new()
-			beam_highlight.width = 1.5
-			beam_highlight.default_color = Color(0.2, 0.22, 0.28)
-			beam_highlight.points = PackedVector2Array([
-				Vector2(left_rail_x - 12, beam_y + 1),
-				Vector2(right_rail_x + 12, beam_y + 1)
-			])
-			chunk_local.add_child(beam_highlight)
+		var bridge_mesh_inst = MeshInstance2D.new()
+		bridge_mesh_inst.name = "BridgeStructureMesh"
+		bridge_mesh_inst.mesh = _get_bridge_structure_mesh()
+		chunk_local.add_child(bridge_mesh_inst)
 		
 		var bridge_width = 160.0
 		var left_bridge = Area2D.new()
@@ -931,7 +883,7 @@ func _get_decor_mesh(type: int) -> ArrayMesh:
 		return _decor_mesh_cache[type]
 	var temp_node = _create_desert_decoration(type)
 	var mesh = _node_to_mesh(temp_node)
-	temp_node.queue_free()
+	temp_node.free()
 	_decor_mesh_cache[type] = mesh
 	return mesh
 
@@ -1040,6 +992,110 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		temp_obs.add_child(crack2)
 		
 	var mesh = _node_to_mesh(temp_obs)
-	temp_obs.queue_free()
+	temp_obs.free()
 	_obstacle_mesh_cache[type] = mesh
 	return mesh
+
+static func _get_bridge_structure_mesh() -> ArrayMesh:
+	if _bridge_structure_mesh_cache:
+		return _bridge_structure_mesh_cache
+	var temp := Node2D.new()
+	var left_rail_x: float = -480.0
+	var right_rail_x: float = 480.0
+	for row in range(0, CHUNK_HEIGHT + 1, 2):
+		var joint_y = row * TILE_SIZE.y
+		var joint = Line2D.new()
+		joint.width = 1.5
+		joint.default_color = Color(0.05, 0.05, 0.07, 0.5)
+		joint.points = PackedVector2Array([Vector2(-480, joint_y), Vector2(480, joint_y)])
+		temp.add_child(joint)
+	var truss_color = Color(0.25, 0.28, 0.35, 1.0)
+	var truss_dark = Color(0.12, 0.14, 0.18, 1.0)
+	for row in range(0, CHUNK_HEIGHT):
+		var y1 = row * TILE_SIZE.y
+		var y2 = (row + 1) * TILE_SIZE.y
+		var lx1 = left_rail_x - 30
+		var lx2 = left_rail_x - 5
+		var lt1 = Line2D.new()
+		lt1.width = 2.5
+		lt1.default_color = truss_color
+		lt1.points = PackedVector2Array([Vector2(lx1, y1), Vector2(lx2, y2)])
+		temp.add_child(lt1)
+		var lt2 = Line2D.new()
+		lt2.width = 2.5
+		lt2.default_color = truss_color
+		lt2.points = PackedVector2Array([Vector2(lx2, y1), Vector2(lx1, y2)])
+		temp.add_child(lt2)
+		var rx1 = right_rail_x + 5
+		var rx2 = right_rail_x + 30
+		var rt1 = Line2D.new()
+		rt1.width = 2.5
+		rt1.default_color = truss_color
+		rt1.points = PackedVector2Array([Vector2(rx1, y1), Vector2(rx2, y2)])
+		temp.add_child(rt1)
+		var rt2 = Line2D.new()
+		rt2.width = 2.5
+		rt2.default_color = truss_color
+		rt2.points = PackedVector2Array([Vector2(rx2, y1), Vector2(rx1, y2)])
+		temp.add_child(rt2)
+		if row == 0:
+			var left_edge = Line2D.new()
+			left_edge.width = 4.0
+			left_edge.default_color = truss_dark
+			left_edge.points = PackedVector2Array([Vector2(lx1, 0), Vector2(lx1, CHUNK_PIXEL_HEIGHT)])
+			temp.add_child(left_edge)
+			var right_edge = Line2D.new()
+			right_edge.width = 4.0
+			right_edge.default_color = truss_dark
+			right_edge.points = PackedVector2Array([Vector2(rx2, 0), Vector2(rx2, CHUNK_PIXEL_HEIGHT)])
+			temp.add_child(right_edge)
+	for py in [0.0, CHUNK_PIXEL_HEIGHT]:
+		var lp = Polygon2D.new()
+		lp.polygon = PackedVector2Array([
+			Vector2(left_rail_x - 35, py - 6), Vector2(left_rail_x - 2, py - 6),
+			Vector2(left_rail_x - 2, py + 6), Vector2(left_rail_x - 35, py + 6)
+		])
+		lp.color = Color(0.35, 0.35, 0.38)
+		temp.add_child(lp)
+		var rp = Polygon2D.new()
+		rp.polygon = PackedVector2Array([
+			Vector2(right_rail_x + 2, py - 6), Vector2(right_rail_x + 35, py - 6),
+			Vector2(right_rail_x + 35, py + 6), Vector2(right_rail_x + 2, py + 6)
+		])
+		rp.color = Color(0.35, 0.35, 0.38)
+		temp.add_child(rp)
+	var left_cable = Line2D.new()
+	left_cable.width = 1.0
+	left_cable.default_color = Color(0.75, 0.85, 0.95, 0.7)
+	left_cable.points = PackedVector2Array([Vector2(left_rail_x - 4, 0), Vector2(left_rail_x - 4, CHUNK_PIXEL_HEIGHT)])
+	temp.add_child(left_cable)
+	var right_cable = Line2D.new()
+	right_cable.width = 1.0
+	right_cable.default_color = Color(0.75, 0.85, 0.95, 0.7)
+	right_cable.points = PackedVector2Array([Vector2(right_rail_x + 4, 0), Vector2(right_rail_x + 4, CHUNK_PIXEL_HEIGHT)])
+	temp.add_child(right_cable)
+	for beam_row in range(0, CHUNK_HEIGHT + 1, 3):
+		var beam_y = beam_row * TILE_SIZE.y
+		var beam = Line2D.new()
+		beam.width = 5.0
+		beam.default_color = Color(0.08, 0.08, 0.12)
+		beam.points = PackedVector2Array([Vector2(left_rail_x - 12, beam_y), Vector2(right_rail_x + 12, beam_y)])
+		temp.add_child(beam)
+		var beam_highlight = Line2D.new()
+		beam_highlight.width = 1.5
+		beam_highlight.default_color = Color(0.2, 0.22, 0.28)
+		beam_highlight.points = PackedVector2Array([Vector2(left_rail_x - 12, beam_y + 1), Vector2(right_rail_x + 12, beam_y + 1)])
+		temp.add_child(beam_highlight)
+	var mesh = _node_to_mesh(temp)
+	temp.free()
+	_bridge_structure_mesh_cache = mesh
+	return mesh
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for chunk_type in _chunk_buffers:
+			for tiles in _chunk_buffers[chunk_type]:
+				if is_instance_valid(tiles) and tiles.get_parent() == null:
+					tiles.free()
+		_chunk_buffers.clear()
+		_buffer_in_use.clear()

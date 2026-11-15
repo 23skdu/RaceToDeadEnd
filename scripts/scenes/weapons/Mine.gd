@@ -39,6 +39,14 @@ func on_pool_acquire() -> void:
 	if not area_entered.is_connected(_on_area_entered):
 		area_entered.connect(_on_area_entered)
 
+func on_pool_release() -> void:
+	if _arm_tween and _arm_tween.is_valid():
+		_arm_tween.kill()
+	_arm_tween = null
+	armed = false
+	if is_instance_valid(_blast_col):
+		_blast_col.disabled = true
+
 func init(pos: Vector2) -> void:
 	global_position = pos
 	_blast_col.shape.radius = explosion_radius

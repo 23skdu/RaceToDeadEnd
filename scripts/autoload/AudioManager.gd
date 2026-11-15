@@ -41,6 +41,12 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var _player_priorities: Array[int] = []
 var _async_tasks: Dictionary = {}
+var _custom_playlist: Array[AudioStream] = []
+var _custom_playlist_idx: int = 0
+var _custom_playlist_shuffle: bool = true
+
+static func _semitone_ratio(semitones: int) -> float:
+	return pow(2.0, float(semitones) / 12.0)
 
 static func _init_buses() -> void:
 	var expected_buses = ["Master", "Music", "SFX"]
@@ -59,6 +65,7 @@ func _ready() -> void:
 	music_player = AudioStreamPlayer.new()
 	music_player.bus = "Music"
 	music_player.name = "MusicPlayer"
+	music_player.finished.connect(_on_music_finished)
 	add_child(music_player)
 
 	for i in SFX_PLAYER_COUNT:
@@ -115,12 +122,19 @@ func _build_16bit_stream(duration: float, generator: Callable) -> AudioStreamWAV
 	return stream
 
 func play_menu_music() -> void:
+	if not _custom_playlist.is_empty():
+		return
+	_wait_for_task("menu_music")
 	if not _stream_menu_music:
 		_stream_menu_music = _generate_menu_music()
 	if music_player.stream != _stream_menu_music:
 		play_music(_stream_menu_music)
 
 func play_game_music() -> void:
+	if not _custom_playlist.is_empty():
+		if not music_player.playing:
+			_play_current_playlist_track()
+		return
 	var stream: AudioStreamWAV = null
 	var bosses_killed = GameManager.bosses_killed
 	
@@ -156,6 +170,41 @@ func play_music(stream: AudioStream) -> void:
 
 func stop_music() -> void:
 	music_player.stop()
+
+func set_playlist(tracks: Array[AudioStream], shuffle: bool = true) -> void:
+	_custom_playlist.clear()
+	for t in tracks:
+		if t:
+			_custom_playlist.append(t)
+	_custom_playlist_shuffle = shuffle
+	_custom_playlist_idx = 0
+	if not _custom_playlist.is_empty():
+		if _custom_playlist_shuffle and _custom_playlist.size() > 1:
+			_custom_playlist_idx = _rng.randi() % _custom_playlist.size()
+		_play_current_playlist_track()
+
+func revert_to_default_music() -> void:
+	_custom_playlist.clear()
+	_custom_playlist_idx = 0
+	if GameManager.state == GameManager.GameState.PLAYING:
+		play_game_music()
+	else:
+		play_menu_music()
+
+func _play_current_playlist_track() -> void:
+	if _custom_playlist.is_empty() or not is_instance_valid(music_player):
+		return
+	var idx := clampi(_custom_playlist_idx, 0, _custom_playlist.size() - 1)
+	play_music(_custom_playlist[idx])
+
+func _on_music_finished() -> void:
+	if _custom_playlist.is_empty():
+		return
+	if _custom_playlist_shuffle and _custom_playlist.size() > 1:
+		_custom_playlist_idx = _rng.randi() % _custom_playlist.size()
+	else:
+		_custom_playlist_idx = (_custom_playlist_idx + 1) % _custom_playlist.size()
+	_play_current_playlist_track()
 
 func play_demo_music(boss_type: String) -> void:
 	var stream: AudioStreamWAV
@@ -307,9 +356,11 @@ func _generate_laser_stream() -> AudioStreamWAV:
 	)
 
 func _generate_explosion_stream() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 101
 	return _build_16bit_stream(0.35, func(t: float, _i: int) -> float:
 		var amp = lerpf(12000.0, 0.0, t / 0.35)
-		return _rng.randf_range(-amp, amp)
+		return rng.randf_range(-amp, amp)
 	)
 
 func _generate_hurt_stream() -> AudioStreamWAV:
@@ -331,25 +382,24 @@ func _generate_emp_stream() -> AudioStreamWAV:
 	)
 
 func _generate_menu_music() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 202
+	var arpeggio: Array[int] = [0, 4, 7, 12, 7, 4, 0, -5, 0, 4, 7, 12, 7, 4, 0, -5,
+		2, 5, 9, 14, 9, 5, 2, -3, 0, 4, 7, 12, 7, 4, 0, -5]
+	var arp_ratios: Array[float] = []
+	for s in arpeggio:
+		arp_ratios.append(_semitone_ratio(s))
+	var measure_ratios: Array[float] = [1.0, 1.0, _semitone_ratio(5), _semitone_ratio(7)]
+	var bpm = 120.0
+	var step_duration = (60.0 / bpm) / 4.0
+	var base_freq = 110.0
+
 	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
-		var bpm = 120.0
-		var step_duration = (60.0 / bpm) / 4.0
 		var step_idx = int(t / step_duration)
 		var step_t = fmod(t, step_duration)
-
-		var arpeggio = [0, 4, 7, 12, 7, 4, 0, -5, 0, 4, 7, 12, 7, 4, 0, -5,
-						2, 5, 9, 14, 9, 5, 2, -3, 0, 4, 7, 12, 7, 4, 0, -5]
-		var base_freq = 110.0
-		var semitone = arpeggio[step_idx % arpeggio.size()]
-
 		var measure = int(t / (step_duration * 8.0))
-		var current_base = base_freq
-		if measure % 4 == 2:
-			current_base = base_freq * pow(1.059463, 5)
-		if measure % 4 == 3:
-			current_base = base_freq * pow(1.059463, 7)
-
-		var freq = current_base * pow(1.059463, semitone)
+		var current_base = base_freq * measure_ratios[measure % 4]
+		var freq = current_base * arp_ratios[step_idx % arp_ratios.size()]
 		var wave = 1.0 if fmod(t * freq, 1.0) < 0.5 else -1.0
 		var env = maxf(0.0, 1.0 - (step_t / step_duration))
 		var val = wave * 4000.0 * env
@@ -363,7 +413,7 @@ func _generate_menu_music() -> AudioStreamWAV:
 			val += kick * 5000.0 * maxf(0.0, 1.0 - (step_t / (step_duration * 1.5)))
 
 		if step_idx % 8 == 4:
-			var snare = _rng.randf() * 2.0 - 1.0
+			var snare = rng.randf() * 2.0 - 1.0
 			val += snare * 4000.0 * maxf(0.0, 1.0 - (step_t / step_duration))
 
 		return val
@@ -373,24 +423,33 @@ func _generate_menu_music() -> AudioStreamWAV:
 	return stream
 
 func _generate_game_music() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 203
+	var arp_normal: Array[float] = []
+	for s in [0, 3, 7, 12, 7, 3, 0, -5, 0, 4, 7, 14, 7, 4, 0, -5]:
+		arp_normal.append(pow(1.059463, float(s) / 12.0))
+	var arp_fill: Array[float] = []
+	for s in [0, 3, 7, 12, 14, 12, 7, 3, 0, 4, 7, 14, 17, 14, 7, 4]:
+		arp_fill.append(pow(1.059463, float(s) / 12.0))
+	var chord_progression = [
+		55.0, 55.0, 55.0, 55.0,
+		65.41, 65.41, 65.41, 65.41,
+		73.42, 73.42, 73.42, 73.42,
+		49.00, 49.00, 49.00, 49.00,
+		55.0, 55.0, 55.0, 55.0,
+		65.41, 65.41, 65.41, 65.41,
+		73.42, 73.42, 73.42, 73.42,
+		49.00, 49.00, 49.00, 49.00
+	]
+	var bpm = 150.0
+	var beat_duration = 60.0 / bpm
+	var step_duration = beat_duration / 4.0
+
 	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
-		var bpm = 150.0
-		var beat_duration = 60.0 / bpm
-		var step_duration = beat_duration / 4.0
 		var step_idx = int(t / step_duration)
 		var step_t = fmod(t, step_duration)
 		var val = 0.0
 
-		var chord_progression = [
-			55.0, 55.0, 55.0, 55.0,
-			65.41, 65.41, 65.41, 65.41,
-			73.42, 73.42, 73.42, 73.42,
-			49.00, 49.00, 49.00, 49.00,
-			55.0, 55.0, 55.0, 55.0,
-			65.41, 65.41, 65.41, 65.41,
-			73.42, 73.42, 73.42, 73.42,
-			49.00, 49.00, 49.00, 49.00
-		]
 		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
 		var bass_freq = chord_progression[measure_idx]
 
@@ -405,11 +464,8 @@ func _generate_game_music() -> AudioStreamWAV:
 			val += bass_wave * 3000.0 * bass_env
 
 		var is_fill = measure_idx >= 4 and measure_idx < 6
-		var arp_notes = [0, 3, 7, 12, 7, 3, 0, -5, 0, 4, 7, 14, 7, 4, 0, -5]
-		if is_fill:
-			arp_notes = [0, 3, 7, 12, 14, 12, 7, 3, 0, 4, 7, 14, 17, 14, 7, 4]
-		var semitone = arp_notes[step_idx % arp_notes.size()]
-		var arp_freq = bass_freq * pow(1.059463, semitone / 12.0)
+		var arp_arr = arp_fill if is_fill else arp_normal
+		var arp_freq = bass_freq * arp_arr[step_idx % arp_arr.size()]
 		var arp_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.8)))
 		var arp_wave = 1.0 if fmod(t * arp_freq, 1.0) < 0.25 else -1.0
 		val += arp_wave * 2500.0 * arp_env * fill_intensity
@@ -422,12 +478,12 @@ func _generate_game_music() -> AudioStreamWAV:
 
 		if (step_idx + 4) % 8 == 0:
 			var snare_env = maxf(0.0, 1.0 - (step_t / step_duration))
-			var noise = _rng.randf() * 2.0 - 1.0
+			var noise = rng.randf() * 2.0 - 1.0
 			val += noise * 4000.0 * snare_env
 
 		if step_idx % 2 == 1:
 			var hat_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.5)))
-			var noise = _rng.randf() * 2.0 - 1.0
+			var noise = rng.randf() * 2.0 - 1.0
 			val += noise * 1500.0 * hat_env
 
 		return val
@@ -453,10 +509,12 @@ func _generate_rotor_hit_stream() -> AudioStreamWAV:
 	)
 
 func _generate_scav_hit_stream() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 102
 	return _build_16bit_stream(0.15, func(t: float, _i: int) -> float:
 		var freq = lerpf(300.0, 100.0, t / 0.15)
 		var amp = lerpf(8000.0, 0.0, t / 0.15)
-		return sin(TAU * freq * t) * amp + (_rng.randf() * 3000.0 - 1500.0) * (1.0 - t / 0.15)
+		return sin(TAU * freq * t) * amp + (rng.randf() * 3000.0 - 1500.0) * (1.0 - t / 0.15)
 	)
 
 func _generate_drone_hit_stream() -> AudioStreamWAV:
@@ -475,19 +533,23 @@ func _generate_bunny_death_stream() -> AudioStreamWAV:
 	)
 
 func _generate_rotor_death_stream() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 103
 	return _build_16bit_stream(0.4, func(t: float, _i: int) -> float:
 		var freq = lerpf(400.0, 50.0, t / 0.4)
 		var amp = lerpf(9000.0, 0.0, t / 0.4)
 		var val = sin(TAU * freq * t) * amp
 		if fmod(t * 30.0, 1.0) < 0.3:
-			val += _rng.randf() * 4000.0 - 2000.0
+			val += rng.randf() * 4000.0 - 2000.0
 		return val
 	)
 
 func _generate_scav_death_stream() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 104
 	return _build_16bit_stream(0.5, func(t: float, _i: int) -> float:
 		var amp = lerpf(12000.0, 0.0, t / 0.5)
-		var val = _rng.randf_range(-amp, amp)
+		var val = rng.randf_range(-amp, amp)
 		if t < 0.1:
 			val += sin(TAU * 200.0 * t) * 5000.0
 		return val
@@ -503,20 +565,24 @@ func _generate_drone_death_stream() -> AudioStreamWAV:
 	)
 
 func _generate_lightning_stream() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 105
 	return _build_16bit_stream(0.5, func(t: float, _i: int) -> float:
 		var amp = lerpf(14000.0, 0.0, t / 0.5)
-		var val = _rng.randf_range(-amp, amp)
+		var val = rng.randf_range(-amp, amp)
 		if t < 0.05:
 			val += sin(TAU * 2000.0 * t) * 7000.0
 		if fmod(t * 15.0, 1.0) < 0.2:
-			val += _rng.randf() * 5000.0 - 2500.0
+			val += rng.randf() * 5000.0 - 2500.0
 		return val
 	)
 
 func _generate_crash_stream() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 106
 	return _build_16bit_stream(0.3, func(t: float, _i: int) -> float:
 		var amp = lerpf(11000.0, 0.0, t / 0.3)
-		var noise = _rng.randf_range(-amp, amp)
+		var noise = rng.randf_range(-amp, amp)
 		var freq = lerpf(400.0, 80.0, t / 0.3)
 		var metal = sin(TAU * freq * t) * amp * 0.5
 		return noise + metal
@@ -532,11 +598,13 @@ func _generate_bounce_stream() -> AudioStreamWAV:
 
 func _generate_demo_music_bunny() -> AudioStreamWAV:
 	# Bouncy 8-bit victory tune
+	var arpeggio = [0, 4, 7, 12, 16, 12, 7, 4]
+	var arp_freqs: Array[float] = []
+	for s in arpeggio:
+		arp_freqs.append(440.0 * _semitone_ratio(s))
 	var stream = _build_16bit_stream(4.0, func(t: float, _i: int) -> float:
 		var step_idx = int(t * 8.0)
-		var arpeggio = [0, 4, 7, 12, 16, 12, 7, 4]
-		var semitone = arpeggio[step_idx % arpeggio.size()]
-		var freq = 440.0 * pow(1.059463, semitone)
+		var freq = arp_freqs[step_idx % arp_freqs.size()]
 		var wave = 1.0 if fmod(t * freq, 1.0) < 0.5 else -1.0
 		return wave * 6000.0 * maxf(0.0, 1.0 - fmod(t * 8.0, 1.0))
 	)
@@ -596,18 +664,25 @@ func _generate_demo_music_war_rig() -> AudioStreamWAV:
 	return stream
 
 func _generate_game_music_bunny() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 301
+	var arp_notes = [0, 4, 7, 11, 12, 11, 7, 4]
+	var arp_ratios: Array[float] = []
+	for s in arp_notes:
+		arp_ratios.append(_semitone_ratio(s))
+	var chord_progression = [
+		65.41, 65.41, 73.42, 73.42,
+		82.41, 82.41, 98.00, 98.00
+	]
+	var bpm = 150.0
+	var beat_duration = 60.0 / bpm
+	var step_duration = beat_duration / 4.0
+
 	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
-		var bpm = 150.0
-		var beat_duration = 60.0 / bpm
-		var step_duration = beat_duration / 4.0
 		var step_idx = int(t / step_duration)
 		var step_t = fmod(t, step_duration)
 		var val = 0.0
 
-		var chord_progression = [
-			65.41, 65.41, 73.42, 73.42,
-			82.41, 82.41, 98.00, 98.00
-		]
 		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
 		var bass_freq = chord_progression[measure_idx]
 
@@ -618,9 +693,7 @@ func _generate_game_music_bunny() -> AudioStreamWAV:
 			val += bass_wave * 2500.0 * bass_env
 
 		# Cute arpeggio melody
-		var arp_notes = [0, 4, 7, 11, 12, 11, 7, 4]
-		var semitone = arp_notes[step_idx % arp_notes.size()]
-		var arp_freq = bass_freq * 2.0 * pow(1.059463, semitone)
+		var arp_freq = bass_freq * 2.0 * arp_ratios[step_idx % arp_ratios.size()]
 		var arp_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.75)))
 		var arp_wave = 1.0 if fmod(t * arp_freq, 1.0) < 0.3 else -1.0
 		val += arp_wave * 2000.0 * arp_env
@@ -635,7 +708,7 @@ func _generate_game_music_bunny() -> AudioStreamWAV:
 		# Snare
 		if (step_idx + 4) % 8 == 0:
 			var snare_env = maxf(0.0, 1.0 - (step_t / step_duration))
-			var noise = _rng.randf() * 2.0 - 1.0
+			var noise = rng.randf() * 2.0 - 1.0
 			val += noise * 3000.0 * snare_env
 
 		return val
@@ -645,18 +718,21 @@ func _generate_game_music_bunny() -> AudioStreamWAV:
 	return stream
 
 func _generate_game_music_biker() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 302
+	var chord_progression = [
+		49.00, 49.00, 58.27, 58.27,
+		41.20, 41.20, 43.65, 43.65
+	]
+	var bpm = 140.0
+	var beat_duration = 60.0 / bpm
+	var step_duration = beat_duration / 4.0
+
 	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
-		var bpm = 140.0
-		var beat_duration = 60.0 / bpm
-		var step_duration = beat_duration / 4.0
 		var step_idx = int(t / step_duration)
 		var step_t = fmod(t, step_duration)
 		var val = 0.0
 
-		var chord_progression = [
-			49.00, 49.00, 58.27, 58.27,
-			41.20, 41.20, 43.65, 43.65
-		]
 		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
 		var bass_freq = chord_progression[measure_idx]
 
@@ -683,7 +759,7 @@ func _generate_game_music_biker() -> AudioStreamWAV:
 		# Loud Metal Snare
 		if (step_idx + 4) % 8 == 0:
 			var snare_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.5)))
-			var noise = _rng.randf() * 2.0 - 1.0
+			var noise = rng.randf() * 2.0 - 1.0
 			val += noise * 4500.0 * snare_env
 
 		return val
@@ -693,18 +769,21 @@ func _generate_game_music_biker() -> AudioStreamWAV:
 	return stream
 
 func _generate_game_music_sasquatch() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 303
+	var chord_progression = [
+		43.65, 43.65, 49.00, 49.00,
+		36.71, 36.71, 38.89, 38.89
+	]
+	var bpm = 120.0
+	var beat_duration = 60.0 / bpm
+	var step_duration = beat_duration / 4.0
+
 	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
-		var bpm = 120.0
-		var beat_duration = 60.0 / bpm
-		var step_duration = beat_duration / 4.0
 		var step_idx = int(t / step_duration)
 		var step_t = fmod(t, step_duration)
 		var val = 0.0
 
-		var chord_progression = [
-			43.65, 43.65, 49.00, 49.00,
-			36.71, 36.71, 38.89, 38.89
-		]
 		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
 		var bass_freq = chord_progression[measure_idx]
 
@@ -730,7 +809,7 @@ func _generate_game_music_sasquatch() -> AudioStreamWAV:
 		# Tribal Shaker
 		if step_idx % 2 == 1:
 			var shaker_env = maxf(0.0, 1.0 - (step_t / (step_duration * 0.4)))
-			var noise = _rng.randf() * 2.0 - 1.0
+			var noise = rng.randf() * 2.0 - 1.0
 			val += noise * 1800.0 * shaker_env
 
 		return val
@@ -740,18 +819,21 @@ func _generate_game_music_sasquatch() -> AudioStreamWAV:
 	return stream
 
 func _generate_game_music_void() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 304
+	var chord_progression = [
+		73.42, 73.42, 87.31, 87.31,
+		65.41, 65.41, 58.27, 58.27
+	]
+	var bpm = 135.0
+	var beat_duration = 60.0 / bpm
+	var step_duration = beat_duration / 4.0
+
 	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
-		var bpm = 135.0
-		var beat_duration = 60.0 / bpm
-		var step_duration = beat_duration / 4.0
 		var step_idx = int(t / step_duration)
 		var step_t = fmod(t, step_duration)
 		var val = 0.0
 
-		var chord_progression = [
-			73.42, 73.42, 87.31, 87.31,
-			65.41, 65.41, 58.27, 58.27
-		]
 		var measure_idx = int(t / (beat_duration * 4.0)) % chord_progression.size()
 		var bass_freq = chord_progression[measure_idx]
 
@@ -778,7 +860,7 @@ func _generate_game_music_void() -> AudioStreamWAV:
 		# Space snare
 		if (step_idx + 4) % 8 == 0:
 			var snare_env = maxf(0.0, 1.0 - (step_t / (step_duration * 1.2)))
-			var noise = _rng.randf() * 2.0 - 1.0
+			var noise = rng.randf() * 2.0 - 1.0
 			var snare_wave = noise * 3000.0 + sin(TAU * 180.0 * step_t) * 1500.0
 			val += snare_wave * snare_env
 
@@ -789,7 +871,7 @@ func _generate_game_music_void() -> AudioStreamWAV:
 	return stream
 
 func _generate_all_async() -> void:
-	_stream_menu_music = _generate_menu_music()
+	_async_tasks["menu_music"] = WorkerThreadPool.add_task(func(): _stream_menu_music = _generate_menu_music())
 	
 	_async_tasks["game_music_bunny"] = WorkerThreadPool.add_task(func(): _stream_game_music_bunny = _generate_game_music_bunny())
 	_async_tasks["game_music_biker"] = WorkerThreadPool.add_task(func(): _stream_game_music_biker = _generate_game_music_biker())
@@ -812,4 +894,12 @@ func _exit_tree() -> void:
 	var keys = _async_tasks.keys()
 	for key in keys:
 		_wait_for_task(key)
+	if is_instance_valid(music_player):
+		music_player.stop()
+		music_player.stream = null
+	for p in sfx_players:
+		if is_instance_valid(p):
+			p.stop()
+			p.stream = null
+	_custom_playlist.clear()
 

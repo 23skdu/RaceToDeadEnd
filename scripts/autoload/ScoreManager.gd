@@ -30,13 +30,19 @@ func _on_game_over(_final_score: int) -> void:
 func register_kill(enemy_type: String, position: Vector2) -> void:
 	var points = SCORE_VALUES.get(enemy_type + "_kill", 50)
 	GameManager.add_score(points)
+	if GameManager.has_method("record_run_kill"):
+		GameManager.record_run_kill(enemy_type)
 	score_popped.emit(position, points, "+" + str(points))
 
 func register_civilian_protected(position: Vector2) -> void:
 	GameManager.add_score(SCORE_VALUES.civilian_protected)
+	if GameManager.has_method("record_civilian_protected"):
+		GameManager.record_civilian_protected()
 	score_popped.emit(position, SCORE_VALUES.civilian_protected, "PROTECTED!")
 
 func register_civilian_damaged() -> void:
+	if GameManager.has_method("record_civilian_damaged"):
+		GameManager.record_civilian_damaged()
 	score_popped.emit(Vector2.ZERO, 0, "CIVILIAN HIT!")
 
 func register_pickup(pickup_type: String, _position: Vector2) -> void:

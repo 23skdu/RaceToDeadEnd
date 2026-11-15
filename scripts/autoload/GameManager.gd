@@ -45,6 +45,35 @@ var _score_ticker: Timer
 var current_speed: float = Constants.BASE_SPEED
 
 signal speed_changed(speed: float)
+signal achievement_unlocked(achievement_id: String, title: String)
+
+const SAVE_PATH: String = "user://save.dat"
+const SAVE_TMP_PATH: String = "user://save.dat.tmp"
+const SAVE_VERSION: int = 2
+const MAX_LEADERBOARD_ENTRIES: int = 10
+
+const ACHIEVEMENT_TITLES: Dictionary = {
+	"first_blood": "First Blood (10 Kills)",
+	"centurion": "Road Warrior (50 Kills)",
+	"boss_slayer": "Boss Slayer (Defeat a Boss)",
+	"protector": "Guardian (Protect 3 Civilians)",
+	"speed_demon": "Speed Demon (Reach Tier 5)",
+	"high_roller": "Legend (Score 10,000+)",
+}
+
+var daily_run_active: bool = false
+var daily_seed: int = 0
+var leaderboard: Array[Dictionary] = []
+var unlocked_achievements: Array[String] = []
+var run_stats: Dictionary = {
+	"kills": 0,
+	"kills_by_type": {},
+	"civilians_protected": 0,
+	"civilians_damaged": 0,
+	"max_multiplier": 1,
+	"segments_cleared": 0,
+	"daily": false,
+}
 
 func _ready() -> void:
 	_add_input_mappings()
@@ -84,6 +113,16 @@ func start_game() -> void:
 	difficulty_tier = 1
 	current_segment = 0
 	boss_active = false
+	enemy_list.clear()
+	run_stats = {
+		"kills": 0,
+		"kills_by_type": {},
+		"civilians_protected": 0,
+		"civilians_damaged": 0,
+		"max_multiplier": 1,
+		"segments_cleared": 0,
+		"daily": daily_run_active,
+	}
 	current_speed = Constants.BASE_SPEED
 	speed_changed.emit(current_speed)
 	score_updated.emit(score)
@@ -95,8 +134,46 @@ func start_game() -> void:
 	if _score_ticker:
 		_score_ticker.start()
 
+static func compute_daily_seed(date_dict: Dictionary = {}) -> int:
+	var d: Dictionary = date_dict if not date_dict.is_empty() else Time.get_date_dict_from_system(true)
+	var date_str := "%04d-%02d-%02d" % [int(d.get("year", 2026)), int(d.get("month", 1)), int(d.get("day", 1))]
+	return int(hash("daily_run:" + date_str))
+
+func start_daily_run() -> void:
+	daily_run_active = true
+	daily_seed = compute_daily_seed()
+	start_game()
+
+func record_run_kill(enemy_type: String) -> void:
+	run_stats["kills"] = int(run_stats.get("kills", 0)) + 1
+	var by_type: Dictionary = run_stats.get("kills_by_type", {})
+	by_type[enemy_type] = int(by_type.get(enemy_type, 0)) + 1
+	run_stats["kills_by_type"] = by_type
+	var total_kills: int = int(run_stats["kills"])
+	if total_kills >= 10:
+		_unlock_achievement("first_blood")
+	if total_kills >= 50:
+		_unlock_achievement("centurion")
+	if enemy_type.begins_with("boss"):
+		_unlock_achievement("boss_slayer")
+
+func record_civilian_protected() -> void:
+	run_stats["civilians_protected"] = int(run_stats.get("civilians_protected", 0)) + 1
+	if int(run_stats["civilians_protected"]) >= 3:
+		_unlock_achievement("protector")
+
+func record_civilian_damaged() -> void:
+	run_stats["civilians_damaged"] = int(run_stats.get("civilians_damaged", 0)) + 1
+
+func _unlock_achievement(ach_id: String) -> void:
+	if ach_id in unlocked_achievements or not ACHIEVEMENT_TITLES.has(ach_id):
+		return
+	unlocked_achievements.append(ach_id)
+	achievement_unlocked.emit(ach_id, ACHIEVEMENT_TITLES[ach_id])
+
 func register_enemy_spawned(enemy: Node) -> void:
-	enemy_list.append(enemy)
+	if is_instance_valid(enemy) and not enemy_list.has(enemy):
+		enemy_list.append(enemy)
 
 func register_enemy_destroyed(enemy: Node) -> void:
 	enemy_list.erase(enemy)
@@ -113,6 +190,8 @@ func _check_difficulty_advance() -> void:
 	if new_tier > difficulty_tier:
 		difficulty_tier = new_tier
 		current_speed = minf(Constants.BASE_SPEED + (difficulty_tier - 1) * Constants.SPEED_PER_TIER, Constants.MAX_GAME_SPEED)
+		if difficulty_tier >= 5:
+			_unlock_achievement("speed_demon")
 		difficulty_tier_changed.emit(difficulty_tier)
 		speed_changed.emit(current_speed)
 
@@ -134,11 +213,13 @@ func take_damage(amount: int) -> void:
 
 func set_multiplier(value: int) -> void:
 	multiplier = clampi(value, 1, 8)
+	run_stats["max_multiplier"] = maxi(int(run_stats.get("max_multiplier", 1)), multiplier)
 	multiplier_updated.emit(multiplier)
 
 func add_temporary_multiplier(bonus: int) -> void:
 	_base_multiplier = multiplier
 	multiplier = clampi(multiplier + bonus, 1, 8)
+	run_stats["max_multiplier"] = maxi(int(run_stats.get("max_multiplier", 1)), multiplier)
 	_multiplier_timer = Constants.MULTIPLIER_DURATION
 	multiplier_updated.emit(multiplier)
 
@@ -148,6 +229,7 @@ func _reset_multiplier() -> void:
 
 func advance_segment() -> void:
 	current_segment += 1
+	run_stats["segments_cleared"] = current_segment
 	_difficulty_progress += Constants.SEGMENT_DIFFICULTY_BONUS
 	segment_advanced.emit(current_segment)
 	if credits > 0 or score > 0:
@@ -159,6 +241,19 @@ func end_game() -> void:
 	credits += floori(score / 10.0)
 	if score > high_score:
 		high_score = score
+	if score >= 10000:
+		_unlock_achievement("high_roller")
+	if score > 0:
+		var entry := {
+			"score": score,
+			"tier": difficulty_tier,
+			"segments": current_segment,
+			"daily": daily_run_active,
+		}
+		leaderboard.append(entry)
+		leaderboard.sort_custom(func(a, b): return int(a.get("score", 0)) > int(b.get("score", 0)))
+		if leaderboard.size() > MAX_LEADERBOARD_ENTRIES:
+			leaderboard.resize(MAX_LEADERBOARD_ENTRIES)
 	save_progress()
 	game_over.emit(score)
 
@@ -224,44 +319,99 @@ func _add_joy_motion(action: String, axis: int, dir: float) -> void:
 	ev.axis_value = dir
 	InputMap.action_add_event(action, ev)
 
+func _get_save_passphrase() -> String:
+	return "RaceToDeadEnd::v2::SaveKey::" + str(ProjectSettings.get_setting("application/config/name", "Race to Dead End"))
+
+func _compute_save_checksum(payload: Dictionary) -> String:
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update(("R2DE_SAVE_V2:" + JSON.stringify(payload, "", true)).to_utf8_buffer())
+	return ctx.finish().hex_encode()
+
 func save_progress() -> void:
 	var payload = {
-		credits = credits,
-		high_score = high_score,
-		upgrade_levels = upgrade_levels.duplicate(),
+		"credits": credits,
+		"high_score": high_score,
+		"upgrade_levels": upgrade_levels.duplicate(),
+		"leaderboard": leaderboard.duplicate(true),
+		"achievements": unlocked_achievements.duplicate(),
 	}
-	var payload_str = var_to_str(payload)
 	var save_data = {
-		payload = payload,
-		_checksum = hash(payload_str),
+		"version": SAVE_VERSION,
+		"payload": payload,
+		"_checksum": _compute_save_checksum(payload),
 	}
-	var file = FileAccess.open("user://save.dat", FileAccess.WRITE)
+	var file = FileAccess.open_encrypted_with_pass(SAVE_TMP_PATH, FileAccess.WRITE, _get_save_passphrase())
 	if file:
 		file.store_var(save_data)
+		file.close()
+		var err = DirAccess.rename_absolute(SAVE_TMP_PATH, SAVE_PATH)
+		if err != OK:
+			var fallback = FileAccess.open_encrypted_with_pass(SAVE_PATH, FileAccess.WRITE, _get_save_passphrase())
+			if fallback:
+				fallback.store_var(save_data)
+				fallback.close()
 
 func load_progress() -> void:
-	var file = FileAccess.open("user://save.dat", FileAccess.READ)
-	if file:
-		var data = file.get_var()
-		if data is Dictionary:
-			var payload = data.get("payload")
-			var stored_checksum = data.get("_checksum", 0)
-			if payload is Dictionary and stored_checksum != 0:
-				var expected_checksum = hash(var_to_str(payload))
-				if expected_checksum != stored_checksum:
-					push_warning("Save file checksum mismatch, using defaults")
-					return
-			if payload is Dictionary:
-				if payload.has("credits") and typeof(payload.credits) == TYPE_INT:
-					credits = maxi(0, payload.credits)
-				if payload.has("high_score") and typeof(payload.high_score) == TYPE_INT:
-					high_score = maxi(0, payload.high_score)
-				if payload.has("upgrade_levels") and typeof(payload.upgrade_levels) == TYPE_DICTIONARY:
-					for key in upgrade_levels:
-						if payload.upgrade_levels.has(key) and typeof(payload.upgrade_levels[key]) == TYPE_INT:
-							var val = clampi(payload.upgrade_levels[key], 1, 5)
-							upgrade_levels[key] = val
-		else:
-			push_warning("Save data corrupted, using defaults")
-			credits = 0
-			high_score = 0
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	var probe := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if not probe:
+		push_warning("Save data corrupted, using defaults")
+		credits = 0
+		high_score = 0
+		return
+	var file_len := probe.get_length()
+	var magic := probe.get_32() if file_len >= 4 else 0
+	probe.close()
+	if file_len < 32 or magic != 0x43454447:
+		push_warning("Save data corrupted, using defaults")
+		credits = 0
+		high_score = 0
+		return
+	var file = FileAccess.open_encrypted_with_pass(SAVE_PATH, FileAccess.READ, _get_save_passphrase())
+	if not file:
+		push_warning("Save data corrupted, using defaults")
+		credits = 0
+		high_score = 0
+		return
+	var data = file.get_var()
+	file.close()
+	if not (data is Dictionary):
+		push_warning("Save data corrupted, using defaults")
+		credits = 0
+		high_score = 0
+		return
+	var payload = data.get("payload")
+	var stored_checksum = data.get("_checksum", "")
+	if not (payload is Dictionary) or not (stored_checksum is String) or stored_checksum.length() != 64:
+		push_warning("Save file checksum mismatch, using defaults")
+		return
+	var expected_checksum = _compute_save_checksum(payload)
+	if expected_checksum != stored_checksum:
+		push_warning("Save file checksum mismatch, using defaults")
+		return
+	if payload.has("credits") and (typeof(payload.credits) == TYPE_INT or typeof(payload.credits) == TYPE_FLOAT):
+		credits = maxi(0, int(payload.credits))
+	if payload.has("high_score") and (typeof(payload.high_score) == TYPE_INT or typeof(payload.high_score) == TYPE_FLOAT):
+		high_score = maxi(0, int(payload.high_score))
+	if payload.has("upgrade_levels") and typeof(payload.upgrade_levels) == TYPE_DICTIONARY:
+		for key in upgrade_levels:
+			if payload.upgrade_levels.has(key) and (typeof(payload.upgrade_levels[key]) == TYPE_INT or typeof(payload.upgrade_levels[key]) == TYPE_FLOAT):
+				var val = clampi(int(payload.upgrade_levels[key]), 1, 5)
+				upgrade_levels[key] = val
+	if payload.has("leaderboard") and typeof(payload.leaderboard) == TYPE_ARRAY:
+		leaderboard.clear()
+		for entry in payload.leaderboard:
+			if entry is Dictionary and leaderboard.size() < MAX_LEADERBOARD_ENTRIES:
+				leaderboard.append({
+					"score": maxi(0, int(entry.get("score", 0))),
+					"tier": clampi(int(entry.get("tier", 1)), 1, Constants.MAX_TIER),
+					"segments": maxi(0, int(entry.get("segments", 0))),
+					"daily": bool(entry.get("daily", false)),
+				})
+	if payload.has("achievements") and typeof(payload.achievements) == TYPE_ARRAY:
+		unlocked_achievements.clear()
+		for ach in payload.achievements:
+			if ach is String and ACHIEVEMENT_TITLES.has(ach) and not (ach in unlocked_achievements):
+				unlocked_achievements.append(ach)

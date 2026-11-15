@@ -1,5 +1,7 @@
 extends "res://scripts/scenes/enemies/Enemy.gd"
 
+static var _boss_biker_texture: Texture2D = null
+
 var attack_timer: float = 0.0
 var enraged: bool = false
 
@@ -17,7 +19,9 @@ func _reset_state() -> void:
 	sprite.modulate = Color.WHITE
 
 	if not sprite.texture or sprite.texture is PlaceholderTexture2D:
-		sprite.texture = _create_boss_biker_texture()
+		if not _boss_biker_texture:
+			_boss_biker_texture = _create_boss_biker_texture()
+		sprite.texture = _boss_biker_texture
 
 static func _create_boss_biker_texture() -> ImageTexture:
 	var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)

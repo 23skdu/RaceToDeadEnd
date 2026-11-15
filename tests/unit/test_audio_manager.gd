@@ -154,27 +154,32 @@ func test_music_player_named():
 
 func test_generate_laser_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_laser_stream()
 	assert_true(stream != null, "Should generate laser stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Should be 16-bit")
 
 func test_generate_explosion_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_explosion_stream()
 	assert_true(stream != null, "Should generate explosion stream")
 
 func test_generate_hurt_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_hurt_stream()
 	assert_true(stream != null, "Should generate hurt stream")
 
 func test_generate_boost_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_boost_stream()
 	assert_true(stream != null, "Should generate boost stream")
 
 func test_generate_emp_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_emp_stream()
 	assert_true(stream != null, "Should generate emp stream")
 
@@ -235,6 +240,7 @@ func test_music_frequency_changes_over_time():
 
 func test_laser_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_laser_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Laser should be 16-bit")
 	assert_eq(stream.mix_rate, 22050, "Laser mix rate should be 22050")
@@ -242,6 +248,7 @@ func test_laser_stream_properties():
 
 func test_explosion_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_explosion_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Explosion should be 16-bit")
 	assert_eq(stream.mix_rate, 22050, "Explosion mix rate should be 22050")
@@ -249,6 +256,7 @@ func test_explosion_stream_properties():
 
 func test_hurt_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_hurt_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Hurt should be 16-bit")
 	assert_eq(stream.mix_rate, 22050, "Hurt mix rate should be 22050")
@@ -256,6 +264,7 @@ func test_hurt_stream_properties():
 
 func test_boost_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_boost_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Boost should be 16-bit")
 	assert_eq(stream.mix_rate, 22050, "Boost mix rate should be 22050")
@@ -263,6 +272,7 @@ func test_boost_stream_properties():
 
 func test_emp_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_emp_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "EMP should be 16-bit")
 	assert_eq(stream.mix_rate, 22050, "EMP mix rate should be 22050")
@@ -297,6 +307,7 @@ func test_audio_manager_play_lightning_uses_cached():
 
 func test_generate_lightning_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_lightning_stream()
 	assert_true(stream != null, "Should generate lightning stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Lightning should be 16-bit")
@@ -305,6 +316,7 @@ func test_generate_lightning_stream():
 
 func test_lightning_stream_properties():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_lightning_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Lightning should be 16-bit")
 	assert_eq(stream.mix_rate, 22050, "Lightning mix rate should be 22050")
@@ -390,12 +402,14 @@ func test_play_drone_death():
 
 func test_enemy_hit_streams_are_16bit():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	assert_eq(am._generate_rotor_hit_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Rotor hit should be 16-bit")
 	assert_eq(am._generate_scav_hit_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Scav hit should be 16-bit")
 	assert_eq(am._generate_drone_hit_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Drone hit should be 16-bit")
 
 func test_enemy_death_streams_are_16bit():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	assert_eq(am._generate_rotor_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Rotor death should be 16-bit")
 	assert_eq(am._generate_scav_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Scav death should be 16-bit")
 	assert_eq(am._generate_drone_death_stream().format, AudioStreamWAV.FORMAT_16_BITS, "Drone death should be 16-bit")
@@ -440,6 +454,7 @@ func test_audio_manager_play_synth_crash_uses_cached():
 
 func test_generate_crash_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_crash_stream()
 	assert_true(stream != null, "Should generate crash stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Crash should be 16-bit")
@@ -459,6 +474,7 @@ func test_audio_manager_play_synth_bounce_uses_cached():
 
 func test_generate_bounce_stream():
 	var am = load("res://scripts/autoload/AudioManager.gd").new()
+	autofree(am)
 	var stream = am._generate_bounce_stream()
 	assert_true(stream != null, "Should generate bounce stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Bounce should be 16-bit")

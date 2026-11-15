@@ -6,10 +6,25 @@ func before_all():
 	_tl = TransitionLayer
 
 func before_each():
+	if _tl._tween and _tl._tween.is_valid():
+		_tl._tween.kill()
 	while _tl.get_child_count() > 0:
-		_tl.remove_child(_tl.get_child(0))
+		var child = _tl.get_child(0)
+		_tl.remove_child(child)
+		child.free()
 	_tl._overlay = null
 	_tl._tween = null
+
+func after_all():
+	if _tl._tween and _tl._tween.is_valid():
+		_tl._tween.kill()
+	while _tl.get_child_count() > 0:
+		var child = _tl.get_child(0)
+		_tl.remove_child(child)
+		child.free()
+	_tl._overlay = null
+	_tl._tween = null
+	_tl._ready()
 
 func test_ready_sets_layer():
 	_tl._ready()

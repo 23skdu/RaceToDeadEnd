@@ -14,8 +14,18 @@ MARKDOWNLINT ?= $(shell command -v markdownlint 2>/dev/null || true)
 GODOT_VERSION ?= 4.7.2
 GUT_VERSION   ?= 9.7.1
 GUT_URL       ?= https://github.com/bitwes/Gut/archive/refs/tags/v$(GUT_VERSION).zip
+TEMPLATES_URL ?= https://github.com/godotengine/godot/releases/download/$(GODOT_VERSION)-stable/Godot_v$(GODOT_VERSION)-stable_export_templates.tpz
 COI_SW_SHA    ?= 7b1d2a092d0d2dd2b7270b6f12f13605de26f214
+COI_SW_SHA256 ?= e97bbac6017322d48aa54a5bc7ce473c725a4b7376ff245002e0ba71c3dcdd7e
 COI_SW_URL    ?= https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/$(COI_SW_SHA)/coi-serviceworker.js
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+EXPORT_TEMPLATES_DIR ?= $(HOME)/Library/Application Support/Godot/export_templates/$(GODOT_VERSION).stable
+else
+DATA_HOME := $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
+EXPORT_TEMPLATES_DIR ?= $(DATA_HOME)/godot/export_templates/$(GODOT_VERSION).stable
+endif
 
 BUILD_DIR     ?= build
 WEB_DIR       ?= $(BUILD_DIR)/web
@@ -24,11 +34,11 @@ MACOS_DIR     ?= $(BUILD_DIR)/macos
 ANDROID_DIR   ?= $(BUILD_DIR)/android
 IOS_DIR       ?= $(BUILD_DIR)/ios
 
-PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/restructure_scripts.py scripts/update_gd.py
+PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/restructure_scripts.py scripts/update_gd.py scripts/check_coverage.py
 
-.PHONY: all help ci check check-godot deps deps-python install-gut import run editor \
-	test test-unit test-integration test-runner test-scripts \
-	lint lint-gd lint-python lint-docs fmt fmt-check check-assets \
+.PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates prep-build import run editor \
+	test test-unit test-integration test-fuzz test-regression test-runner test-scripts \
+	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage install-hooks \
 	build build-web build-linux build-macos build-android build-ios build-all serve-web \
 	clean clean-all
 
@@ -43,6 +53,8 @@ help:
 	@echo "  check-godot       Verify Godot binary is installed and print version"
 	@echo "  deps              Install GUT ($(GUT_VERSION)) addon if missing"
 	@echo "  install-gut       Force (re)install GUT v$(GUT_VERSION) into addons/gut/"
+	@echo "  templates         Install Godot $(GODOT_VERSION) export templates if missing"
+	@echo "  install-templates Force (re)install Godot $(GODOT_VERSION) export templates"
 	@echo "  deps-python       Install Python script dependencies from scripts/requirements.txt"
 	@echo "  import            Import project resources in headless Godot"
 	@echo ""
@@ -51,15 +63,19 @@ help:
 	@echo "  editor            Open the project in the Godot Editor"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test              Run full GUT test suite (unit + integration)"
+	@echo "  test              Run full GUT test suite (unit + integration + fuzz + regression)"
 	@echo "  test-unit         Run GUT unit tests (tests/unit)"
 	@echo "  test-integration  Run GUT integration tests (tests/integration)"
+	@echo "  test-fuzz         Run GUT fuzz tests (tests/fuzz)"
+	@echo "  test-regression   Run GUT regression tests (tests/regression)"
 	@echo "  test-runner       Run custom headless SceneTree test runner (scripts/run_tests.gd)"
-	@echo "  test-scripts      Run legacy batched test script (scripts/run_tests.sh)"
+	@echo "  test-scripts      Run unified test script (scripts/run_tests.sh)"
 	@echo ""
 	@echo "Linting & Verification:"
-	@echo "  check             Run check-godot, lint, and full test suite"
+	@echo "  check             Run check-godot, lint, check-coverage, and full test suite"
 	@echo "  ci                Alias for check (mirrors CI verification gate)"
+	@echo "  check-coverage    Verify 100% runtime script test coverage"
+	@echo "  install-hooks     Install git pre-commit hook (.githooks/pre-commit)"
 	@echo "  lint              Run Python syntax checks and optional gdlint/markdownlint"
 	@echo "  lint-gd           Run gdlint on scripts/ and tests/ (if installed)"
 	@echo "  lint-python       Byte-compile Python utility scripts under scripts/"
@@ -114,6 +130,26 @@ install-gut:
 deps-python:
 	$(PYTHON) -m pip install -r scripts/requirements.txt
 
+templates:
+	@if [ ! -f "$(EXPORT_TEMPLATES_DIR)/web_release.zip" ] || [ ! -f "$(EXPORT_TEMPLATES_DIR)/linux_release.x86_64" ] || [ ! -f "$(EXPORT_TEMPLATES_DIR)/macos.zip" ]; then \
+		$(MAKE) install-templates; \
+	else \
+		echo "Godot $(GODOT_VERSION) export templates already installed in $(EXPORT_TEMPLATES_DIR)"; \
+	fi
+
+install-templates:
+	@echo "Installing Godot $(GODOT_VERSION) export templates into $(EXPORT_TEMPLATES_DIR)..."
+	@mkdir -p "$(EXPORT_TEMPLATES_DIR)"
+	@TMP_DIR=$$(mktemp -d); \
+	$(CURL) -fSL -o "$$TMP_DIR/export_templates.tpz" "$(TEMPLATES_URL)"; \
+	$(UNZIP) -q -j -o "$$TMP_DIR/export_templates.tpz" "templates/*" -d "$(EXPORT_TEMPLATES_DIR)/"; \
+	rm -rf "$$TMP_DIR"
+	@echo "Godot $(GODOT_VERSION) export templates installed."
+
+prep-build:
+	@mkdir -p "$(BUILD_DIR)"
+	@touch "$(BUILD_DIR)/.gdignore"
+
 import: check-godot
 	"$(GODOT)" --headless --import --quit
 
@@ -133,7 +169,7 @@ editor: check-godot
 
 test: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
-		-gdir=res://tests/unit,res://tests/integration \
+		-gdir=res://tests/unit,res://tests/integration,res://tests/fuzz,res://tests/regression \
 		-ginclude_subdirs -gexit -glog=1
 
 test-unit: check-godot deps import
@@ -143,6 +179,14 @@ test-unit: check-godot deps import
 test-integration: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
 		-gdir=res://tests/integration -gexit -glog=1
+
+test-fuzz: check-godot deps import
+	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
+		-gdir=res://tests/fuzz -gexit -glog=1
+
+test-regression: check-godot deps import
+	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
+		-gdir=res://tests/regression -gexit -glog=1
 
 test-runner: check-godot deps import
 	"$(GODOT)" --headless -s scripts/run_tests.gd
@@ -194,7 +238,17 @@ fmt-check:
 check-assets:
 	$(PYTHON) scripts/check_bg.py
 
-check: check-godot lint test
+check-coverage:
+	$(PYTHON) scripts/check_coverage.py
+
+install-hooks:
+	@chmod +x .githooks/pre-commit scripts/check_coverage.py scripts/run_tests.sh
+	@mkdir -p .git/hooks
+	@cp .githooks/pre-commit .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "Installed git pre-commit hook to .git/hooks/pre-commit"
+
+check: check-godot lint check-coverage test
 	@echo "=========================================================="
 	@echo "  Race to Dead End local verification passed!"
 	@echo "=========================================================="
@@ -207,31 +261,32 @@ ci: check
 
 build: build-web
 
-build-web: check-godot import
+build-web: check-godot templates prep-build import
 	@mkdir -p "$(WEB_DIR)"
 	"$(GODOT)" --headless --export-release "Web" "$(WEB_DIR)/index.html"
 	$(CURL) -fsSL -o "$(WEB_DIR)/coi-serviceworker.js" "$(COI_SW_URL)"
+	@echo "$(COI_SW_SHA256)  $(WEB_DIR)/coi-serviceworker.js" | sha256sum -c -
 	@if ! grep -q 'coi-serviceworker.js' "$(WEB_DIR)/index.html"; then \
 		sed -i 's|<head>|<head><script src="coi-serviceworker.js"></script>|g' "$(WEB_DIR)/index.html"; \
 	fi
 	@echo "Web build exported to $(WEB_DIR)/"
 
-build-linux: check-godot import
+build-linux: check-godot templates prep-build import
 	@mkdir -p "$(LINUX_DIR)"
 	"$(GODOT)" --headless --export-release "Linux" "$(LINUX_DIR)/RaceToDeadEnd.x86_64"
 	@echo "Linux build exported to $(LINUX_DIR)/"
 
-build-macos: check-godot import
+build-macos: check-godot templates prep-build import
 	@mkdir -p "$(MACOS_DIR)"
 	"$(GODOT)" --headless --export-release "macOS" "$(MACOS_DIR)/RaceToDeadEnd.zip"
 	@echo "macOS build exported to $(MACOS_DIR)/"
 
-build-android: check-godot import
+build-android: check-godot templates prep-build import
 	@mkdir -p "$(ANDROID_DIR)"
 	"$(GODOT)" --headless --export-release "Android" "$(ANDROID_DIR)/RaceToDeadEnd.apk"
 	@echo "Android build exported to $(ANDROID_DIR)/"
 
-build-ios: check-godot import
+build-ios: check-godot templates prep-build import
 	@mkdir -p "$(IOS_DIR)"
 	"$(GODOT)" --headless --export-release "iOS" "$(IOS_DIR)/RaceToDeadEnd.ipa"
 	@echo "iOS build exported to $(IOS_DIR)/"

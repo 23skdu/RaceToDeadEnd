@@ -152,6 +152,7 @@ func test_on_body_entered_emits_signal():
 	var b = _create_bullet()
 	watch_signals(b)
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	b._on_body_entered(mock_body)
 	assert_signal_emitted(b, "hit_target", "Should emit hit_target signal")
 
@@ -166,6 +167,7 @@ func test_on_area_entered_emits_signal():
 	var b = _create_bullet()
 	watch_signals(b)
 	var mock_area = Area2D.new()
+	add_child_autofree(mock_area)
 	b._on_area_entered(mock_area)
 	assert_signal_emitted(b, "hit_target", "Should emit hit_target signal")
 
@@ -182,7 +184,9 @@ func test_on_pool_release_resets_properties():
 	b.damage = 3
 	b.scale = Vector2(2.0, 2.0)
 	b.modulate = Color.RED
-	b._cached_enemies = [Node2D.new()]
+	var cached = Node2D.new()
+	add_child_autofree(cached)
+	b._cached_enemies = [cached]
 	b._cache_timer = 0.5
 	b.on_pool_release()
 	assert_eq(b.homing_strength, 0.0, "Homing should reset")
@@ -198,7 +202,9 @@ func test_on_pool_acquire_resets_properties():
 	b.damage = 3
 	b.scale = Vector2(2.0, 2.0)
 	b.modulate = Color.RED
-	b._cached_enemies = [Node2D.new()]
+	var cached = Node2D.new()
+	add_child_autofree(cached)
+	b._cached_enemies = [cached]
 	b._cache_timer = 0.5
 	b.on_pool_acquire()
 	assert_eq(b.homing_strength, 0.0, "Homing should reset")
@@ -220,6 +226,7 @@ func test_hit_target_signal_emits_with_body():
 	var b = _create_bullet()
 	watch_signals(b)
 	var mock_body = Node2D.new()
+	add_child_autofree(mock_body)
 	b._on_body_entered(mock_body)
 	assert_signal_emitted(b, "hit_target", "Signal should emit on body enter")
 
@@ -227,6 +234,7 @@ func test_hit_target_signal_emits_with_area():
 	var b = _create_bullet()
 	watch_signals(b)
 	var mock_area = Area2D.new()
+	add_child_autofree(mock_area)
 	b._on_area_entered(mock_area)
 	assert_signal_emitted(b, "hit_target", "Signal should emit on area enter")
 

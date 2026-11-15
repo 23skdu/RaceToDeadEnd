@@ -8,6 +8,7 @@ func test_scav_stunned_sets_zero_velocity():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, 0)
 	scav.init(scav.EnemyType.SCAV, 1, player, 200.0)
 	scav.apply_stun(1.0)
@@ -18,6 +19,7 @@ func test_scav_flanks_player():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	player.current_lane = 2
 	scav.position = Vector2(0, 0)
@@ -30,6 +32,7 @@ func test_scav_rams_when_close():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(10, -100)
 	player.current_lane = 1
 	scav.position = Vector2(0, 0)
@@ -42,6 +45,7 @@ func test_scav_does_not_ram_when_far():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -500)
 	player.current_lane = 1
 	scav.position = Vector2(0, 0)
@@ -54,6 +58,7 @@ func test_scav_shoot_timer_decrements():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	scav.init(scav.EnemyType.SCAV, 1, player, 200.0)
 	var initial_timer = scav.shoot_timer
@@ -67,6 +72,7 @@ func test_scav_fire_bullet_creates_bullet():
 	world.add_child(scav)
 	scav.world_node = world
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	scav.init(scav.EnemyType.SCAV, 1, player, 200.0)
 	scav._fire_bullet()
@@ -83,6 +89,7 @@ func test_scav_fire_bullet_downward():
 	world.add_child(scav)
 	scav.world_node = world
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	scav.init(scav.EnemyType.SCAV, 1, player, 200.0)
 	scav._fire_bullet()
@@ -92,9 +99,12 @@ func test_scav_fire_bullet_downward():
 			break
 
 func test_scav_fire_bullet_fallback_to_parent():
+	var container = Node2D.new()
+	add_child_autofree(container)
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
-	add_child_autofree(scav)
+	container.add_child(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	scav.init(scav.EnemyType.SCAV, 1, player, 200.0)
 	scav._fire_bullet()
@@ -104,6 +114,7 @@ func test_scav_tracks_invalid_player_gracefully():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	scav.init(scav.EnemyType.SCAV, 0, player, 200.0)
 	player.queue_free()
 	scav._physics_process(0.1)
@@ -113,6 +124,7 @@ func test_scav_speed_matches_init():
 	var scav = load("res://scenes/enemies/Scav.tscn").instantiate()
 	add_child_autofree(scav)
 	var player = MockPlayer.new()
+	add_child_autofree(player)
 	scav.init(scav.EnemyType.SCAV, 0, player, 200.0)
 	assert_eq(scav.speed, 140.0, "Scav speed should be 70% of base")
 

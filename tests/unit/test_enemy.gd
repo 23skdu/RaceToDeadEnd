@@ -34,6 +34,7 @@ func test_type_names_constant():
 func test_init_bunny():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 3, player, 200.0)
 	assert_eq(e.hp, 1, "Bunny HP")
 	assert_almost_eq(e.speed, 200.0 * Constants.BUNNY_SPEED_MULTIPLIER, 0.001, "Bunny speed")
@@ -44,6 +45,7 @@ func test_init_bunny():
 func test_init_rotor():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	assert_eq(e.hp, 1, "Rotor HP")
 	assert_almost_eq(e.speed, 200.0 * Constants.ROTOR_SPEED_MULTIPLIER, 0.001, "Rotor speed")
@@ -53,6 +55,7 @@ func test_init_rotor():
 func test_init_scav():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SCAV, 1, player, 200.0)
 	assert_eq(e.hp, 3, "Scav HP")
 	assert_almost_eq(e.speed, 200.0 * Constants.SCAV_SPEED_MULTIPLIER, 0.001, "Scav speed")
@@ -62,6 +65,7 @@ func test_init_scav():
 func test_init_drone():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.DRONE, 2, player, 200.0)
 	assert_eq(e.hp, 2, "Drone HP")
 	assert_almost_eq(e.speed, 200.0 * Constants.DRONE_SPEED_MULTIPLIER, 0.001, "Drone speed")
@@ -71,6 +75,7 @@ func test_init_drone():
 func test_init_sasquatch():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SASQUATCH, 5, player, 200.0)
 	assert_eq(e.hp, Constants.BOSS_SASQUATCH_HP, "Sasquatch HP from constant")
 	assert_almost_eq(e.speed, 200.0 * 0.6, 0.001, "Sasquatch speed")
@@ -80,12 +85,14 @@ func test_init_sasquatch():
 func test_init_uses_base_speed_not_player_speed():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	assert_almost_eq(e.speed, 180.0, 0.001, "Speed should be based on base_speed, not player.current_speed")
 
 func test_take_damage_reduces_hp():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
 	e.take_damage(1)
 	assert_eq(e.hp, 2, "HP should decrease by 1")
@@ -93,6 +100,7 @@ func test_take_damage_reduces_hp():
 func test_take_damage_kills_at_zero():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	watch_signals(e)
 	e.take_damage(1)
@@ -101,6 +109,7 @@ func test_take_damage_kills_at_zero():
 func test_take_damage_does_not_kill_above_zero():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
 	var capture = SignalCapture.new()
 	e.destroyed.connect(capture.capture)
@@ -110,6 +119,7 @@ func test_take_damage_does_not_kill_above_zero():
 func test_die_emits_correct_enemy_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.DRONE, 0, player, 200.0)
 	var capture = SignalCapture.new()
 	e.destroyed.connect(capture.capture)
@@ -120,6 +130,7 @@ func test_die_emits_correct_enemy_type():
 func test_die_rotor_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	var capture = SignalCapture.new()
 	e.destroyed.connect(capture.capture)
@@ -129,6 +140,7 @@ func test_die_rotor_type():
 func test_die_scav_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
 	var capture = SignalCapture.new()
 	e.destroyed.connect(capture.capture)
@@ -138,6 +150,7 @@ func test_die_scav_type():
 func test_destroyed_signal_emits_position():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	e.global_position = Vector2(100, 200)
 	var capture = SignalCapture.new()
@@ -148,6 +161,7 @@ func test_destroyed_signal_emits_position():
 func test_take_damage_overkill():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	watch_signals(e)
 	e.take_damage(100)
@@ -177,6 +191,7 @@ func test_take_damage_plays_hit_sound():
 	_stop_all_sfx()
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SCAV, 0, player, 200.0)
 	e.take_damage(1)
 	var playing = 0
@@ -189,6 +204,7 @@ func test_die_plays_death_sound():
 	_stop_all_sfx()
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	e.take_damage(1)
 	var playing = 0
@@ -203,6 +219,7 @@ func test_drone_hit_plays_sound():
 	var e = scene.instantiate()
 	add_child_autofree(e)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.DRONE, 0, player, 200.0)
 	e.take_damage(1)
 	var playing = 0
@@ -220,8 +237,10 @@ class MockSpawnerWithDestroyedHandler:
 func test_on_pool_release_disconnects_destroyed_signal():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	var mock_spawner = MockSpawnerWithDestroyedHandler.new()
+	add_child_autofree(mock_spawner)
 	e._spawner = mock_spawner
 	e.destroyed.connect(mock_spawner._on_enemy_destroyed)
 	assert_true(e.destroyed.is_connected(mock_spawner._on_enemy_destroyed), "Signal should be connected before release")
@@ -301,6 +320,7 @@ func test_boss_key_default_empty():
 func test_die_uses_boss_key_when_set():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0)
 	e.boss_key = "boss_rotor"
 	var capture = SignalCapture.new()
@@ -311,12 +331,14 @@ func test_die_uses_boss_key_when_set():
 func test_bunny_texture_is_not_null():
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	assert_not_null(e.sprite.texture, "Bunny should have a texture after init")
 
 func test_bunny_texture_is_64x64():
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	var img = e.sprite.texture.get_image()
 	assert_eq(img.get_width(), 64, "Bunny texture should be 64px wide")
@@ -325,6 +347,7 @@ func test_bunny_texture_is_64x64():
 func test_bunny_texture_has_transparent_corners():
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	var img = e.sprite.texture.get_image()
 	assert_eq(img.get_pixel(0, 0).a, 0.0, "Bunny texture top-left corner should be transparent")
@@ -333,6 +356,7 @@ func test_bunny_texture_has_transparent_corners():
 func test_bunny_texture_has_red_eyes():
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	var img = e.sprite.texture.get_image()
 	# Eye pixels at (25,30) should be glowing red
@@ -342,6 +366,7 @@ func test_bunny_texture_has_red_eyes():
 func test_bunny_texture_cached_across_instances():
 	var e1 = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e1.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	var tex1 = e1.sprite.texture
 	var e2 = _create_bunny()
@@ -353,6 +378,7 @@ func test_bunny_hit_plays_sound():
 	_stop_all_sfx()
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	e.take_damage(1)
 	var playing = 0
@@ -365,6 +391,7 @@ func test_bunny_death_plays_sound():
 	_stop_all_sfx()
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	e.take_damage(1)
 	var playing = 0
@@ -376,6 +403,7 @@ func test_bunny_death_plays_sound():
 func test_bunny_die_emits_correct_type():
 	var e = _create_bunny()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.BUNNY, 0, player, 200.0)
 	var capture = SignalCapture.new()
 	e.destroyed.connect(capture.capture)
@@ -386,6 +414,7 @@ func test_sasquatch_hit_plays_sound():
 	_stop_all_sfx()
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SASQUATCH, 0, player, 200.0)
 	e.take_damage(1)
 	var playing = 0
@@ -398,6 +427,7 @@ func test_sasquatch_die_plays_sound():
 	_stop_all_sfx()
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SASQUATCH, 0, player, 200.0)
 	e.take_damage(Constants.BOSS_SASQUATCH_HP)
 	var playing = 0
@@ -409,6 +439,7 @@ func test_sasquatch_die_plays_sound():
 func test_sasquatch_die_emits_correct_type():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	e.init(Enemy.EnemyType.SASQUATCH, 0, player, 200.0)
 	var capture = SignalCapture.new()
 	e.destroyed.connect(capture.capture)
@@ -426,6 +457,7 @@ func test_enemy_collision_layer():
 func test_init_sets_spawner():
 	var e = _create_enemy()
 	var player = Node2D.new()
+	add_child_autofree(player)
 	var spawner = Node.new()
 	e.init(Enemy.EnemyType.ROTOR, 0, player, 200.0, spawner)
 	assert_eq(e._spawner, spawner, "Spawner should be set via init")

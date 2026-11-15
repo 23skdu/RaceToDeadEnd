@@ -4,6 +4,7 @@ func test_drone_stunned_sets_zero_velocity():
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	add_child_autofree(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, 0)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
 	drone.apply_stun(1.0)
@@ -14,6 +15,7 @@ func test_drone_tracks_player_x():
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	add_child_autofree(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(100, -200)
 	drone.position = Vector2(0, 0)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
@@ -24,6 +26,7 @@ func test_drone_maintains_distance_behind_player():
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	add_child_autofree(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -300)
 	drone.position = Vector2(0, 0)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
@@ -34,6 +37,7 @@ func test_drone_bomb_timer_decrements():
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	add_child_autofree(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
 	var initial_timer = drone.bomb_timer
@@ -47,6 +51,7 @@ func test_drone_drop_bomb_creates_area():
 	world.add_child(drone)
 	drone.world_node = world
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
 	drone._drop_bomb()
@@ -64,6 +69,7 @@ func test_drone_drop_bomb_position():
 	drone.world_node = world
 	drone.global_position = Vector2(50, -100)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
 	drone._drop_bomb()
@@ -73,9 +79,12 @@ func test_drone_drop_bomb_position():
 			break
 
 func test_drone_drop_bomb_fallback_to_parent():
+	var container = Node2D.new()
+	add_child_autofree(container)
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
-	add_child_autofree(drone)
+	container.add_child(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	player.global_position = Vector2(0, -200)
 	drone.init(drone.EnemyType.DRONE, 1, player, 200.0)
 	drone._drop_bomb()
@@ -92,6 +101,7 @@ func test_drone_tracks_invalid_player_gracefully():
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	add_child_autofree(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	drone.init(drone.EnemyType.DRONE, 0, player, 200.0)
 	player.queue_free()
 	drone._physics_process(0.1)
@@ -101,5 +111,6 @@ func test_drone_speed_matches_init():
 	var drone = load("res://scenes/enemies/Drone.tscn").instantiate()
 	add_child_autofree(drone)
 	var player = Node2D.new()
+	add_child_autofree(player)
 	drone.init(drone.EnemyType.DRONE, 0, player, 200.0)
 	assert_eq(drone.speed, 100.0, "Drone speed should be 50% of base")

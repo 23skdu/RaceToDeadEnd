@@ -283,13 +283,15 @@ func test_load_rejects_checksum_mismatch():
 	var gm = get_gm()
 	gm.credits = 999
 	gm.save_progress()
-	var file = FileAccess.open("user://save.dat", FileAccess.READ_WRITE)
+	var file = FileAccess.open_encrypted_with_pass("user://save.dat", FileAccess.READ_WRITE, gm._get_save_passphrase())
 	if file:
 		var data = file.get_var()
-		data["_checksum"] = 12345
-		file.seek(0)
-		file.store_var(data)
 		file.close()
+		data["_checksum"] = "0".repeat(64)
+		var wfile = FileAccess.open_encrypted_with_pass("user://save.dat", FileAccess.WRITE, gm._get_save_passphrase())
+		if wfile:
+			wfile.store_var(data)
+			wfile.close()
 	gm.credits = 0
 	gm.load_progress()
 	assert_eq(gm.credits, 0, "Credits should not load with wrong checksum")
@@ -298,7 +300,7 @@ func test_load_validation_ignores_invalid_types():
 	var gm = get_gm()
 	gm.credits = 100
 	gm.save_progress()
-	var file = FileAccess.open("user://save.dat", FileAccess.WRITE)
+	var file = FileAccess.open_encrypted_with_pass("user://save.dat", FileAccess.WRITE, gm._get_save_passphrase())
 	if file:
 		file.store_var("not a dictionary")
 		file.close()
@@ -492,12 +494,15 @@ func test_current_speed_formula_respects_max():
 
 func test_register_enemy_spawned_adds_to_list():
 	var enemy = Node.new()
+	add_child_autofree(enemy)
 	GameManager.enemy_list.clear()
 	GameManager.register_enemy_spawned(enemy)
 	assert_eq(GameManager.enemy_list.size(), 1, "enemy_list should have 1 entry after spawn")
+	GameManager.enemy_list.clear()
 
 func test_register_enemy_destroyed_removes_from_list():
 	var enemy = Node.new()
+	add_child_autofree(enemy)
 	GameManager.enemy_list.clear()
 	GameManager.enemy_list.append(enemy)
 	GameManager.register_enemy_destroyed(enemy)
@@ -657,3 +662,23 @@ func test_start_game_resets_lives_to_max():
 	gm.lives = 1
 	gm.start_game()
 	assert_eq(gm.lives, gm.max_lives, "start_game should reset lives to max_lives")
+
+func test_start_game_clears_enemy_list():
+	var gm = get_gm()
+	var enemy = Node.new()
+	add_child_autofree(enemy)
+	gm.register_enemy_spawned(enemy)
+	assert_eq(gm.enemy_list.size(), 1, "Enemy should be registered before start_game")
+	gm.start_game()
+	assert_eq(gm.enemy_list.size(), 0, "start_game should clear enemy_list")
+
+func test_register_enemy_spawned_ignores_null_and_duplicates():
+	var gm = get_gm()
+	gm.start_game()
+	gm.register_enemy_spawned(null)
+	assert_eq(gm.enemy_list.size(), 0, "Should not add null to enemy_list")
+	var enemy = Node.new()
+	add_child_autofree(enemy)
+	gm.register_enemy_spawned(enemy)
+	gm.register_enemy_spawned(enemy)
+	assert_eq(gm.enemy_list.size(), 1, "Should not add duplicate enemy to enemy_list")

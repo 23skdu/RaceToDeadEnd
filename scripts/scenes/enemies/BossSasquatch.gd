@@ -1,5 +1,7 @@
 extends "res://scripts/scenes/enemies/Enemy.gd"
 
+static var _boss_sasquatch_texture: Texture2D = null
+
 var attack_timer: float = 0.0
 var dodge_timer: float = 0.0
 var target_lane_x: float = 0.0
@@ -7,7 +9,9 @@ var target_lane_x: float = 0.0
 func _ready() -> void:
 	super._ready()
 	if not sprite.texture or sprite.texture is PlaceholderTexture2D:
-		sprite.texture = _create_boss_sasquatch_texture()
+		if not _boss_sasquatch_texture:
+			_boss_sasquatch_texture = _create_boss_sasquatch_texture()
+		sprite.texture = _boss_sasquatch_texture
 
 static func _create_boss_sasquatch_texture() -> ImageTexture:
 	var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)

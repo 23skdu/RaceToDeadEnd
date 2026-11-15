@@ -22,6 +22,7 @@ env:
   GODOT_VERSION: "4.7.2"
   GUT_VERSION: "9.7.1"
   COI_SW_SHA: "7b1d2a092d0d2dd2b7270b6f12f13605de26f214"
+  COI_SW_SHA256: "e97bbac6017322d48aa54a5bc7ce473c725a4b7376ff245002e0ba71c3dcdd7e"
 
 jobs:
   test:
@@ -65,12 +66,13 @@ jobs:
 
       - name: Export Web Build
         run: |
-          make build-web GODOT_VERSION="${{ env.GODOT_VERSION }}" COI_SW_SHA="${{ env.COI_SW_SHA }}"
+          make build-web GODOT_VERSION="${{ env.GODOT_VERSION }}" COI_SW_SHA="${{ env.COI_SW_SHA }}" COI_SW_SHA256="${{ env.COI_SW_SHA256 }}"
 
       - name: Export Linux & macOS Builds
         run: |
           make build-linux build-macos GODOT_VERSION="${{ env.GODOT_VERSION }}"
           tar -czf build/RaceToDeadEnd-linux-x86_64.tar.gz -C build/linux .
+          cp build/macos/RaceToDeadEnd.zip build/RaceToDeadEnd-macos.zip
 
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v7
@@ -84,7 +86,7 @@ jobs:
           name: desktop-builds
           path: |
             build/RaceToDeadEnd-linux-x86_64.tar.gz
-            build/macos/RaceToDeadEnd.zip
+            build/RaceToDeadEnd-macos.zip
 
   publish:
     name: Publish Web & Release
@@ -128,5 +130,5 @@ jobs:
           files: |
             dist/RaceToDeadEnd-web.zip
             dist/RaceToDeadEnd-linux-x86_64.tar.gz
-            dist/RaceToDeadEnd.zip
+            dist/RaceToDeadEnd-macos.zip
           generate_release_notes: true
