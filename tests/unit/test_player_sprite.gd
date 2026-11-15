@@ -96,7 +96,7 @@ func test_interceptor_svg_not_icon():
 	assert_true(center.r < 0.5 or center.g < 0.5 or center.b < 0.5, "Center should not be white like icon.svg")
 
 func test_all_player_skin_svgs_valid():
-	assert_eq(Constants.PLAYER_SKINS.size(), 5, "Should define default + 3 style skins + urban camo")
+	assert_eq(Constants.PLAYER_SKINS.size(), 7, "Should define default + 5 style skins + urban camo")
 	for skin in Constants.PLAYER_SKINS:
 		var tex_path := str(skin.get("texture_path", ""))
 		assert_true(ResourceLoader.exists(tex_path), "Skin SVG should exist: " + tex_path)

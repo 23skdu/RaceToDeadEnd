@@ -22,12 +22,16 @@ var _stream_game_music_classic: AudioStreamWAV
 var _stream_game_music_outrun: AudioStreamWAV
 var _stream_game_music_industrial: AudioStreamWAV
 var _stream_game_music_neon_drift: AudioStreamWAV
+var _stream_game_music_synthetic_chase: AudioStreamWAV
+var _stream_game_music_ambient_highway: AudioStreamWAV
 
 const MUSIC_OPTIONS: Array[Dictionary] = [
 	{"id": "dynamic", "name": "Dynamic (Stage Adaptive)"},
 	{"id": "outrun", "name": "Outrun Synthwave"},
 	{"id": "industrial", "name": "Cyber Industrial"},
 	{"id": "neon_drift", "name": "Neon Drift"},
+	{"id": "synthetic_chase", "name": "Synthetic Chase"},
+	{"id": "ambient_highway", "name": "Ambient Highway"},
 	{"id": "classic", "name": "Classic Arcade"},
 	{"id": "bunny", "name": "Bio-Hop Beat (Stage 1)"},
 	{"id": "biker", "name": "Wasteland Metal (Stage 2)"},
@@ -191,6 +195,16 @@ func _resolve_track_stream(track_id: String) -> AudioStreamWAV:
 			if not _stream_game_music_neon_drift:
 				_stream_game_music_neon_drift = _generate_game_music_neon_drift()
 			return _stream_game_music_neon_drift
+		"synthetic_chase":
+			_wait_for_task("game_music_synthetic_chase")
+			if not _stream_game_music_synthetic_chase:
+				_stream_game_music_synthetic_chase = _generate_game_music_synthetic_chase()
+			return _stream_game_music_synthetic_chase
+		"ambient_highway":
+			_wait_for_task("game_music_ambient_highway")
+			if not _stream_game_music_ambient_highway:
+				_stream_game_music_ambient_highway = _generate_game_music_ambient_highway()
+			return _stream_game_music_ambient_highway
 		"classic":
 			_wait_for_task("game_music_classic")
 			if not _stream_game_music_classic:
@@ -1130,6 +1144,102 @@ func _generate_game_music_neon_drift() -> AudioStreamWAV:
 	stream.loop_end = int(SAMPLE_RATE * 16.0)
 	return stream
 
+func _generate_game_music_synthetic_chase() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 308
+	var bass_pattern: Array[float] = [55.00, 55.00, 65.41, 65.41, 73.42, 73.42, 82.41, 82.41]
+	var arp_offsets: Array[int] = [0, 4, 7, 12, 16, 12, 7, 4]
+	var arp_ratios: Array[float] = []
+	for s in arp_offsets:
+		arp_ratios.append(_semitone_ratio(s))
+	var bpm: float = 145.0
+	var beat_duration: float = 60.0 / bpm
+	var step_duration: float = beat_duration / 4.0
+
+	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
+		var step_idx := int(t / step_duration)
+		var step_t := fmod(t, step_duration)
+		var measure_idx := int(t / (beat_duration * 4.0)) % bass_pattern.size()
+		var bass_freq: float = bass_pattern[measure_idx]
+		var val: float = 0.0
+
+		# Driving synthwave bass with pulse-width sweep
+		var pulse_width := 0.5 + 0.3 * sin(TAU * 0.25 * t)
+		var saw := fmod(t * bass_freq, 1.0)
+		var bass_wave := 1.0 if saw < pulse_width else -1.0
+		var bass_env := maxf(0.0, 1.0 - (step_t / (step_duration * 1.05)))
+		val += bass_wave * 3400.0 * bass_env
+
+		# Bright arcade lead
+		var lead_freq := bass_freq * 4.0 * arp_ratios[step_idx % arp_ratios.size()]
+		var lead_env := maxf(0.0, 1.0 - (step_t / (step_duration * 0.85)))
+		var lead_wave := (fmod(t * lead_freq, 1.0) * 2.0 - 1.0) * 0.6 + (1.0 if sin(TAU * lead_freq * t) > 0.0 else -1.0) * 0.4
+		val += lead_wave * 2200.0 * lead_env
+
+		# Tight kick
+		if step_idx % 4 == 0:
+			var kick_env := maxf(0.0, 1.0 - (step_t / (step_duration * 1.2)))
+			var kick_pitch := lerpf(180.0, 45.0, step_t / (step_duration * 1.2))
+			val += sin(TAU * kick_pitch * step_t) * 5400.0 * kick_env
+
+		# Snappy snare
+		if step_idx % 8 == 4:
+			var snare_env := maxf(0.0, 1.0 - (step_t / (step_duration * 0.9)))
+			val += (rng.randf() * 2.0 - 1.0) * 3600.0 * snare_env
+
+		# Crisp hi-hat
+		if step_idx % 2 == 1:
+			var hat_env := maxf(0.0, 1.0 - (step_t / (step_duration * 0.4)))
+			val += (rng.randf() * 2.0 - 1.0) * 1500.0 * hat_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(SAMPLE_RATE * 16.0)
+	return stream
+
+func _generate_game_music_ambient_highway() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 309
+	var drone_freqs: Array[float] = [55.00, 65.41, 73.42, 49.00]
+	var bpm: float = 90.0
+	var beat_duration: float = 60.0 / bpm
+	var step_duration: float = beat_duration / 4.0
+
+	var stream = _build_16bit_stream(16.0, func(t: float, _i: int) -> float:
+		var measure_idx := int(t / (beat_duration * 8.0)) % drone_freqs.size()
+		var bass_freq: float = drone_freqs[measure_idx]
+		var val: float = 0.0
+
+		# Slow evolving ambient pad (detuned sine cluster)
+		var pad1 := sin(TAU * bass_freq * t)
+		var pad2 := sin(TAU * bass_freq * _semitone_ratio(7) * t)
+		var pad3 := sin(TAU * bass_freq * _semitone_ratio(12) * t)
+		var pad_env := 0.5 + 0.5 * sin(TAU * 0.08 * t)
+		val += (pad1 + pad2 + pad3) * 1800.0 * pad_env
+
+		# Gentle pluck arpeggio
+		var step_idx := int(t / step_duration)
+		var step_t := fmod(t, step_duration)
+		var pluck_freq := bass_freq * 4.0 * _semitone_ratio([0, 7, 12, 19][step_idx % 4])
+		var pluck_env := maxf(0.0, 1.0 - (step_t / (step_duration * 1.6)))
+		val += sin(TAU * pluck_freq * t) * 1400.0 * pluck_env
+
+		# Soft heartbeat kick
+		if step_idx % 8 == 0:
+			var kick_env := maxf(0.0, 1.0 - (step_t / (step_duration * 2.0)))
+			var kick_pitch := lerpf(90.0, 30.0, step_t / (step_duration * 2.0))
+			val += sin(TAU * kick_pitch * step_t) * 3200.0 * kick_env
+
+		# Gentle noise wash
+		val += (rng.randf() * 2.0 - 1.0) * 300.0 * (0.4 + 0.6 * sin(TAU * 0.12 * t))
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(SAMPLE_RATE * 16.0)
+	return stream
+
 func _generate_all_async() -> void:
 	_async_tasks["menu_music"] = WorkerThreadPool.add_task(func(): _stream_menu_music = _generate_menu_music())
 	
@@ -1141,6 +1251,8 @@ func _generate_all_async() -> void:
 	_async_tasks["game_music_outrun"] = WorkerThreadPool.add_task(func(): _stream_game_music_outrun = _generate_game_music_outrun())
 	_async_tasks["game_music_industrial"] = WorkerThreadPool.add_task(func(): _stream_game_music_industrial = _generate_game_music_industrial())
 	_async_tasks["game_music_neon_drift"] = WorkerThreadPool.add_task(func(): _stream_game_music_neon_drift = _generate_game_music_neon_drift())
+	_async_tasks["game_music_synthetic_chase"] = WorkerThreadPool.add_task(func(): _stream_game_music_synthetic_chase = _generate_game_music_synthetic_chase())
+	_async_tasks["game_music_ambient_highway"] = WorkerThreadPool.add_task(func(): _stream_game_music_ambient_highway = _generate_game_music_ambient_highway())
 	
 	_async_tasks["demo_boss_bunny"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_bunny = _generate_demo_music_bunny())
 	_async_tasks["demo_boss_giant_biker"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_giant_biker = _generate_demo_music_giant_biker())
@@ -1180,6 +1292,8 @@ func _exit_tree() -> void:
 	_stream_game_music_outrun = null
 	_stream_game_music_industrial = null
 	_stream_game_music_neon_drift = null
+	_stream_game_music_synthetic_chase = null
+	_stream_game_music_ambient_highway = null
 	_stream_crash = null
 	_stream_bounce = null
 	_stream_bunny_hit = null

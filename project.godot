@@ -45,6 +45,7 @@ CameraShake="*res://scripts/autoload/CameraShake.gd"
 TransitionLayer="*res://scripts/autoload/TransitionLayer.gd"
 SettingsManager="*res://scripts/autoload/SettingsManager.gd"
 ScreenshotManager="*res://scripts/autoload/ScreenshotManager.gd"
+PostProcessing="*res://scripts/autoload/PostProcessing.gd"
 
 [display]
 

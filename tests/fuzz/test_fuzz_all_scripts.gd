@@ -3,6 +3,7 @@ extends GutTest
 const HelpersUtil = preload("res://scripts/utils/Helpers.gd")
 const WeaponDataRes = preload("res://scripts/resources/WeaponData.gd")
 const ScreenshotManagerScript = preload("res://scripts/autoload/ScreenshotManager.gd")
+const PostProcessingScript = preload("res://scripts/autoload/PostProcessing.gd")
 const DemoSceneScript = preload("res://demo/DemoScene.gd")
 const RunTestsScript = preload("res://scripts/run_tests.gd")
 
@@ -49,6 +50,19 @@ func test_fuzz_autoloads_and_utilities() -> void:
 		wd.base_ammo = _rng.randi_range(1, 50)
 		wd.display_name = "Weapon %d" % i
 		assert_gt(wd.base_ammo, 0)
+
+	# PostProcessing fuzz
+	var pp = PostProcessingScript.new()
+	add_child_autofree(pp)
+	for i in range(20):
+		pp.set_enabled(i % 2 == 0)
+		pp.scanline_intensity = _rng.randf_range(0.0, 1.0)
+		pp.vignette_intensity = _rng.randf_range(0.0, 1.0)
+		pp.chromatic_aberration = _rng.randf_range(0.0, 0.006)
+		pp.bloom_intensity = _rng.randf_range(0.0, 1.0)
+		pp.film_grain = _rng.randf_range(0.0, 0.15)
+		pp._apply_uniforms()
+	assert_not_null(pp._rect)
 
 func test_fuzz_enemies_and_bosses_damage_and_physics() -> void:
 	var mock_player := Node2D.new()

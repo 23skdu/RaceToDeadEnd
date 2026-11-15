@@ -210,4 +210,22 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"colors": ["#2b3038", "#6b7482", "#b4becb"],
 		"unlock_boss": true,
 	},
+	{
+		"id": "nitro_phantom",
+		"name": "Nitro Phantom",
+		"description": "Void-Black Hull with Neon Purple/Cyan Ghost Trails",
+		"texture_path": "res://assets/sprites/player/interceptor_nitro_phantom.svg",
+		"use_default_modulate": false,
+		"colors": ["#0a0612", "#b026ff", "#00f0ff"],
+		"unlock_boss": false,
+	},
+	{
+		"id": "ghost_protocol",
+		"name": "Ghost Protocol",
+		"description": "Stealth Matte Black with Ice-Cyan Digital Camo",
+		"texture_path": "res://assets/sprites/player/interceptor_ghost_protocol.svg",
+		"use_default_modulate": false,
+		"colors": ["#0d1014", "#66e0ff", "#ff2a55"],
+		"unlock_boss": false,
+	},
 ]

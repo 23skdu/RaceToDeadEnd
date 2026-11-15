@@ -494,7 +494,9 @@ func test_new_music_generators_produce_looping_16bit_streams():
 	var outrun: AudioStreamWAV = am._generate_game_music_outrun()
 	var industrial: AudioStreamWAV = am._generate_game_music_industrial()
 	var neon: AudioStreamWAV = am._generate_game_music_neon_drift()
-	for s in [outrun, industrial, neon]:
+	var chase: AudioStreamWAV = am._generate_game_music_synthetic_chase()
+	var ambient: AudioStreamWAV = am._generate_game_music_ambient_highway()
+	for s in [outrun, industrial, neon, chase, ambient]:
 		assert_not_null(s)
 		assert_eq(s.format, AudioStreamWAV.FORMAT_16_BITS)
 		assert_eq(s.loop_mode, AudioStreamWAV.LOOP_FORWARD)

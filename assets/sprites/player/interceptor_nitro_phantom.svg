@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" width="64" height="96">
+  <!-- Nitro Phantom: Deep Void Black with Neon Purple/Cyan Ghost Trails -->
+  <path d="M32 4 L44 12 L48 24 L50 40 L50 64 L48 76 L44 84 L32 92 L20 84 L16 76 L14 64 L14 40 L16 24 L20 12 Z" fill="#0a0612" stroke="#b026ff" stroke-width="1.5"/>
+
+  <!-- Ghost trail speed lines -->
+  <path d="M18 30 Q10 48 18 70" fill="none" stroke="#00f0ff" stroke-width="1.2" opacity="0.7"/>
+  <path d="M46 30 Q54 48 46 70" fill="none" stroke="#00f0ff" stroke-width="1.2" opacity="0.7"/>
+  <path d="M20 26 Q14 48 20 74" fill="none" stroke="#b026ff" stroke-width="0.8" opacity="0.5"/>
+  <path d="M44 26 Q50 48 44 74" fill="none" stroke="#b026ff" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- Phantom holographic hull overlay -->
+  <path d="M32 7 L42 14 L46 25 L47 64 L44 76 L32 88 L20 76 L17 64 L18 25 L22 14 Z" fill="#1a0f2e" opacity="0.85"/>
+
+  <!-- Front armor wedge -->
+  <path d="M32 8 L40 14 L42 22 L32 26 L22 22 L24 14 Z" fill="#2a1a4a" stroke="#b026ff" stroke-width="0.6"/>
+
+  <!-- Cockpit canopy (holographic) -->
+  <path d="M26 28 L38 28 L40 36 L32 40 L24 36 Z" fill="#05020a" stroke="#00f0ff" stroke-width="1"/>
+  <path d="M28 30 L36 30 L37 34 L32 36 L27 34 Z" fill="#b026ff" opacity="0.5"/>
+
+  <!-- Central weapons spine -->
+  <rect x="30" y="42" width="4" height="20" rx="1" fill="#2a1a4a" stroke="#00f0ff" stroke-width="0.6"/>
+
+  <!-- Side armor panels -->
+  <path d="M16 40 L22 40 L22 64 L16 64 Z" fill="#1a0f2e" stroke="#b026ff" stroke-width="0.5"/>
+  <path d="M42 40 L48 40 L48 64 L42 64 Z" fill="#1a0f2e" stroke="#b026ff" stroke-width="0.5"/>
+
+  <!-- Side weapon mounts -->
+  <rect x="14" y="44" width="6" height="8" rx="1" fill="#2a1a4a" stroke="#00f0ff" stroke-width="0.6"/>
+  <circle cx="17" cy="48" r="2" fill="#00f0ff" opacity="0.9"/>
+  <rect x="44" y="44" width="6" height="8" rx="1" fill="#2a1a4a" stroke="#00f0ff" stroke-width="0.6"/>
+  <circle cx="47" cy="48" r="2" fill="#00f0ff" opacity="0.9"/>
+
+  <!-- Engine exhaust grilles -->
+  <rect x="24" y="72" width="6" height="4" rx="1" fill="#0a0612" stroke="#b026ff" stroke-width="0.6"/>
+  <rect x="34" y="72" width="6" height="4" rx="1" fill="#0a0612" stroke="#b026ff" stroke-width="0.6"/>
+
+  <!-- Rear thruster housing -->
+  <path d="M22 80 L32 86 L42 80 L40 76 L32 80 L24 76 Z" fill="#2a1a4a" stroke="#00f0ff" stroke-width="1"/>
+
+  <!-- Front targeting sensors -->
+  <circle cx="28" cy="18" r="1.8" fill="#00f0ff" opacity="0.9"/>
+  <circle cx="36" cy="18" r="1.8" fill="#00f0ff" opacity="0.9"/>
+
+  <!-- Side running lights -->
+  <circle cx="16" cy="32" r="1.5" fill="#b026ff" opacity="0.9"/>
+  <circle cx="48" cy="32" r="1.5" fill="#b026ff" opacity="0.9"/>
+
+  <!-- Ghost afterburner -->
+  <path d="M26 86 L28 94 L30 86 Z" fill="#00f0ff" opacity="0.85"/>
+  <path d="M34 86 L36 94 L38 86 Z" fill="#00f0ff" opacity="0.85"/>
+</svg>
