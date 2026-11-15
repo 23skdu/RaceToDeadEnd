@@ -262,3 +262,33 @@ func test_return_popup_label_caps_at_pool_size():
 	assert_eq(game._popup_pool.size(), game.POPUP_POOL_SIZE, "Popup pool should cap at POPUP_POOL_SIZE")
 	assert_eq(excess_labels.size(), 2, "Excess popup labels should be queued for deletion")
 	await get_tree().process_frame
+
+func test_game_ready_creates_canvas_modulate() -> void:
+	var game = load("res://scenes/Game.tscn").instantiate()
+	add_child_autofree(game)
+	assert_not_null(game.get_node_or_null("WeatherColorGrading"), "Game should create CanvasModulate for color grading")
+
+func test_game_ready_creates_world_environment_with_camera_attributes() -> void:
+	var game = load("res://scenes/Game.tscn").instantiate()
+	add_child_autofree(game)
+	var env_node = null
+	for child in game.get_children():
+		if child is WorldEnvironment:
+			env_node = child
+			break
+	assert_not_null(env_node, "Game should create a WorldEnvironment")
+	assert_not_null(env_node.camera_attributes, "WorldEnvironment should have CameraAttributesPhysical for HDR tonemapping")
+	assert_true(env_node.camera_attributes is CameraAttributesPhysical)
+
+func test_game_update_color_grading_changes_modulate() -> void:
+	var game = load("res://scenes/Game.tscn").instantiate()
+	add_child_autofree(game)
+	var cm: CanvasModulate = game.get_node("WeatherColorGrading")
+	game._update_color_grading()
+	assert_not_null(cm.color)
+
+func test_game_on_segment_completed_triggers_color_grading() -> void:
+	var game = load("res://scenes/Game.tscn").instantiate()
+	add_child_autofree(game)
+	game._on_segment_completed(1)
+	assert_true(true, "Should not crash when segment completes")

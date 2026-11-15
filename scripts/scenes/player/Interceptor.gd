@@ -62,6 +62,9 @@ var _trail_spacing_counter: float = 0.0
 var _default_sprite_texture: Texture2D = null
 var _default_sprite_modulate: Color = Color(0.2, 0.6, 1.0, 1.0)
 
+var _headlight: PointLight2D = null
+var _underglow: PointLight2D = null
+
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1 | 2
@@ -77,6 +80,7 @@ func _ready() -> void:
 		SettingsManager.player_skin_changed.connect(_on_player_skin_changed)
 	_apply_selected_skin()
 	_scale_sprite()
+	_setup_lights()
 	$Camera2D.position.y = Constants.CAMERA_Y_OFFSET
 	$Camera2D.position_smoothing_enabled = false
 	var bl = GameManager.upgrade_levels.get("boost_capacity", 1)
@@ -347,6 +351,8 @@ func _update_boost_trail() -> void:
 func _on_player_skin_changed(_skin_id: String) -> void:
 	_apply_selected_skin()
 	_scale_sprite()
+	if is_instance_valid(_underglow):
+		_underglow.color = sprite.self_modulate if sprite.self_modulate != Color.WHITE else Color(0.2, 0.6, 1.0, 1.0)
 
 func _apply_selected_skin() -> void:
 	if not sprite:
@@ -384,9 +390,50 @@ func _on_pack_skin_loaded(entity: String, tex: Texture2D) -> void:
 	else:
 		_apply_selected_skin()
 	_scale_sprite()
+	if is_instance_valid(_underglow):
+		_underglow.color = sprite.self_modulate if sprite.self_modulate != Color.WHITE else Color(0.2, 0.6, 1.0, 1.0)
 
 func _scale_sprite() -> void:
 	HelpersUtil.scale_sprite_to_viewport(sprite, 108.0, Constants.SPRITE_BASE_VIEWPORT)
+	if collision and collision.shape:
+		collision.shape = collision.shape.duplicate()
+		collision.shape.size = Vector2(28, 40) * (sprite.scale.y / 0.875)
+
+func _setup_lights() -> void:
+	if not is_instance_valid(sprite):
+		return
+	# Headlight cone pointing upward
+	_headlight = PointLight2D.new()
+	_headlight.name = "Headlight"
+	_headlight.texture = _create_light_texture(128, Color(0.4, 0.85, 1.0, 1.0))
+	_headlight.energy = 1.2
+	_headlight.texture_scale = 2.4
+	_headlight.shadow_enabled = true
+	_headlight.shadow_filter = Light2D.SHADOW_FILTER_PCF5
+	_headlight.position = Vector2(0.0, -20.0)
+	add_child(_headlight)
+
+	# Neon underglow
+	_underglow = PointLight2D.new()
+	_underglow.name = "Underglow"
+	_underglow.texture = _create_light_texture(96, Color(0.2, 0.6, 1.0, 0.85))
+	_underglow.energy = 0.8
+	_underglow.texture_scale = 2.0
+	_underglow.shadow_enabled = false
+	_underglow.position = Vector2(0.0, 8.0)
+	add_child(_underglow)
+
+func _create_light_texture(size: int, tint: Color) -> Texture2D:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := Vector2(size * 0.5, size * 0.5)
+	var radius := size * 0.5
+	for x in size:
+		for y in size:
+			var d := Vector2(x, y).distance_to(center) / radius
+			var alpha := clampf(1.0 - d, 0.0, 1.0)
+			alpha = pow(alpha, 2.0)
+			img.set_pixel(x, y, Color(tint.r, tint.g, tint.b, alpha * tint.a))
+	return ImageTexture.create_from_image(img)
 	if collision and collision.shape:
 		collision.shape = collision.shape.duplicate()
 		collision.shape.size = Vector2(28, 40) * (sprite.scale.y / 0.875)

@@ -47,8 +47,20 @@ func _ready() -> void:
 	if env_res:
 		var we = WorldEnvironment.new()
 		we.environment = env_res
+		var cam_attrs = CameraAttributesPhysical.new()
+		cam_attrs.exposure_multiplier = 1.1
+		cam_attrs.auto_exposure_enabled = true
+		cam_attrs.auto_exposure_min_exposure_value = -2.0
+		cam_attrs.auto_exposure_max_exposure_value = 2.0
+		we.camera_attributes = cam_attrs
 		add_child(we)
 		move_child(we, get_child_count() - 1)
+
+	# CanvasModulate for per-weather color grading
+	_canvas_modulate = CanvasModulate.new()
+	_canvas_modulate.name = "WeatherColorGrading"
+	_canvas_modulate.color = Color.WHITE
+	add_child(_canvas_modulate)
 	
 	ObjectPool.create_pool("bullet", BULLET_SCENE, 50)
 	ObjectPool.create_pool("mine", MINE_SCENE, 10)
@@ -124,6 +136,7 @@ func _ready() -> void:
 func _on_segment_completed(_segment: int) -> void:
 	if not weather:
 		return
+	_update_color_grading()
 	var tier = GameManager.difficulty_tier
 	if tier >= 5 and tier < 8:
 		weather.set_weather(weather.WeatherType.LIGHT_RAIN)
@@ -319,6 +332,7 @@ var _parallax: ParallaxBackground = null
 var _pause_menu: CanvasLayer = null
 var _options_menu: CanvasLayer = null
 var _game_over_restart_timer: float = 0.0
+var _canvas_modulate: CanvasModulate = null
 
 func _process(delta: float) -> void:
 	if GameManager.state == GameManager.GameState.GAME_OVER:
@@ -478,6 +492,24 @@ func _on_score_popped(pos: Vector2, _points: int, label: String) -> void:
 	tween.tween_property(popup, "position:y", pos.y - 60.0, 0.8)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(_return_popup_label.bind(popup))
+
+func _update_color_grading() -> void:
+	if not is_instance_valid(_canvas_modulate):
+		return
+	var tier := GameManager.difficulty_tier
+	var target_color := Color.WHITE
+	if tier >= 12:
+		target_color = Color(0.85, 0.9, 1.0, 1.0)
+	elif tier >= 8:
+		target_color = Color(0.9, 0.95, 1.0, 1.0)
+	elif tier >= 5:
+		target_color = Color(0.95, 0.98, 1.0, 1.0)
+	if weather and weather.current_weather == weather.WeatherType.ACID_RAIN:
+		target_color = target_color.lerp(Color(0.7, 1.0, 0.7, 1.0), 0.35)
+	elif weather and weather.current_weather == weather.WeatherType.STORM:
+		target_color = target_color.lerp(Color(0.7, 0.75, 0.85, 1.0), 0.45)
+	var tween := create_tween()
+	tween.tween_property(_canvas_modulate, "color", target_color, 1.2)
 
 func _on_boss_defeated(boss_type: String) -> void:
 	GameManager.record_boss_defeated(boss_type)

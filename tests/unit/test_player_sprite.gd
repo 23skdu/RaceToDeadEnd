@@ -95,6 +95,19 @@ func test_interceptor_svg_not_icon():
 	var center = img.get_pixel(w / 2, h / 2)
 	assert_true(center.r < 0.5 or center.g < 0.5 or center.b < 0.5, "Center should not be white like icon.svg")
 
+func test_interceptor_has_neon_lights() -> void:
+	var interceptor = load("res://scenes/player/Interceptor.tscn").instantiate()
+	add_child_autofree(interceptor)
+	assert_not_null(interceptor.get_node_or_null("Headlight"), "Interceptor should have a Headlight PointLight2D")
+	assert_not_null(interceptor.get_node_or_null("Underglow"), "Interceptor should have an Underglow PointLight2D")
+	var hl: PointLight2D = interceptor.get_node("Headlight")
+	var ug: PointLight2D = interceptor.get_node("Underglow")
+	assert_true(hl.shadow_enabled, "Headlight should cast shadows")
+	assert_gt(hl.energy, 0.0)
+	assert_gt(ug.energy, 0.0)
+	assert_not_null(hl.texture)
+	assert_not_null(ug.texture)
+
 func test_all_player_skin_svgs_valid():
 	assert_eq(Constants.PLAYER_SKINS.size(), 7, "Should define default + 5 style skins + urban camo")
 	for skin in Constants.PLAYER_SKINS:

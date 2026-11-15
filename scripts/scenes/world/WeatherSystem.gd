@@ -351,6 +351,17 @@ func set_weather(type: WeatherType) -> void:
 		weather_transition = 0.0
 		weather_changed.emit(_weather_name(type))
 
+func get_color_grading_tint(type: WeatherType = current_weather) -> Color:
+	match type:
+		WeatherType.ACID_RAIN:
+			return Color(0.7, 1.0, 0.7, 1.0)
+		WeatherType.STORM:
+			return Color(0.7, 0.75, 0.85, 1.0)
+		WeatherType.LIGHT_RAIN:
+			return Color(0.9, 0.95, 1.0, 1.0)
+		_:
+			return Color.WHITE
+
 func _overlay_color_for(type: WeatherType) -> Color:
 	match type:
 		WeatherType.ACID_RAIN: return Constants.ACID_OVERLAY_COLOR_LIGHT

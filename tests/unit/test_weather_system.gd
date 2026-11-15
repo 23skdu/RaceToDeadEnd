@@ -332,3 +332,14 @@ func test_lightning_bolt_cleaned_after_tween():
 	await tween.finished
 	await get_tree().process_frame
 	assert_false(is_instance_valid(bolt), "Bolt should be freed after tween")
+func test_get_color_grading_tint_returns_distinct_colors() -> void:
+	var ws = WeatherSystemScript.new()
+	add_child_autofree(ws)
+	var clear_tint: Color = ws.get_color_grading_tint(ws.WeatherType.CLEAR)
+	var acid_tint: Color = ws.get_color_grading_tint(ws.WeatherType.ACID_RAIN)
+	var storm_tint: Color = ws.get_color_grading_tint(ws.WeatherType.STORM)
+	var rain_tint: Color = ws.get_color_grading_tint(ws.WeatherType.LIGHT_RAIN)
+	assert_eq(clear_tint, Color.WHITE)
+	assert_ne(acid_tint, clear_tint, "Acid rain tint should differ from clear")
+	assert_ne(storm_tint, clear_tint, "Storm tint should differ from clear")
+	assert_ne(rain_tint, clear_tint, "Light rain tint should differ from clear")
