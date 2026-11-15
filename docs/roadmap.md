@@ -2,10 +2,10 @@
 
 This roadmap tracks remaining future polish items for **Race to Dead End** (Godot `4.7.2-stable`), following completion of the security, performance, gameplay/pooling bug-fix, customization-pack, HUD, mobile touch, daily-run, typography/About UI, Windows/Linux/macOS/Web export, and CI/test-suite milestones.
 
-## Current Baseline
+## Current Baseline (`v0.2.1`)
 
 - **Engine & Builds**: Godot `4.7.2-stable` with automated Web (COI service worker + SHA-256 verification), Linux x86_64, Windows x86_64, and macOS Universal CI exports and GitHub Pages/Release publishing.
-- **Verification & Tooling**: Unit, integration, fuzz, and regression GUT test suites (`tests/unit`, `tests/integration`, `tests/fuzz`, `tests/regression`), `scripts/check_coverage.py` (100% runtime script coverage), `.gdlintrc`, and `.githooks/pre-commit`.
+- **Verification & Tooling**: 49 GUT test scripts (unit, integration, fuzz, and regression; 1,155 passing tests, 3,179 assertions), `scripts/check_coverage.py` (44/44 runtime scripts covered), `.gdlintrc`, and `.githooks/pre-commit`.
 
 ---
 
