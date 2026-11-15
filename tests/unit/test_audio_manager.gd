@@ -224,9 +224,9 @@ func test_play_synth_music_generates_looping_stream():
 func test_procedural_music_uses_16bit_format():
 	var stream = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = 22050
+	stream.mix_rate = 44100
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Music should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Music mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Music mix rate should be 44100")
 
 func test_music_frequency_changes_over_time():
 	var freq_at_1s = 82.41
@@ -243,7 +243,7 @@ func test_laser_stream_properties():
 	autofree(am)
 	var stream = am._generate_laser_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Laser should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Laser mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Laser mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "Laser should have data")
 
 func test_explosion_stream_properties():
@@ -251,7 +251,7 @@ func test_explosion_stream_properties():
 	autofree(am)
 	var stream = am._generate_explosion_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Explosion should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Explosion mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Explosion mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "Explosion should have data")
 
 func test_hurt_stream_properties():
@@ -259,7 +259,7 @@ func test_hurt_stream_properties():
 	autofree(am)
 	var stream = am._generate_hurt_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Hurt should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Hurt mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Hurt mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "Hurt should have data")
 
 func test_boost_stream_properties():
@@ -267,7 +267,7 @@ func test_boost_stream_properties():
 	autofree(am)
 	var stream = am._generate_boost_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Boost should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Boost mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Boost mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "Boost should have data")
 
 func test_emp_stream_properties():
@@ -275,7 +275,7 @@ func test_emp_stream_properties():
 	autofree(am)
 	var stream = am._generate_emp_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "EMP should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "EMP mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "EMP mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "EMP should have data")
 
 func test_sfx_player_position_set():
@@ -311,7 +311,7 @@ func test_generate_lightning_stream():
 	var stream = am._generate_lightning_stream()
 	assert_true(stream != null, "Should generate lightning stream")
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Lightning should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Lightning mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Lightning mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "Lightning should have data")
 
 func test_lightning_stream_properties():
@@ -319,7 +319,7 @@ func test_lightning_stream_properties():
 	autofree(am)
 	var stream = am._generate_lightning_stream()
 	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, "Lightning should be 16-bit")
-	assert_eq(stream.mix_rate, 22050, "Lightning mix rate should be 22050")
+	assert_eq(stream.mix_rate, 44100, "Lightning mix rate should be 44100")
 	assert_gt(stream.data.size(), 0, "Lightning should have data")
 
 func test_play_lightning_strike_sets_position():
