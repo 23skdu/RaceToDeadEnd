@@ -28,6 +28,12 @@ var stunned: bool = false
 var stun_timer: float = 0.0
 var _spawner: Node = null
 
+var animation_state: String = "idle"
+var animation_player: AnimationPlayer = null
+var animation_tree: AnimationTree = null
+var _animation_player: AnimationPlayer = null
+var _animation_tree: AnimationTree = null
+
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
 @onready var hit_flash_timer: Timer = $HitFlashTimer
@@ -40,6 +46,7 @@ func _ready() -> void:
 		get_viewport().size_changed.connect(_scale_sprite)
 	if PackManager and PackManager.has_signal("skin_loaded") and not PackManager.skin_loaded.is_connected(_on_pack_skin_loaded):
 		PackManager.skin_loaded.connect(_on_pack_skin_loaded)
+	_setup_animation_rig()
 
 func _on_pack_skin_loaded(entity: String, tex: Texture2D) -> void:
 	if entity == TYPE_NAMES[enemy_type] or (boss_key != "" and entity == boss_key):
@@ -242,6 +249,7 @@ func _physics_process(delta: float) -> void:
 		if stun_timer <= 0.0:
 			stunned = false
 			sprite.modulate = Color.WHITE
+	_update_animation_state()
 
 func _get_slide_collisions() -> Array:
 	var list = []
@@ -334,6 +342,39 @@ func _die() -> void:
 
 func _death_animation() -> void:
 	sprite.scale = Vector2.ZERO
+
+func _setup_animation_rig() -> void:
+	if not has_node("AnimationPlayer"):
+		var ap := AnimationPlayer.new()
+		ap.name = "AnimationPlayer"
+		add_child(ap)
+	if not has_node("AnimationTree"):
+		var at := AnimationTree.new()
+		at.name = "AnimationTree"
+		add_child(at)
+	_animation_player = get_node_or_null("AnimationPlayer")
+	_animation_tree = get_node_or_null("AnimationTree")
+	animation_player = _animation_player
+	animation_tree = _animation_tree
+	if is_instance_valid(animation_tree) and is_instance_valid(animation_player):
+		animation_tree.anim_player = animation_player.get_path()
+		animation_tree.active = false
+
+func play_animation(state: String) -> void:
+	animation_state = state
+	if is_instance_valid(animation_player) and animation_player.has_animation(state):
+		animation_player.play(state)
+
+func set_animation_state(state: String) -> void:
+	play_animation(state)
+
+func _update_animation_state() -> void:
+	var new_state := "idle"
+	if hp <= 0:
+		new_state = "death"
+	elif stunned:
+		new_state = "hit"
+	set_animation_state(new_state)
 
 func _play_death_sound() -> void:
 	match enemy_type:

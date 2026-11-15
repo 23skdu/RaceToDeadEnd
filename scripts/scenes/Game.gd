@@ -102,6 +102,15 @@ func _ready() -> void:
 		weather.set_player(player)
 		weather.set_highway(highway)
 		weather.set_weather(weather.WeatherType.CLEAR)
+
+	_minimap_container = get_node_or_null("MinimapContainer")
+	_minimap_camera = get_node_or_null("MinimapContainer/MinimapViewport/MinimapCamera")
+	if is_instance_valid(_minimap_camera) and is_instance_valid(player):
+		_minimap_camera.position = player.global_position
+	_rear_view_container = get_node_or_null("RearViewContainer")
+	_rear_view_camera = get_node_or_null("RearViewContainer/RearViewViewport/RearViewCamera")
+	if is_instance_valid(_rear_view_camera) and is_instance_valid(player):
+		_rear_view_camera.position = player.global_position
 	
 	if player:
 		player.weapon_fired.connect(_on_player_weapon_fired)
@@ -333,8 +342,14 @@ var _pause_menu: CanvasLayer = null
 var _options_menu: CanvasLayer = null
 var _game_over_restart_timer: float = 0.0
 var _canvas_modulate: CanvasModulate = null
+var _minimap_camera: Camera2D = null
+var _minimap_container: SubViewportContainer = null
+var _rear_view_camera: Camera2D = null
+var _rear_view_container: SubViewportContainer = null
 
 func _process(delta: float) -> void:
+	_sync_minimap()
+	_sync_rear_view()
 	if GameManager.state == GameManager.GameState.GAME_OVER:
 		_game_over_restart_timer += delta
 		if _game_over_restart_timer >= 1.5 and Input.is_action_just_pressed("ui_accept"):
@@ -533,6 +548,17 @@ func _on_boss_defeated(boss_type: String) -> void:
 func _on_demo_finished() -> void:
 	get_tree().paused = false
 	AudioManager.play_game_music()
+
+func _sync_minimap() -> void:
+	if not is_instance_valid(_minimap_camera) or not is_instance_valid(player):
+		return
+	_minimap_camera.position = player.global_position
+
+func _sync_rear_view() -> void:
+	if not is_instance_valid(_rear_view_camera) or not is_instance_valid(player):
+		return
+	_rear_view_camera.position = player.global_position + Vector2(0, 200)
+	_rear_view_camera.rotation = PI
 
 func _on_viewport_size_changed() -> void:
 	var viewport_rect = get_viewport().get_visible_rect()

@@ -32,6 +32,31 @@ var active_chunks: Array[Node2D] = []
 var current_segment: int = 0
 var player: Node = null
 var white_texture: Texture2D
+var lane_tilemap: TileMapLayer = null
+
+func setup_lane_tilemap() -> void:
+	if not is_instance_valid(lane_tilemap):
+		lane_tilemap = get_node_or_null("LaneTileMap")
+	if not is_instance_valid(lane_tilemap):
+		lane_tilemap = TileMapLayer.new()
+		lane_tilemap.name = "LaneTileMap"
+		add_child(lane_tilemap)
+	# Create a minimal tileset for lane markings at runtime (autotile-friendly)
+	var tileset := TileSet.new()
+	tileset.tile_size = TILE_SIZE
+	var source := TileSetAtlasSource.new()
+	var img := Image.create(TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	img.fill(Color(1.0, 1.0, 0.8, 0.6))
+	source.texture = ImageTexture.create_from_image(img)
+	source.texture_region_size = TILE_SIZE
+	tileset.add_source(source, 0)
+	# Terrain set for autotiling lane markings
+	var terrain_set := 0
+	tileset.add_terrain_set(terrain_set)
+	tileset.set_terrain_set_mode(terrain_set, TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES)
+	tileset.add_terrain(terrain_set, 0)
+	lane_tilemap.tile_set = tileset
+	lane_tilemap.z_index = -1
 
 var _chunk_buffers: Dictionary = {}
 var _buffer_in_use: Dictionary = {}
@@ -58,6 +83,8 @@ func _ready() -> void:
 	var img = Image.create(1, 1, false, Image.FORMAT_RGBA8)
 	img.fill(Color.WHITE)
 	white_texture = ImageTexture.create_from_image(img)
+	lane_tilemap = get_node_or_null("LaneTileMap")
+	setup_lane_tilemap()
 	
 	if PackManager:
 		if PackManager.has_method("get_custom_theme_color"):

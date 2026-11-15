@@ -4,3 +4,7 @@
 
 [node name="Highway" type="Node2D"]
 script = ExtResource("1_q008x")
+
+[node name="LaneTileMap" type="TileMapLayer" parent="."]
+name = "LaneTileMap"
+z_index = -1
