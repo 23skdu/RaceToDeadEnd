@@ -2,11 +2,13 @@ extends Node
 
 const BUILD_INFO_PATH: String = "res://build_info.json"
 
-@onready var start_button: Button = $CanvasLayer/StartButton
-@onready var garage_button: Button = $CanvasLayer/GarageButton
-@onready var info_button: Button = $CanvasLayer/InfoButton
-@onready var options_button: Button = $CanvasLayer/OptionsButton
-@onready var quit_button: Button = $CanvasLayer/QuitButton
+@onready var start_button: Button = $CanvasLayer/MenuRow/StartButton
+@onready var daily_run_button: Button = $CanvasLayer/MenuRow/DailyRunButton
+@onready var garage_button: Button = $CanvasLayer/MenuRow/GarageButton
+@onready var info_button: Button = $CanvasLayer/MenuRow/InfoButton
+@onready var options_button: Button = $CanvasLayer/MenuRow/OptionsButton
+@onready var about_button: Button = $CanvasLayer/MenuRow/AboutButton
+@onready var quit_button: Button = $CanvasLayer/MenuRow/QuitButton
 @onready var version_label: Label = get_node_or_null("CanvasLayer/VersionLabel")
 
 func _ready() -> void:
@@ -16,12 +18,12 @@ func _ready() -> void:
 		var sha := str(info.get("commit_sha", ""))
 		version_label.text = format_version_text(ver, sha)
 	start_button.pressed.connect(_on_start_pressed)
+	daily_run_button.pressed.connect(_on_daily_run_pressed)
 	garage_button.pressed.connect(_on_garage_pressed)
 	info_button.pressed.connect(_on_info_pressed)
 	options_button.pressed.connect(_on_options_pressed)
+	about_button.pressed.connect(_on_about_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
-	_setup_daily_run_button()
-	_setup_about_button()
 	GameManager.state = GameManager.GameState.MENU
 	AudioManager.play_menu_music()
 	
@@ -105,37 +107,6 @@ func _on_info_pressed() -> void:
 	var info = preload("res://scenes/ui/InterceptorInfo.tscn").instantiate()
 	add_child(info)
 	info.back_to_menu_requested.connect(func(): info.queue_free())
-
-var daily_run_button: Button = null
-var about_button: Button = null
-
-func _setup_daily_run_button() -> void:
-	var canvas = get_node_or_null("CanvasLayer")
-	if not canvas:
-		return
-	daily_run_button = Button.new()
-	daily_run_button.name = "DailyRunButton"
-	daily_run_button.text = "DAILY RUN"
-	daily_run_button.offset_left = 810.0
-	daily_run_button.offset_top = 300.0
-	daily_run_button.offset_right = 990.0
-	daily_run_button.offset_bottom = 360.0
-	daily_run_button.pressed.connect(_on_daily_run_pressed)
-	canvas.add_child(daily_run_button)
-
-func _setup_about_button() -> void:
-	var canvas = get_node_or_null("CanvasLayer")
-	if not canvas:
-		return
-	about_button = Button.new()
-	about_button.name = "AboutButton"
-	about_button.text = "ABOUT"
-	about_button.offset_left = 810.0
-	about_button.offset_top = 380.0
-	about_button.offset_right = 990.0
-	about_button.offset_bottom = 440.0
-	about_button.pressed.connect(_on_about_pressed)
-	canvas.add_child(about_button)
 
 func _on_about_pressed() -> void:
 	var about = preload("res://scenes/ui/About.tscn").instantiate()

@@ -26,7 +26,7 @@ func _physics_process(delta: float) -> void:
 		
 		var flank_offset = Constants.SCAV_FLANK_OFFSET if lane >= Constants.LANE_COUNT / 2 else -Constants.SCAV_FLANK_OFFSET
 		var target_x = player.global_position.x + flank_offset
-		var diff_x = target_x - position.x
+		var diff_x = target_x - global_position.x
 		
 		var dist_y = abs(player.global_position.y - global_position.y)
 		if dist_y < Constants.SCAV_RAM_DIST_Y and abs(diff_x) < Constants.SCAV_RAM_DIST_X:
@@ -36,10 +36,10 @@ func _physics_process(delta: float) -> void:
 			ramming = false
 			
 		var lateral_speed = Constants.SCAV_LATERAL_RAM_SPEED if ramming else Constants.SCAV_LATERAL_NORMAL_SPEED
-		velocity.x = move_toward(velocity.x, (target_x - position.x) * 4.0, lateral_speed * delta)
+		velocity.x = move_toward(velocity.x, (target_x - global_position.x) * 4.0, lateral_speed * delta)
 		
 		var target_y = player.global_position.y - 120.0
-		var diff_y = target_y - position.y
+		var diff_y = target_y - global_position.y
 		velocity.y = -speed + diff_y * 2.0
 	else:
 		velocity.x = 0.0

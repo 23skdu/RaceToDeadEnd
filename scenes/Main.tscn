@@ -27,9 +27,9 @@ stretch_mode = 6
 
 [node name="TitleLabel" type="Label" parent="CanvasLayer"]
 offset_left = 240.0
-offset_top = 100.0
+offset_top = 80.0
 offset_right = 1040.0
-offset_bottom = 170.0
+offset_bottom = 150.0
 theme_override_colors/font_color = Color(0.0, 0.92, 1.0, 1)
 theme_override_colors/font_outline_color = Color(1.0, 0.1, 0.55, 0.9)
 theme_override_constants/outline_size = 4
@@ -37,39 +37,54 @@ theme_override_font_sizes/font_size = 48
 text = "RACE TO DEAD END"
 horizontal_alignment = 1
 
-[node name="StartButton" type="Button" parent="CanvasLayer"]
-offset_left = 490.0
-offset_top = 300.0
-offset_right = 790.0
-offset_bottom = 360.0
-text = "START RUN"
+[node name="MenuRow" type="HBoxContainer" parent="CanvasLayer"]
+offset_left = 40.0
+offset_top = 560.0
+offset_right = 1240.0
+offset_bottom = 612.0
+theme_override_constants/separation = 10
+alignment = 1
 
-[node name="GarageButton" type="Button" parent="CanvasLayer"]
-offset_left = 490.0
-offset_top = 380.0
-offset_right = 790.0
-offset_bottom = 440.0
+[node name="StartButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "START"
+
+[node name="DailyRunButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "DAILY RUN"
+
+[node name="GarageButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
 text = "GARAGE"
 
-[node name="InfoButton" type="Button" parent="CanvasLayer"]
-offset_left = 490.0
-offset_top = 460.0
-offset_right = 790.0
-offset_bottom = 520.0
-text = "INTERCEPTOR INFO"
+[node name="InfoButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "INFO"
 
-[node name="OptionsButton" type="Button" parent="CanvasLayer"]
-offset_left = 490.0
-offset_top = 540.0
-offset_right = 790.0
-offset_bottom = 600.0
+[node name="OptionsButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
 text = "OPTIONS"
 
-[node name="QuitButton" type="Button" parent="CanvasLayer"]
-offset_left = 490.0
-offset_top = 620.0
-offset_right = 790.0
-offset_bottom = 680.0
+[node name="AboutButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "ABOUT"
+
+[node name="QuitButton" type="Button" parent="CanvasLayer/MenuRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
 text = "QUIT"
 
 [node name="VersionLabel" type="Label" parent="CanvasLayer"]
@@ -79,4 +94,4 @@ offset_right = 420.0
 offset_bottom = 720.0
 theme_override_colors/font_color = Color(0.0, 0.85, 1.0, 0.85)
 theme_override_font_sizes/font_size = 13
-text = "v0.2.0"
+text = "v0.2.1"

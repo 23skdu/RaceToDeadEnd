@@ -902,4 +902,30 @@ func _exit_tree() -> void:
 			p.stop()
 			p.stream = null
 	_custom_playlist.clear()
+	_stream_laser = null
+	_stream_explosion = null
+	_stream_hurt = null
+	_stream_boost = null
+	_stream_emp = null
+	_stream_menu_music = null
+	_stream_game_music_bunny = null
+	_stream_game_music_biker = null
+	_stream_game_music_sasquatch = null
+	_stream_game_music_void = null
+	_stream_crash = null
+	_stream_bounce = null
+	_stream_bunny_hit = null
+	_stream_rotor_hit = null
+	_stream_scav_hit = null
+	_stream_drone_hit = null
+	_stream_bunny_death = null
+	_stream_rotor_death = null
+	_stream_scav_death = null
+	_stream_drone_death = null
+	_stream_lightning = null
+	_stream_demo_boss_bunny = null
+	_stream_demo_boss_sasquatch = null
+	_stream_demo_boss_giant_biker = null
+	_stream_demo_boss_void_drone = null
+	_stream_demo_boss_war_rig = null
 

@@ -15,12 +15,12 @@ func _physics_process(delta: float) -> void:
 	if player and is_instance_valid(player):
 		target_player_x = player.global_position.x
 		var target_y = player.global_position.y - 70.0
-		var diff_y = target_y - position.y
+		var diff_y = target_y - global_position.y
 		velocity.y = move_toward(velocity.y, diff_y * 3.0, 180.0 * delta)
 	else:
 		velocity.y = -speed * 0.3
 
-	var diff = target_player_x - position.x
+	var diff = target_player_x - global_position.x
 	velocity.x = move_toward(velocity.x, diff, 150.0 * delta)
 	move_and_slide()
 

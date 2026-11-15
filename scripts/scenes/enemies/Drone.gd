@@ -22,10 +22,10 @@ func _physics_process(delta: float) -> void:
 		target_x = player.global_position.x
 		
 		var target_y = player.global_position.y - 180.0
-		var diff_y = target_y - position.y
+		var diff_y = target_y - global_position.y
 		velocity.y = -speed + diff_y * 2.0
 		
-		var diff_x = target_x - position.x
+		var diff_x = target_x - global_position.x
 		velocity.x = move_toward(velocity.x, diff_x * 4.0, 150.0 * delta)
 	else:
 		velocity.x = 0.0

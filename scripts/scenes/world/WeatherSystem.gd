@@ -29,6 +29,11 @@ var white_texture: Texture2D
 
 var _rain_particles: GPUParticles2D
 var _rain_particle_material: ParticleProcessMaterial
+var _splash_particles: GPUParticles2D
+var _splash_particle_material: ParticleProcessMaterial
+var _wet_reflection_rect: ColorRect
+var _wet_reflection_material: ShaderMaterial
+var _wetness: float = 0.0
 var _prev_overlay_color: Color = Constants.ACID_OVERLAY_CLEAR
 var _target_overlay_color: Color = Constants.ACID_OVERLAY_CLEAR
 
@@ -39,6 +44,7 @@ var _target_overlay_color: Color = Constants.ACID_OVERLAY_CLEAR
 func _ready() -> void:
 	white_texture = _create_white_texture()
 	_init_gpu_particles()
+	_init_wet_reflection()
 	_set_weather(WeatherType.CLEAR)
 
 func _init_gpu_particles() -> void:
@@ -77,6 +83,57 @@ func _init_gpu_particles() -> void:
 	_rain_particles.position = Vector2(0, -600)
 	add_child(_rain_particles)
 
+	_splash_particles = GPUParticles2D.new()
+	_splash_particles.name = "RainSplashes"
+	_splash_particles.z_index = 2
+	_splash_particles.amount = 64
+	_splash_particles.lifetime = 0.28
+	_splash_particles.one_shot = false
+	_splash_particles.emitting = false
+	_splash_particles.local_coords = false
+	var splash_img = Image.create(4, 2, false, Image.FORMAT_RGBA8)
+	splash_img.fill(Color(0.75, 0.9, 1.0, 0.65))
+	_splash_particles.texture = ImageTexture.create_from_image(splash_img)
+	var splash_mat = ParticleProcessMaterial.new()
+	splash_mat.direction = Vector3(0, -1, 0)
+	splash_mat.spread = 75.0
+	splash_mat.gravity = Vector3(0, 120, 0)
+	splash_mat.initial_velocity_min = 25.0
+	splash_mat.initial_velocity_max = 60.0
+	splash_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	splash_mat.emission_box_extents = Vector3(480.0, 260.0, 0.0)
+	_splash_particle_material = splash_mat
+	_splash_particles.process_material = splash_mat
+	add_child(_splash_particles)
+
+func _init_wet_reflection() -> void:
+	var canvas = get_node_or_null("WeatherCanvas")
+	if not canvas:
+		return
+	_wet_reflection_rect = ColorRect.new()
+	_wet_reflection_rect.name = "WetRoadReflection"
+	_wet_reflection_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_wet_reflection_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var shader = Shader.new()
+	shader.code = """
+shader_type canvas_item;
+uniform float wetness = 0.0;
+uniform vec4 reflection_tint : source_color = vec4(1.0, 0.25, 0.75, 1.0);
+void fragment() {
+	float band = sin(UV.y * 80.0 + TIME * 5.0) * 0.5 + 0.5;
+	float road_mask = smoothstep(0.18, 0.45, UV.x) * (1.0 - smoothstep(0.55, 0.82, UV.x));
+	float shimmer = pow(band, 4.0) * road_mask * wetness * 0.14;
+	COLOR = vec4(reflection_tint.rgb, shimmer);
+}
+"""
+	_wet_reflection_material = ShaderMaterial.new()
+	_wet_reflection_material.shader = shader
+	_wet_reflection_material.set_shader_parameter("wetness", 0.0)
+	_wet_reflection_rect.material = _wet_reflection_material
+	_wet_reflection_rect.visible = false
+	canvas.add_child(_wet_reflection_rect)
+	canvas.move_child(_wet_reflection_rect, 0)
+
 func _process(delta: float) -> void:
 	_update_weather_transition(delta)
 	_update_rain_particles(delta)
@@ -103,23 +160,47 @@ func _update_weather_transition(delta: float) -> void:
 		weather_intensity = 1.0 if current_weather != WeatherType.CLEAR else 0.0
 
 func _update_rain_particles(_delta: float) -> void:
+	if _splash_particles and player_ref and is_instance_valid(player_ref):
+		_splash_particles.global_position = player_ref.global_position + Vector2(0, -140)
 	match current_weather:
 		WeatherType.CLEAR:
 			_rain_particles.emitting = false
+			if _splash_particles:
+				_splash_particles.emitting = false
+			_set_wetness(0.0, Color(1.0, 0.25, 0.75, 1.0))
 			return
 		WeatherType.LIGHT_RAIN:
 			_rain_particles.amount_ratio = 0.5 * weather_intensity
 			var c = Constants.RAIN_PARTICLE_CLEAR
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
+			if _splash_particle_material:
+				_splash_particle_material.color = Color(0.7, 0.85, 1.0, 0.55 * weather_intensity)
+			_set_wetness(0.35 * weather_intensity, Color(0.3, 0.75, 1.0, 1.0))
 		WeatherType.ACID_RAIN:
 			_rain_particles.amount_ratio = weather_intensity
 			var c = Constants.RAIN_PARTICLE_ACID
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
+			if _splash_particle_material:
+				_splash_particle_material.color = Color(0.3, 1.0, 0.3, 0.7 * weather_intensity)
+			_set_wetness(0.55 * weather_intensity, Color(0.2, 1.0, 0.35, 1.0))
 		WeatherType.STORM:
 			_rain_particles.amount_ratio = weather_intensity
 			var c = Constants.RAIN_PARTICLE_STORM
 			_rain_particle_material.color = Color(c.r, c.g, c.b, c.a * weather_intensity)
+			if _splash_particle_material:
+				_splash_particle_material.color = Color(0.6, 0.9, 1.0, 0.75 * weather_intensity)
+			_set_wetness(0.85 * weather_intensity, Color(1.0, 0.25, 0.75, 1.0))
 	_rain_particles.emitting = _rain_particles.amount_ratio > 0.0
+	if _splash_particles:
+		_splash_particles.amount_ratio = _rain_particles.amount_ratio
+		_splash_particles.emitting = _rain_particles.emitting
+
+func _set_wetness(val: float, tint: Color) -> void:
+	_wetness = clampf(val, 0.0, 1.0)
+	if _wet_reflection_rect and _wet_reflection_material:
+		_wet_reflection_rect.visible = _wetness > 0.01
+		_wet_reflection_material.set_shader_parameter("wetness", _wetness)
+		_wet_reflection_material.set_shader_parameter("reflection_tint", tint)
 
 func _update_clouds(delta: float) -> void:
 	if current_weather == WeatherType.ACID_RAIN or current_weather == WeatherType.STORM:

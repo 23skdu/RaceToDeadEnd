@@ -68,10 +68,11 @@ jobs:
         run: |
           make build-web GODOT_VERSION="${{ env.GODOT_VERSION }}" COI_SW_SHA="${{ env.COI_SW_SHA }}" COI_SW_SHA256="${{ env.COI_SW_SHA256 }}" GIT_SHA="${GITHUB_SHA::7}"
 
-      - name: Export Linux & macOS Builds
+      - name: Export Desktop Builds (Linux, Windows & macOS)
         run: |
-          make build-linux build-macos GODOT_VERSION="${{ env.GODOT_VERSION }}" GIT_SHA="${GITHUB_SHA::7}"
+          make build-linux build-windows build-macos GODOT_VERSION="${{ env.GODOT_VERSION }}" GIT_SHA="${GITHUB_SHA::7}"
           tar -czf build/RaceToDeadEnd-linux-x86_64.tar.gz -C build/linux .
+          (cd build/windows && zip -r ../RaceToDeadEnd-windows-x86_64.zip .)
           cp build/macos/RaceToDeadEnd.zip build/RaceToDeadEnd-macos.zip
 
       - name: Upload Web Artifact
@@ -86,6 +87,7 @@ jobs:
           name: desktop-builds
           path: |
             build/RaceToDeadEnd-linux-x86_64.tar.gz
+            build/RaceToDeadEnd-windows-x86_64.zip
             build/RaceToDeadEnd-macos.zip
 
   publish:
@@ -130,5 +132,6 @@ jobs:
           files: |
             dist/RaceToDeadEnd-web.zip
             dist/RaceToDeadEnd-linux-x86_64.tar.gz
+            dist/RaceToDeadEnd-windows-x86_64.zip
             dist/RaceToDeadEnd-macos.zip
           generate_release_notes: true

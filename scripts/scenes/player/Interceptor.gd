@@ -183,7 +183,10 @@ func _physics_process(delta: float) -> void:
 						AudioManager.play_synth_crash(global_position)
 					take_damage(1)
 			elif collider.is_in_group("enemy"):
-				if not boost_active:
+				if boost_active:
+					if str(collider.get("boss_key")) == "" and collider.has_method("take_damage"):
+						collider.take_damage(999)
+				else:
 					if not invincible:
 						AudioManager.play_synth_crash(global_position)
 					take_damage(1)

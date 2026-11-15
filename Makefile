@@ -32,6 +32,7 @@ endif
 BUILD_DIR     ?= build
 WEB_DIR       ?= $(BUILD_DIR)/web
 LINUX_DIR     ?= $(BUILD_DIR)/linux
+WINDOWS_DIR   ?= $(BUILD_DIR)/windows
 MACOS_DIR     ?= $(BUILD_DIR)/macos
 ANDROID_DIR   ?= $(BUILD_DIR)/android
 IOS_DIR       ?= $(BUILD_DIR)/ios
@@ -41,7 +42,7 @@ PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/restructure_s
 .PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates build-info prep-build import run editor \
 	test test-unit test-integration test-fuzz test-regression test-runner test-scripts \
 	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage install-hooks \
-	build build-web build-linux build-macos build-android build-ios build-all serve-web \
+	build build-web build-linux build-windows build-macos build-android build-ios build-all serve-web \
 	clean clean-all
 
 # Default target
@@ -90,6 +91,7 @@ help:
 	@echo "  build             Export Web build (default release artifact)"
 	@echo "  build-web         Export Web build and inject pinned coi-serviceworker.js"
 	@echo "  build-linux       Export Linux x86_64 release build"
+	@echo "  build-windows     Export Windows x86_64 release build"
 	@echo "  build-macos       Export macOS universal release build"
 	@echo "  build-android     Export Android APK release build"
 	@echo "  build-ios         Export iOS IPA release build"
@@ -281,6 +283,11 @@ build-linux: check-godot templates prep-build import
 	"$(GODOT)" --headless --export-release "Linux" "$(LINUX_DIR)/RaceToDeadEnd.x86_64"
 	@echo "Linux build exported to $(LINUX_DIR)/"
 
+build-windows: check-godot templates prep-build import
+	@mkdir -p "$(WINDOWS_DIR)"
+	"$(GODOT)" --headless --export-release "Windows Desktop" "$(WINDOWS_DIR)/RaceToDeadEnd.exe"
+	@echo "Windows build exported to $(WINDOWS_DIR)/"
+
 build-macos: check-godot templates prep-build import
 	@mkdir -p "$(MACOS_DIR)"
 	"$(GODOT)" --headless --export-release "macOS" "$(MACOS_DIR)/RaceToDeadEnd.zip"
@@ -296,7 +303,7 @@ build-ios: check-godot templates prep-build import
 	"$(GODOT)" --headless --export-release "iOS" "$(IOS_DIR)/RaceToDeadEnd.ipa"
 	@echo "iOS build exported to $(IOS_DIR)/"
 
-build-all: build-web build-linux build-macos
+build-all: build-web build-linux build-windows build-macos
 
 serve-web:
 	@test -f "$(WEB_DIR)/index.html" || { echo "Run 'make build-web' first."; exit 1; }

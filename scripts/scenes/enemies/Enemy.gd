@@ -54,6 +54,14 @@ func init(type: EnemyType, start_lane: int, player_ref: Node, base_speed: float,
 	lane = start_lane
 	player = player_ref
 	_spawner = spawner
+	stunned = false
+	stun_timer = 0.0
+	if collision:
+		collision.disabled = false
+		collision.set_deferred(&"disabled", false)
+	if sprite:
+		sprite.scale = Vector2.ONE
+		sprite.modulate = Color.WHITE
 	match type:
 		EnemyType.BUNNY:
 			hp = 1
@@ -256,19 +264,33 @@ func apply_stun(duration: float) -> void:
 	sprite.modulate = Color(0.5, 0.5, 1.0, 0.7)
 
 func take_damage(amount: int = 1) -> void:
+	if get_meta("_in_pool", false) or hp <= 0:
+		return
 	hp -= amount
 	_play_hit_flash()
 	_play_hit_sound()
 	if hp <= 0:
 		_die()
 
+func on_pool_acquire() -> void:
+	stunned = false
+	stun_timer = 0.0
+	velocity = Vector2.ZERO
+	if sprite:
+		sprite.scale = Vector2.ONE
+		sprite.modulate = Color.WHITE
+	if collision:
+		collision.disabled = false
+		collision.set_deferred(&"disabled", false)
+
 func on_pool_release() -> void:
 	stunned = false
 	stun_timer = 0.0
 	hp = 1
 	speed = 200.0
-	sprite.scale = Vector2.ONE
-	sprite.modulate = Color.WHITE
+	if sprite:
+		sprite.scale = Vector2.ONE
+		sprite.modulate = Color.WHITE
 	velocity = Vector2.ZERO
 	# Re-enable collision so pooled enemies are not immune after first death
 	if collision:

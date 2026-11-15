@@ -69,12 +69,16 @@ func _find_nearest(enemies: Array) -> Node:
 	return nearest
 
 func _on_body_entered(body: Node) -> void:
+	if get_meta("_in_pool", false):
+		return
 	hit_target.emit(body)
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
 	_die()
 
 func _on_area_entered(area: Area2D) -> void:
+	if get_meta("_in_pool", false):
+		return
 	hit_target.emit(area)
 	if area.has_method("take_damage"):
 		area.take_damage(damage)

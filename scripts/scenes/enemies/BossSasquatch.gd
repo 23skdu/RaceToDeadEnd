@@ -91,11 +91,13 @@ static func _create_boss_sasquatch_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 func on_pool_acquire() -> void:
+	super.on_pool_acquire()
 	attack_timer = 0.0
 	dodge_timer = 0.0
 	target_lane_x = global_position.x
 
 func on_pool_release() -> void:
+	super.on_pool_release()
 	attack_timer = 0.0
 	dodge_timer = 0.0
 	target_lane_x = 0.0

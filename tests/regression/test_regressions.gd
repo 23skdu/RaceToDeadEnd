@@ -249,6 +249,9 @@ func test_cyberpunk_theme_and_about_button():
 	var main = load("res://scenes/Main.tscn").instantiate()
 	add_child_autofree(main)
 	assert_not_null(main.about_button, "Main menu should have About button")
+	var menu_row: HBoxContainer = main.get_node_or_null("CanvasLayer/MenuRow")
+	assert_not_null(menu_row, "Main menu should group buttons in MenuRow HBoxContainer")
+	assert_eq(menu_row.get_child_count(), 7, "All 7 main menu buttons should fit in one row")
 	main._on_about_pressed()
 	var found_about := false
 	for c in main.get_children():
@@ -256,6 +259,52 @@ func test_cyberpunk_theme_and_about_button():
 			found_about = true
 			c.queue_free()
 	assert_true(found_about, "Pressing About should instantiate About screen")
+
+func test_emp_shockwave_and_no_post_death_stun():
+	var emp = load("res://scenes/weapons/EMPBlast.tscn").instantiate()
+	add_child_autofree(emp)
+	emp.init(Vector2.ZERO)
+	assert_not_null(emp._shockwave_material, "EMP should create shockwave ShaderMaterial")
+	emp._process(0.5)
+	var progress: float = emp._shockwave_material.get_shader_parameter("ring_progress")
+	assert_gt(progress, 0.0, "Shockwave ring_progress should advance with EMP radius")
+
+	ObjectPool.create_pool("test_emp_bunny", load("res://scenes/enemies/Bunny.tscn"), 1)
+	var bunny = ObjectPool.acquire("test_emp_bunny")
+	add_child_autofree(bunny)
+	bunny.init(bunny.EnemyType.BUNNY, 0, null, 200.0)
+	emp._on_body_entered(bunny)
+	assert_true(bunny.get_meta("_in_pool", false), "Bunny should die from EMP damage")
+	assert_false(bunny.stunned, "Pooled bunny killed by EMP must not remain stunned")
+	ObjectPool._pools.erase("test_emp_bunny")
+
+func test_weather_rain_splashes_and_wet_road_reflection():
+	var ws = load("res://scenes/world/WeatherSystem.tscn").instantiate()
+	add_child_autofree(ws)
+	assert_not_null(ws._splash_particles, "WeatherSystem should have RainSplashes GPUParticles2D")
+	assert_not_null(ws._wet_reflection_material, "WeatherSystem should have wet road reflection shader")
+	ws._set_weather(ws.WeatherType.STORM)
+	ws._update_rain_particles(0.016)
+	assert_true(ws._splash_particles.emitting, "Rain splashes should emit in STORM")
+	assert_gt(ws._wetness, 0.5, "Wet road reflection should be active in STORM")
+	ws._set_weather(ws.WeatherType.CLEAR)
+	ws._update_rain_particles(0.016)
+	assert_false(ws._splash_particles.emitting, "Rain splashes should stop in CLEAR")
+	assert_eq(ws._wetness, 0.0, "Wet road reflection should reset in CLEAR")
+
+func test_baby_bunny_bomb_resets_and_dies_on_reacquire():
+	ObjectPool.create_pool("test_baby_bomb", load("res://scenes/weapons/BabyBunnyBomb.tscn"), 1)
+	var b1 = ObjectPool.acquire("test_baby_bomb")
+	add_child_autofree(b1)
+	b1.take_damage(1)
+	assert_true(b1.get_meta("_in_pool", false), "First BabyBunnyBomb should die and pool")
+	var b2 = ObjectPool.acquire("test_baby_bomb")
+	add_child_autofree(b2)
+	assert_false(b2.collision.disabled, "Reacquired BabyBunnyBomb must have collision enabled")
+	assert_eq(b2.hp, 1, "Reacquired BabyBunnyBomb must have 1 HP")
+	b2.take_damage(1)
+	assert_true(b2.get_meta("_in_pool", false), "Reacquired BabyBunnyBomb must die again")
+	ObjectPool._pools.erase("test_baby_bomb")
 
 func test_scav_eight_lane_flank_direction():
 	var scav_left = load("res://scenes/enemies/Scav.tscn").instantiate()

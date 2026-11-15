@@ -20,9 +20,11 @@ func _reset_state() -> void:
 	phase = 1
 
 func on_pool_acquire() -> void:
+	super.on_pool_acquire()
 	_reset_state()
 
 func on_pool_release() -> void:
+	super.on_pool_release()
 	_reset_state()
 	velocity = Vector2.ZERO
 

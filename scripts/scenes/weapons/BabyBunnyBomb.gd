@@ -70,8 +70,12 @@ static func _create_baby_bunny_bomb_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 func on_pool_acquire() -> void:
+	super.on_pool_acquire()
 	hp = 1
 	speed = 150.0
+
+func on_pool_release() -> void:
+	super.on_pool_release()
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
@@ -84,6 +88,9 @@ func _physics_process(delta: float) -> void:
 	
 	var hit_collision = _perform_movement_collision(velocity, delta)
 	if hit_collision:
+		var col_node = hit_collision.get_collider()
+		if col_node and is_instance_valid(col_node) and col_node.is_in_group("player") and col_node.has_method("take_damage"):
+			col_node.take_damage(1)
 		_die()
 
 func _perform_movement_collision(velocity_vec: Vector2, delta_val: float):

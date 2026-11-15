@@ -162,12 +162,11 @@ func _setup_parallax() -> void:
 			var img_width = 512
 			var img = Image.create(img_width, tex_height, false, Image.FORMAT_RGBA8)
 			
-			# Base gradient fill
-			for x in img_width:
-				for y in tex_height:
-					var t = float(y) / float(tex_height - 1)
-					var c = l.color_top.lerp(l.color_bot, t)
-					img.set_pixel(x, y, c)
+			# Base gradient fill via horizontal scanline fill_rect (much faster than per-pixel set_pixel)
+			for y in tex_height:
+				var t = float(y) / float(tex_height - 1)
+				var c = l.color_top.lerp(l.color_bot, t)
+				img.fill_rect(Rect2i(0, y, img_width, 1), c)
 			
 			if l.label == "deep":
 				# 1. Glowing Synthwave Sun in center
