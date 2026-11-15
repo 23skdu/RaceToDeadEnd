@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 
 GODOT        ?= $(shell command -v godot 2>/dev/null || command -v godot4 2>/dev/null || echo godot)
-PYTHON       ?= $(shell command -v python3 2>/dev/null || echo python3)
+PYTHON       ?= $(shell if [ -x venv/bin/python3 ]; then echo venv/bin/python3; else command -v python3 2>/dev/null || echo python3; fi)
 CURL         ?= $(shell command -v curl 2>/dev/null || echo curl)
 UNZIP        ?= $(shell command -v unzip 2>/dev/null || echo unzip)
 GDLINT       ?= $(shell command -v gdlint 2>/dev/null || true)
@@ -37,11 +37,11 @@ MACOS_DIR     ?= $(BUILD_DIR)/macos
 ANDROID_DIR   ?= $(BUILD_DIR)/android
 IOS_DIR       ?= $(BUILD_DIR)/ios
 
-PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/restructure_scripts.py scripts/update_gd.py scripts/check_coverage.py
+PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/check_coverage.py scripts/check_deadcode.py tests/python/test_scripts.py
 
 .PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates build-info prep-build import run editor \
-	test test-unit test-integration test-fuzz test-regression test-runner test-scripts \
-	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage install-hooks \
+	test test-unit test-integration test-fuzz test-regression test-runner test-scripts test-python \
+	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage deadcode install-hooks \
 	build build-web build-linux build-windows build-macos build-android build-ios build-all serve-web \
 	clean clean-all
 
@@ -73,11 +73,13 @@ help:
 	@echo "  test-regression   Run GUT regression tests (tests/regression)"
 	@echo "  test-runner       Run custom headless SceneTree test runner (scripts/run_tests.gd)"
 	@echo "  test-scripts      Run unified test script (scripts/run_tests.sh)"
+	@echo "  test-python       Run Python utility unit and fuzz tests (tests/python)"
 	@echo ""
 	@echo "Linting & Verification:"
-	@echo "  check             Run check-godot, lint, check-coverage, and full test suite"
+	@echo "  check             Run check-godot, lint, deadcode, check-coverage, test-python, and full test suite"
 	@echo "  ci                Alias for check (mirrors CI verification gate)"
-	@echo "  check-coverage    Verify 100% runtime script test coverage"
+	@echo "  deadcode          Scan scripts and scenes for unreferenced files and unused symbols"
+	@echo "  check-coverage    Verify 100% unit, fuzz, and Python script test coverage"
 	@echo "  install-hooks     Install git pre-commit hook (.githooks/pre-commit)"
 	@echo "  lint              Run Python syntax checks and optional gdlint/markdownlint"
 	@echo "  lint-gd           Run gdlint on scripts/ and tests/ (if installed)"
@@ -132,7 +134,14 @@ install-gut:
 	@echo "GUT v$(GUT_VERSION) installed."
 
 deps-python:
-	$(PYTHON) -m pip install -r scripts/requirements.txt
+	@if [ -n "$$VIRTUAL_ENV" ]; then \
+		"$(PYTHON)" -m pip install -r scripts/requirements.txt; \
+	else \
+		if [ ! -x venv/bin/python3 ]; then "$(PYTHON)" -m venv venv; fi; \
+		touch venv/.gdignore; \
+		venv/bin/python3 -m pip install -r scripts/requirements.txt; \
+		echo "Python dependencies installed in venv/."; \
+	fi
 
 templates:
 	@if [ ! -f "$(EXPORT_TEMPLATES_DIR)/web_release.zip" ] || [ ! -f "$(EXPORT_TEMPLATES_DIR)/linux_release.x86_64" ] || [ ! -f "$(EXPORT_TEMPLATES_DIR)/macos.zip" ]; then \
@@ -201,6 +210,9 @@ test-runner: check-godot deps import
 test-scripts: check-godot deps import
 	GODOT="$(GODOT)" bash scripts/run_tests.sh
 
+test-python:
+	"$(PYTHON)" -m unittest discover -s tests/python -v
+
 # ==============================================================================
 # Linting & Verification
 # ==============================================================================
@@ -248,14 +260,17 @@ check-assets:
 check-coverage:
 	$(PYTHON) scripts/check_coverage.py
 
+deadcode:
+	$(PYTHON) scripts/check_deadcode.py
+
 install-hooks:
-	@chmod +x .githooks/pre-commit scripts/check_coverage.py scripts/run_tests.sh
+	@chmod +x .githooks/pre-commit scripts/check_coverage.py scripts/check_deadcode.py scripts/run_tests.sh
 	@mkdir -p .git/hooks
 	@cp .githooks/pre-commit .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
 	@echo "Installed git pre-commit hook to .git/hooks/pre-commit"
 
-check: check-godot lint check-coverage test
+check: check-godot lint lint-docs deadcode check-coverage test-python test
 	@echo "=========================================================="
 	@echo "  Race to Dead End local verification passed!"
 	@echo "=========================================================="
@@ -308,14 +323,7 @@ build-all: build-web build-linux build-windows build-macos
 serve-web:
 	@test -f "$(WEB_DIR)/index.html" || { echo "Run 'make build-web' first."; exit 1; }
 	@echo "Serving $(WEB_DIR) at http://127.0.0.1:8080 (with COOP/COEP headers)..."
-	@$(PYTHON) -c '\
-import http.server, functools; \
-class COIHandler(http.server.SimpleHTTPRequestHandler): \
-    def end_headers(self): \
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin"); \
-        self.send_header("Cross-Origin-Embedder-Policy", "require-corp"); \
-        super().end_headers(); \
-http.server.test(HandlerClass=functools.partial(COIHandler, directory="$(WEB_DIR)"), port=8080, bind="127.0.0.1")'
+	@WEB_DIR="$(WEB_DIR)" "$(PYTHON)" -c 'import functools, http.server, os; Base = http.server.SimpleHTTPRequestHandler; H = type("COIHandler", (Base,), {"end_headers": lambda self: (self.send_header("Cross-Origin-Opener-Policy", "same-origin"), self.send_header("Cross-Origin-Embedder-Policy", "require-corp"), Base.end_headers(self))[2]}); http.server.test(HandlerClass=functools.partial(H, directory=os.environ["WEB_DIR"]), port=8080, bind="127.0.0.1")'
 
 # ==============================================================================
 # Cleanup

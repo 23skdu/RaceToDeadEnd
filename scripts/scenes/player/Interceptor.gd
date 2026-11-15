@@ -45,7 +45,6 @@ var invincible: bool = false
 var invincible_timer: float = 0.0
 var slippery: bool = false
 var speed_input: float = 0.0
-var max_forward_y: float = 0.0
 var wheel_tread_offset: float = 0.0
 var _camera_y: float = 0.0
 

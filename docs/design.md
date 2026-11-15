@@ -54,13 +54,15 @@ The highway is divided into **segments** (each ~10 seconds of driving). Every 5 
 - **Health**: 5 hit points (repair pickups restore 1 HP)
 - **Lane switching**: Left/right across 8 lanes + weave (quick dodge)
 - **Boost**: Temporary 2× speed, grants collision immunity during activation
+- **Skins**: 5 built-in Interceptor styles (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, plus *Urban Camo* unlocked by defeating the 1st boss) + custom skin packs
 
 **Controls** (keyboard/gamepad):
-- Up/Down: Accelerate/brake (or auto-accelerate with speed control)
-- Left/Right: Lane change
-- Space / A button: Primary weapon (machine gun)
-- Shift / X button: Secondary weapon (missile/mine/EMP - cycle)
-- Tab / Y button: Boost
+- `W` / `S` or Up/Down: Accelerate / brake
+- `A` / `D` or Left/Right: Lane change (double-tap to weave)
+- `Space` / A button: Primary weapon (machine gun)
+- `Shift` / X button: Secondary weapon (missile/mine/EMP — cycle with `Q`/`R`, quick EMP `F`, quick Mine `V`)
+- `Tab` / Y button: Boost
+- `F12`: Take in-game screenshot (`user://screenshots/`)
 
 ## Part 7: Enemy Types & AI Behavior
 
@@ -83,9 +85,9 @@ The highway is divided into **segments** (each ~10 seconds of driving). Every 5 
 - **Appearance**: Large brown shaggy humanoid figures
 - **Behavior**: Wanders between lanes, dodges player attacks, throws projectiles
 - **Speed**: Slower than player base speed
-- **HP**: 5 hits
+- **HP**: 15 hits (`Constants.BOSS_SASQUATCH_HP`)
 - **Attack**: Ranged projectile (causes slippery effect on hit)
-- **Note**: Random wandering monster that starts appearing after the 2nd boss fight (Giant Biker)
+- **Note**: Repurposed wandering mini-boss that starts appearing after the 2nd boss fight (Giant Biker)
 
 ### Scavs (Warrior Pickups)
 - **Appearance**: Armored trucks with roof gunners, faction colors
@@ -168,13 +170,13 @@ Full specifications live in [docs/bosses.md](bosses.md).
 |---|---|
 | ![Cyber Bunny](images/bosses/boss_bunny.png) | ![Giant Biker](images/bosses/boss_giant_biker.png) |
 
-| War Rig (`boss`, 60 HP) | Void Drone (`boss_void_drone`, 45 HP) |
+| Sasquatch (`sasquatch`, 15 HP — Wave Mini-Boss) | War Rig (`boss`, 60 HP) |
 |---|---|
-| ![War Rig](images/bosses/boss_war_rig.png) | ![Void Drone](images/bosses/boss_void_drone.png) |
+| ![Sasquatch](images/bosses/boss_sasquatch.png) | ![War Rig](images/bosses/boss_war_rig.png) |
 
-| Sasquatch (`sasquatch`, 15 HP — Wandering Mini-Boss) |
+| Void Drone (`boss_void_drone`, 45 HP) |
 |---|
-| ![Sasquatch](images/bosses/boss_sasquatch.png) |
+| ![Void Drone](images/bosses/boss_void_drone.png) |
 
 ### Meta-progression (between runs):
 - Credits earned = score / 10
@@ -182,8 +184,9 @@ Full specifications live in [docs/bosses.md](bosses.md).
   - +Max HP (upgrade tiers)
   - +Boost capacity
   - +Starting secondary ammo
-  - Unlock weapon variants
-  - Cosmetic skins for the interceptor
+  - +Primary fire rate
+- Equip Interceptor skins in the Garage *Customize* tab (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, and boss-unlockable *Urban Camo*)
+- Select from 9 procedural music tracks in **Options → Audio** (*Dynamic*, *Outrun Synthwave*, *Cyber Industrial*, *Neon Drift*, *Classic Arcade*, and stage themes)
 
 ### Replayability hooks:
 - Leaderboard (local, later online)

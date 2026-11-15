@@ -9,9 +9,6 @@ var _protect_bonus_awarded: bool = false
 var _lane: int = 0
 var _player: Node = null
 
-const BASE_SPRITE_SIZE: float = 48.0
-const BASE_VIEWPORT_WIDTH: float = 1280.0
-
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
 

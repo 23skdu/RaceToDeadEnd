@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const WeaponDataRes = preload("res://scripts/resources/WeaponData.gd")
+
 signal back_to_menu_requested
 
 @onready var back_button: Button = $Panel/BackButton
@@ -20,12 +22,28 @@ func refresh_control_hints() -> void:
 			_format_action_keys("move_right"),
 		]
 	if weapons_text:
-		weapons_text.text = "%s = Primary Fire (rapid-fire machine gun)\n%s = Cycle weapon (Missile -> Mine -> EMP)\n%s = Fire selected secondary weapon\n\nHoming Missile (red): Homes onto nearest enemy. 3 dmg.\nProximity Mine (yellow): Drops behind you. Arms in 0.5s. 2 dmg.\nEMP Blast (cyan): Stuns all enemies for 2s. 1 dmg.\n\n%s = Fire EMP directly\n%s = Drop Mine directly" % [
+		var descriptions: Dictionary = {
+			"missile": "Homes onto nearest enemy. 3 dmg.",
+			"mine": "Drops behind you. Arms in 0.5s. 2 dmg.",
+			"emp": "Stuns all enemies for 2s. 1 dmg.",
+		}
+		var weapon_lines: Array[String] = []
+		for entry in Constants.WEAPON_DATA:
+			var wd := WeaponDataRes.new()
+			wd.type_name = str(entry.get("type_name", ""))
+			wd.display_name = str(entry.get("display_name", ""))
+			wd.color = entry.get("color", Color.WHITE)
+			wd.base_ammo = int(entry.get("base_ammo", 0))
+			wd.description = str(descriptions.get(wd.type_name, ""))
+			weapon_lines.append("%s: %s" % [wd.display_name, wd.description])
+		weapons_text.text = "%s = Primary Fire (rapid-fire machine gun)\n%s = Cycle weapon (Missile -> Mine -> EMP)\n%s = Fire selected secondary weapon\n\n%s\n\n%s = Fire EMP directly\n%s = Drop Mine directly\n%s = Take Screenshot" % [
 			_format_action_keys("primary_fire"),
 			_format_action_keys("cycle_weapon"),
 			_format_action_keys("secondary_fire"),
+			"\n".join(weapon_lines),
 			_format_action_keys("fire_emp"),
 			_format_action_keys("drop_mine"),
+			_format_action_keys("screenshot"),
 		]
 	if boost_text:
 		boost_text.text = "%s = Activate boost. 2x speed for 1.5s. Invincible while boosting.\n3 charges by default. Each charge takes 8s to recharge.\nUpgrade boost capacity in the Garage for more charges." % [

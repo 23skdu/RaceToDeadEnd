@@ -2,15 +2,15 @@
 
 Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`). During an active boss fight, normal wave spawning pauses (`GameManager.boss_active = true`), the HUD displays the boss health bar and phase indicator, and defeating a boss awards **1,000 points** (`Constants.BOSS_SCORE`), unlocks new enemy tiers, and plays the boss defeat overlay (`demo/DemoBoss*.tscn`).
 
-## Boss Progression Overview
+## Boss Progression Overview (Appearance Order)
 
-| Order | Boss | Boss Key | Score Threshold | HP | Attack Interval | Unlocks on Defeat |
+| Order | Boss | Boss Key | Appearance Trigger | HP | Attack Interval | Unlocks on Defeat / Role |
 |---|---|---|---|---|---|---|
-| 1 | Cyber Bunny | `boss_bunny` | 3,000 | 25 | 1.5s | Rotor waves |
-| 2 | Giant Biker | `boss_giant_biker` | 6,000 | 35 | 1.5s (0.9s enraged) | Scav & Sasquatch waves |
-| 3 | War Rig | `boss` | 9,000 | 60 | 1.5s | Drone waves |
-| 4+ | Void Drone | `boss_void_drone` | 12,000+ | 45 | 2.25s | Repeats on later tiers |
-| Mini-Boss | Sasquatch | `sasquatch` | Wave spawn (`bosses_killed >= 2`) | 15 | 2.25s | 300 pts per kill |
+| 1 | Cyber Bunny | `boss_bunny` | 3,000 pts | 25 | 1.5s | Rotor waves & **Urban Camo** car skin |
+| 2 | Giant Biker | `boss_giant_biker` | 6,000 pts | 35 | 1.5s (0.9s enraged) | Scav & Sasquatch waves |
+| 3 (Mini-Boss) | Sasquatch | `sasquatch` | Waves after 2nd boss (`bosses_killed >= 2`) | 15 | 2.25s | Recurring heavy brute (`300` pts/kill) |
+| 4 | War Rig | `boss` | 9,000 pts | 60 | 1.5s | Void Drone waves |
+| 5+ | Void Drone | `boss_void_drone` | 12,000+ pts | 45 | 2.25s | Repeats on subsequent 3,000-pt tiers |
 
 ---
 
@@ -26,7 +26,7 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
   - Maintains a `350px` lead ahead of the player on the highway while crushing road obstacles on contact.
   - Features a pulsating red-eye shader and armored cybernetic chest plate.
   - Every `1.5s`, drops a `BabyBunnyBomb` (`scenes/weapons/BabyBunnyBomb.tscn`) directly ahead of the player.
-- **Progression:** Defeating Cyber Bunny triggers `demo/DemoBossBunny.tscn` and transitions regular waves from Bunnies to Rotors (`bosses_killed >= 1`).
+- **Progression:** Defeating Cyber Bunny triggers `demo/DemoBossBunny.tscn`, transitions regular waves from Bunnies to Rotors (`bosses_killed >= 1`), and permanently unlocks the **Urban Camo** Interceptor skin (`GameManager.first_boss_defeated`).
 
 ---
 
@@ -46,7 +46,21 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
 
 ---
 
-## 3. War Rig (`BossWarRig`)
+## 3. Sasquatch (`BossSasquatch` — Wandering Mini-Boss)
+
+![Sasquatch Mini-Boss](images/bosses/boss_sasquatch.png)
+
+- **HUD Title:** `SASQUATCH`
+- **Scene / Script:** `scenes/enemies/BossSasquatch.tscn`, `scripts/scenes/enemies/BossSasquatch.gd`
+- **HP:** `15` (`Constants.BOSS_SASQUATCH_HP`)
+- **Score Reward:** `300` (`ScoreManager.SCORE_VALUES["sasquatch"]`)
+- **Behavior & Attacks:**
+  - Begins appearing in normal highway waves right after Giant Biker is defeated (`bosses_killed >= 2`).
+  - Changes lanes every `1.5s` to evade incoming fire (`_dodge()`) and hurls `PoopWeapon` projectiles (`scenes/weapons/PoopWeapon.tscn`) aimed at the player every `2.25s`.
+
+---
+
+## 4. War Rig (`BossWarRig`)
 
 ![War Rig Boss](images/bosses/boss_war_rig.png)
 
@@ -62,7 +76,7 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
 
 ---
 
-## 4. Void Drone (`BossVoidDrone`)
+## 5. Void Drone (`BossVoidDrone`)
 
 ![Void Drone Boss](images/bosses/boss_void_drone.png)
 
@@ -74,17 +88,3 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
   - Obsidian stealth saucer with a central cyan-purple reactor core hovering `350px` ahead of the player.
   - Every `2.25s`, calls in `2` `Drone` minions via `spawn_minion_requested` to bombard lanes.
 - **Progression:** Defeating Void Drone triggers `demo/DemoBossVoidDrone.tscn`. Void Drone also serves as the recurring boss encounter for subsequent 3,000-point milestones (`12,000+`).
-
----
-
-## 5. Sasquatch (`BossSasquatch` - Wandering Mini-Boss)
-
-![Sasquatch Mini-Boss](images/bosses/boss_sasquatch.png)
-
-- **HUD Title:** `SASQUATCH`
-- **Scene / Script:** `scenes/enemies/BossSasquatch.tscn`, `scripts/scenes/enemies/BossSasquatch.gd`
-- **HP:** `15` (`Constants.BOSS_SASQUATCH_HP`)
-- **Score Reward:** `300` (`ScoreManager.SCORE_VALUES["sasquatch"]`)
-- **Behavior & Attacks:**
-  - Originally the Stage 2 boss (`demo/DemoBossSasquatch.tscn`), now repurposed as a recurring heavy brute in normal waves once `bosses_killed >= 2`.
-  - Changes lanes every `1.5s` to evade incoming fire (`_dodge()`) and hurls `PoopWeapon` projectiles (`scenes/weapons/PoopWeapon.tscn`) aimed at the player every `2.25s`.

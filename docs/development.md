@@ -8,20 +8,23 @@ This guide covers everything you need to know to contribute to the project: setu
 
 ### Prerequisites
 
-- **Godot 4.6+** - Download from [godotengine.org](https://godotengine.org)
+- **Godot 4.7.2+** - Download from [godotengine.org](https://godotengine.org)
 - **Git** - For version control
+- **Python 3** - For asset, coverage, deadcode, and tooling checks (`make deps-python` sets up `venv/`)
 - **VS Code** (optional) - Recommended with the [Godot Tools](https://marketplace.visualstudio.com/items?itemName=geequlim.godot-tools) extension
 
 ### Setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/23skdu/RaceToDeadEnd.git
 cd RaceToDeadEnd
+make deps
+make import
 ```
 
-1. Open Godot → Import `project.godot`
-2. Press **F5** to run the game
-3. See [Controls](#controls) below
+1. Run `make run` (or open Godot → Import `project.godot` and press **F5**)
+2. Run `make check` to verify lint, docs, deadcode, 100% coverage, Python tests, and all GUT test suites
+3. See [Controls](#controls) and [Boss Guide](bosses.md) below
 
 ### Controls
 
@@ -41,7 +44,7 @@ cd RaceToDeadEnd
 
 ### Scene Tree
 
-```
+```text
 Main.tscn (entry point)
 └── CanvasLayer
     ├── StartButton → Game.tscn
@@ -111,45 +114,34 @@ Garage.tscn (meta-progression shop)
 
 ---
 
-## Testing with GUT
+## Testing with GUT & Python
 
-This project uses **GUT (Godot Unit Test) v9.6.0** for automated testing.
+This project uses **GUT (Godot Unit Test) v9.7.1** for GDScript testing and Python `unittest` for tooling scripts.
 
 ### Install GUT
 
-GUT is **not committed** to the repository. Install it locally:
+GUT is **not committed** to the repository. Install it locally with `make deps` (or `make install-gut`):
 
 ```bash
-# Option 1: Download from GitHub
-cd /tmp
-curl -L -o gut.zip https://github.com/bitwes/Gut/archive/refs/tags/v9.6.0.zip
-unzip gut.zip
-cp -r Gut-9.6.0/addons/gut/* <project>/addons/gut/
-rm -rf Gut-9.6.0 gut.zip
+make deps
+make import
 ```
 
+### Run Tests & Quality Gates
+
 ```bash
-# Option 2: Godot Asset Library
-# Open Godot → AssetLib tab → Search "GUT" → Install "Godot Unit Test (GUT)"
+make check          # Full verification (Godot, lint, lint-docs, deadcode, 100% coverage, Python tests, GUT)
+make test           # Run all GUT suites (unit, integration, fuzz, regression)
+make test-python    # Run Python utility script unit + fuzz tests
+make deadcode       # Check for unreferenced scripts/scenes and unused symbols
+make check-coverage # Verify 100% unit, fuzz, and Python script test coverage
+make check-assets   # Verify enemy sprite alpha channels (uses scripts/remove_bg.py for cleanup)
 ```
 
-After installing, enable the plugin:
-
-1. **Project → Project Settings → Plugins** tab
-2. Check the box next to **Gut**
-3. Restart Godot
-
-### Run Tests
-
-**From the editor:**
-- The **GUT** panel appears at the bottom of the editor
-- Set test directory to `res://tests/`
-- Click **Run All**
-
-**From the command line:**
+Or run GUT directly from the command line:
 
 ```bash
-godot --headless -s res://addons/gut/gut_cmdln.gd -gdir=res://test --exit
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit,res://tests/integration,res://tests/fuzz,res://tests/regression -ginclude_subdirs -gexit -glog=1
 ```
 
 ### Write Tests
@@ -365,17 +357,17 @@ ObjectPool.create_pool("new_enemy", NEW_ENEMY_SCENE, N)
 
 ## Project Structure
 
-```
+```text
 res://
 ├── demo/                    # Boss defeat overlay scenes
 ├── scenes/                  # .tscn scene files
 │   ├── enemies/             # Bunny, Rotor, Scav, Drone, bosses, civilians
 │   ├── player/              # Interceptor
-│   ├── ui/                  # HUD, GameOver, Garage, PauseMenu, Options, InputRemap, TopWeatherBorder, InterceptorInfo
+│   ├── ui/                  # HUD, GameOver, Garage, PauseMenu, Options, InputRemap, TopWeatherBorder, InterceptorInfo, About
 │   ├── weapons/             # Bullet, Mine, EMPBlast, DroneBomb, ChainSwing, PoopWeapon, BabyBunnyBomb
 │   └── world/               # Highway, Spawner, weather system
 ├── scripts/
-│   ├── autoload/            # 9 singletons (GameManager, ScoreManager, AudioManager, Constants, ObjectPool, CameraShake, TransitionLayer, PackManager, SettingsManager)
+│   ├── autoload/            # 10 singletons (GameManager, ScoreManager, AudioManager, Constants, ObjectPool, CameraShake, TransitionLayer, PackManager, SettingsManager, ScreenshotManager)
 │   ├── scenes/              # Scripts attached to scene nodes
 │   │   ├── Game.gd          # Game root
 │   │   ├── Main.gd          # Main menu
@@ -386,11 +378,18 @@ res://
 │   │   └── world/           # Highway, Spawner, WeatherSystem
 │   ├── resources/           # WeaponData resource
 │   ├── utils/               # Helpers.gd (sprite scaling utilities)
+│   ├── check_bg.py          # Enemy sprite PNG alpha verifier
+│   ├── check_coverage.py    # 100% unit/fuzz/Python coverage verifier
+│   ├── check_deadcode.py    # Dead script, scene, and symbol scanner
+│   ├── remove_bg.py         # Enemy sprite background removal utility
 │   └── run_tests.gd         # Headless test runner
-├── tests/                   # GUT test suite
+├── tests/                   # GUT + Python test suites
 │   ├── test_helper.gd       # Audio bus setup, mock creation utilities
-│   ├── unit/                # 43 unit test files
-│   └── integration/         # 2 integration test files
+│   ├── unit/                # GUT unit tests (100% script coverage)
+│   ├── integration/         # GUT integration tests
+│   ├── fuzz/                # GUT fuzz tests (100% script coverage)
+│   ├── regression/          # GUT regression tests
+│   └── python/              # Python utility unit + fuzz tests
 ├── assets/                  # Sprites, audio, tilesets, environments
 ├── addons/gut/              # GUT plugin
 ├── docs/                    # Documentation

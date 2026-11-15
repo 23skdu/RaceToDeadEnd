@@ -20,7 +20,6 @@ const CIVILIAN_SCENE = preload("res://scenes/enemies/Civilian.tscn")
 
 const DEMO_BUNNY_SCENE = preload("res://demo/DemoBossBunny.tscn")
 const DEMO_GIANT_BIKER_SCENE = preload("res://demo/DemoBossGiantBiker.tscn")
-const DEMO_SASQ_SCENE = preload("res://demo/DemoBossSasquatch.tscn")
 const DEMO_VOID_SCENE = preload("res://demo/DemoBossVoidDrone.tscn")
 const DEMO_WAR_SCENE = preload("res://demo/DemoBossWarRig.tscn")
 

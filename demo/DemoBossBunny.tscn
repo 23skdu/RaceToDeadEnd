@@ -4,25 +4,33 @@
 
 [node name="DemoBossBunny" type="Control"]
 process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_demo")
 boss_type = "boss_bunny"
 
 [node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.8, 0.7, 0.9, 1.0)
+color = Color(0.05, 0.14, 0.08, 0.92)
 
 [node name="Label" type="Label" parent="."]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_color = Color(0.2, 1, 0.35, 1)
 theme_override_font_sizes/font_size = 48
-text = "BOSS BUNNY DEFEATED!"
+text = "CYBER BUNNY DEFEATED!"
 horizontal_alignment = 1
 vertical_alignment = 1

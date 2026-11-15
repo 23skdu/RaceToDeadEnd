@@ -4,8 +4,11 @@ set -euo pipefail
 echo "=== Running Pre-Commit Verification (Lint, Coverage, Unit/Integration/Fuzz/Regression Tests) ==="
 
 make lint
+make lint-docs
 make fmt-check
+make deadcode
 make check-coverage
+make test-python
 make test
 
 echo "=== Pre-Commit Verification Passed (100%) ==="
