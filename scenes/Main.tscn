@@ -26,11 +26,13 @@ texture = ExtResource("2_bg")
 stretch_mode = 6
 
 [node name="TitleLabel" type="Label" parent="CanvasLayer"]
-offset_left = 440.0
+offset_left = 240.0
 offset_top = 100.0
-offset_right = 840.0
-offset_bottom = 160.0
-theme_override_colors/font_color = Color(0.913726, 0.270588, 0.376471, 1)
+offset_right = 1040.0
+offset_bottom = 170.0
+theme_override_colors/font_color = Color(0.0, 0.92, 1.0, 1)
+theme_override_colors/font_outline_color = Color(1.0, 0.1, 0.55, 0.9)
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 48
 text = "RACE TO DEAD END"
 horizontal_alignment = 1
@@ -73,8 +75,8 @@ text = "QUIT"
 [node name="VersionLabel" type="Label" parent="CanvasLayer"]
 offset_left = 10.0
 offset_top = 690.0
-offset_right = 210.0
+offset_right = 420.0
 offset_bottom = 720.0
-theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.0, 0.85, 1.0, 0.85)
+theme_override_font_sizes/font_size = 13
 text = "v0.2.0"

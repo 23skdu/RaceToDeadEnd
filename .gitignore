@@ -11,6 +11,9 @@ export/
 *.translation
 *.uid
 
+# Generated build metadata
+build_info.json
+
 # Editor data
 .godot/
 

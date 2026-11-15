@@ -228,10 +228,34 @@ func test_input_remap_rejects_out_of_bounds_and_builds_reset():
 # --- Regression 8 & 9: Version label, Scav 8-lane flank, BossWarRig spread, PoopWeapon group, Game pause, HUD pulse ---
 
 func test_main_reads_project_version():
+	var MainScript = load("res://scripts/scenes/Main.gd")
+	assert_eq(MainScript.format_version_text("0.2.0", ""), "v0.2.0")
+	assert_eq(MainScript.format_version_text("0.2.0", "unknown"), "v0.2.0")
+	assert_eq(MainScript.format_version_text("0.2.0", "355fdda1234"), "v0.2.0 (355fdda)")
+
 	var main = load("res://scenes/Main.tscn").instantiate()
 	add_child_autofree(main)
-	var expected_ver = "v" + str(ProjectSettings.get_setting("application/config/version", "0.0.1"))
-	assert_eq(main.get_node("CanvasLayer/VersionLabel").text, expected_ver)
+	var expected_prefix = "v" + str(ProjectSettings.get_setting("application/config/version", "0.2.0"))
+	var label_text: String = main.get_node("CanvasLayer/VersionLabel").text
+	assert_true(label_text.begins_with(expected_prefix), "VersionLabel should start with project version: " + label_text)
+
+func test_cyberpunk_theme_and_about_button():
+	var theme_path := str(ProjectSettings.get_setting("gui/theme/custom", ""))
+	assert_eq(theme_path, "res://assets/themes/cyberpunk_theme.tres", "Project should use cyberpunk custom theme")
+	var theme: Theme = load(theme_path)
+	assert_not_null(theme, "Cyberpunk theme should load")
+	assert_not_null(theme.default_font, "Cyberpunk theme should set techno default font")
+
+	var main = load("res://scenes/Main.tscn").instantiate()
+	add_child_autofree(main)
+	assert_not_null(main.about_button, "Main menu should have About button")
+	main._on_about_pressed()
+	var found_about := false
+	for c in main.get_children():
+		if c.name == "About":
+			found_about = true
+			c.queue_free()
+	assert_true(found_about, "Pressing About should instantiate About screen")
 
 func test_scav_eight_lane_flank_direction():
 	var scav_left = load("res://scenes/enemies/Scav.tscn").instantiate()

@@ -18,6 +18,8 @@ TEMPLATES_URL ?= https://github.com/godotengine/godot/releases/download/$(GODOT_
 COI_SW_SHA    ?= 7b1d2a092d0d2dd2b7270b6f12f13605de26f214
 COI_SW_SHA256 ?= e97bbac6017322d48aa54a5bc7ce473c725a4b7376ff245002e0ba71c3dcdd7e
 COI_SW_URL    ?= https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/$(COI_SW_SHA)/coi-serviceworker.js
+GIT_SHA       ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+RELEASE_VERSION ?= $(shell grep -m1 '^config/version=' project.godot | cut -d'"' -f2)
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -36,7 +38,7 @@ IOS_DIR       ?= $(BUILD_DIR)/ios
 
 PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/restructure_scripts.py scripts/update_gd.py scripts/check_coverage.py
 
-.PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates prep-build import run editor \
+.PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates build-info prep-build import run editor \
 	test test-unit test-integration test-fuzz test-regression test-runner test-scripts \
 	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage install-hooks \
 	build build-web build-linux build-macos build-android build-ios build-all serve-web \
@@ -146,7 +148,10 @@ install-templates:
 	rm -rf "$$TMP_DIR"
 	@echo "Godot $(GODOT_VERSION) export templates installed."
 
-prep-build:
+build-info:
+	@printf '{"version":"%s","commit_sha":"%s"}\n' "$(RELEASE_VERSION)" "$(GIT_SHA)" > build_info.json
+
+prep-build: build-info
 	@mkdir -p "$(BUILD_DIR)"
 	@touch "$(BUILD_DIR)/.gdignore"
 
@@ -310,7 +315,7 @@ http.server.test(HandlerClass=functools.partial(COIHandler, directory="$(WEB_DIR
 # ==============================================================================
 
 clean:
-	rm -rf "$(BUILD_DIR)" builds
+	rm -rf "$(BUILD_DIR)" builds build_info.json
 	find . -type d -name "__pycache__" -prune -exec rm -rf {} +
 
 clean-all: clean

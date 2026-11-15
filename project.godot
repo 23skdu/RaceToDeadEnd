@@ -58,6 +58,10 @@ window/stretch/aspect="keep_width"
 
 import/blender/enabled=false
 
+[gui]
+
+theme/custom="res://assets/themes/cyberpunk_theme.tres"
+
 [input]
 
 ui_accept={
