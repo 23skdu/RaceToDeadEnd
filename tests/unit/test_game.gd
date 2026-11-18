@@ -14,10 +14,10 @@ func test_game_script_exists():
 	assert_true(ResourceLoader.exists("res://scripts/scenes/Game.gd"), "Game script should exist")
 
 func _create_game():
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var game = load("res://scenes/Game.tscn").instantiate()
 	add_child_autofree(game)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	return game
 
 func test_game_restart_reloads_scene():

@@ -139,10 +139,10 @@ func test_fuzz_weapons_behavior_under_random_inputs() -> void:
 		assert_not_null(w)
 
 func test_fuzz_player_weather_and_scenes() -> void:
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var interceptor = preload("res://scenes/player/Interceptor.tscn").instantiate()
 	add_child_autofree(interceptor)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	for i in range(25):
 		interceptor.current_lane = _rng.randi_range(-3, 12)
 		interceptor.target_x = interceptor._lane_to_x(interceptor.current_lane)
@@ -166,10 +166,10 @@ func test_fuzz_player_weather_and_scenes() -> void:
 		var formatted: String = main.format_version_text("v0.%d.%d" % [i, i + 1], "abcdef123456")
 		assert_true(formatted.begins_with("v0."))
 
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var game = preload("res://scenes/Game.tscn").instantiate()
 	add_child_autofree(game)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	for i in range(10):
 		game._on_segment_completed(i)
 	assert_not_null(game)

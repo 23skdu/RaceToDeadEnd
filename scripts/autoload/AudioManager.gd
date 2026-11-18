@@ -7,9 +7,28 @@ var sfx_players: Array[AudioStreamPlayer2D] = []
 const SFX_PLAYER_COUNT: int = 16
 
 const SAMPLE_RATE: float = 44100.0
+const S24_BYTES_PER_SAMPLE: int = 3
+const S16_BYTES_PER_SAMPLE: int = 2
+const POLYPHONIC_VOICES: int = 48
+const SFX_RANDOMIZER_VARIANTS: int = 3
+const ADAPTIVE_STEM_COUNT: int = 4
+const ADAPTIVE_CLIP_COUNT: int = 4
+
+const FEATURE_POLYPHONIC_SFX: String = "polyphonic_sfx"
+const FEATURE_RANDOMIZED_SFX: String = "randomized_sfx"
+const FEATURE_ADAPTIVE_MUSIC: String = "adaptive_music"
+const REVERB_BUS_NAME: String = "Reverb"
+
+var polyphonic_player: AudioStreamPlayer2D
+var _polyphonic_stream: AudioStreamPolyphonic
+var _polyphonic_playback: AudioStreamPlaybackPolyphonic
 
 var _stream_laser: AudioStreamWAV
 var _stream_laser_randomizer: AudioStreamRandomizer
+var _stream_explosion_randomizer: AudioStreamRandomizer
+var _stream_hurt_randomizer: AudioStreamRandomizer
+var _stream_hit_randomizer: AudioStreamRandomizer
+var _stream_death_randomizer: AudioStreamRandomizer
 var _stream_explosion: AudioStreamWAV
 var _stream_hurt: AudioStreamWAV
 var _stream_boost: AudioStreamWAV
@@ -25,6 +44,14 @@ var _stream_game_music_industrial: AudioStreamWAV
 var _stream_game_music_neon_drift: AudioStreamWAV
 var _stream_game_music_synthetic_chase: AudioStreamWAV
 var _stream_game_music_ambient_highway: AudioStreamWAV
+var _stream_game_music_synthwave_chase: AudioStreamWAV
+var _stream_game_music_cyberpunk_boss: AudioStreamWAV
+
+var _adaptive_music: AudioStreamInteractive
+var _adaptive_clip_index: int = 0
+var _last_intensity_boss: bool = false
+var _last_intensity_tier: int = 0
+var _last_intensity_density: float = 0.0
 
 const MUSIC_OPTIONS: Array[Dictionary] = [
 	{"id": "dynamic", "name": "Dynamic (Stage Adaptive)"},
@@ -32,6 +59,8 @@ const MUSIC_OPTIONS: Array[Dictionary] = [
 	{"id": "industrial", "name": "Cyber Industrial"},
 	{"id": "neon_drift", "name": "Neon Drift"},
 	{"id": "synthetic_chase", "name": "Synthetic Chase"},
+	{"id": "synthwave_chase", "name": "Synthwave Chase"},
+	{"id": "cyberpunk_boss", "name": "Cyberpunk Boss"},
 	{"id": "ambient_highway", "name": "Ambient Highway"},
 	{"id": "classic", "name": "Classic Arcade"},
 	{"id": "bunny", "name": "Bio-Hop Beat (Stage 1)"},
@@ -100,6 +129,7 @@ func _ready() -> void:
 		_player_priorities.append(0)
 		p.finished.connect(_on_sfx_finished.bind(i))
 
+	_setup_polyphonic_sfx()
 	_setup_audio_buses()
 	if SettingsManager and SettingsManager.has_method("get_music_track"):
 		var saved_track: String = SettingsManager.get_music_track()
@@ -111,50 +141,160 @@ func _on_sfx_finished(player_idx: int) -> void:
 	if player_idx < _player_priorities.size():
 		_player_priorities[player_idx] = 0
 
+static func has_native_24bit_wav() -> bool:
+	return ClassDB.class_has_integer_constant("AudioStreamWAV", "FORMAT_24_BITS")
+
+# Godot 4.7 does not expose FORMAT_24_BITS. Synthesize at 24-bit resolution and
+# down-convert to the best PCM format the running engine actually supports.
+static func preferred_wav_format() -> int:
+	var constants := ClassDB.class_get_enum_constants("AudioStreamWAV", "Format", false)
+	if constants.has("FORMAT_16_BITS"):
+		return ClassDB.class_get_integer_constant("AudioStreamWAV", "FORMAT_16_BITS")
+	if constants.has("FORMAT_8_BITS"):
+		return ClassDB.class_get_integer_constant("AudioStreamWAV", "FORMAT_8_BITS")
+	return AudioStreamWAV.FORMAT_16_BITS
+
+# Little-endian signed 24-bit PCM, two's complement, clamped to [-8388608, 8388607].
+static func encode_s24(data: PackedByteArray, byte_offset: int, sample: int) -> void:
+	if byte_offset < 0 or byte_offset + S24_BYTES_PER_SAMPLE > data.size():
+		return
+	var value := clampi(sample, -8388608, 8388607) & 0xFFFFFF
+	data[byte_offset] = value & 0xFF
+	data[byte_offset + 1] = (value >> 8) & 0xFF
+	data[byte_offset + 2] = (value >> 16) & 0xFF
+
+static func decode_s24(data: PackedByteArray, byte_offset: int) -> int:
+	if byte_offset < 0 or byte_offset + S24_BYTES_PER_SAMPLE > data.size():
+		return 0
+	var value := data[byte_offset] | (data[byte_offset + 1] << 8) | (data[byte_offset + 2] << 16)
+	if (value & 0x800000) != 0:
+		value -= 0x1000000
+	return value
+
+func _feature_enabled(key: String, default_value: bool) -> bool:
+	if not SettingsManager or not SettingsManager.has_method("is_feature_enabled"):
+		return default_value
+	return SettingsManager.is_feature_enabled(key, default_value)
+
+func _setup_polyphonic_sfx() -> void:
+	_polyphonic_stream = AudioStreamPolyphonic.new()
+	_polyphonic_stream.polyphony = POLYPHONIC_VOICES
+	polyphonic_player = AudioStreamPlayer2D.new()
+	polyphonic_player.bus = "SFX"
+	polyphonic_player.name = "PolyphonicSFXPlayer"
+	polyphonic_player.stream = _polyphonic_stream
+	add_child(polyphonic_player)
+	polyphonic_player.play()
+	_polyphonic_playback = polyphonic_player.get_stream_playback() as AudioStreamPlaybackPolyphonic
+
+func is_polyphonic_sfx_active() -> bool:
+	return _feature_enabled(FEATURE_POLYPHONIC_SFX, false) and _polyphonic_playback != null
+
+func _bus_effect_of_class(bus_idx: int, effect_class: StringName) -> AudioEffect:
+	if bus_idx < 0 or bus_idx >= AudioServer.bus_count:
+		return null
+	for i in AudioServer.get_bus_effect_count(bus_idx):
+		var effect := AudioServer.get_bus_effect(bus_idx, i)
+		if effect and effect.is_class(String(effect_class)):
+			return effect
+	return null
+
+func _restore_bus_volumes() -> void:
+	if not SettingsManager or not SettingsManager.has_method("get_volume"):
+		return
+	for bus_name in ["Master", "Music", "SFX"]:
+		var bus_idx := AudioServer.get_bus_index(bus_name)
+		if bus_idx < 0:
+			continue
+		var linear: float = clampf(float(SettingsManager.get_volume(bus_name, 1.0)), 0.0, 1.0)
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear) if linear > 0.0 else -80.0)
+
 func _setup_audio_buses() -> void:
 	for i in AudioServer.bus_count:
-		var bus_name = AudioServer.get_bus_name(i)
-		if bus_name == "SFX":
-			var fx_count = AudioServer.get_bus_effect_count(i)
-			if fx_count == 0:
-				var reverb = AudioEffectReverb.new()
-				reverb.room_size = 0.2
-				reverb.damping = 0.55
-				reverb.wet = 0.12
-				reverb.dry = 1.0
-				AudioServer.add_bus_effect(i, reverb)
-		if bus_name == "Music":
-			var fx_count = AudioServer.get_bus_effect_count(i)
-			if fx_count == 0:
-				var eq = AudioEffectEQ.new()
-				AudioServer.add_bus_effect(i, eq)
-		if bus_name == "Master":
-			var fx_count = AudioServer.get_bus_effect_count(i)
-			if fx_count == 0:
-				var eq = AudioEffectEQ.new()
-				AudioServer.add_bus_effect(i, eq)
-				var compressor = AudioEffectCompressor.new()
-				compressor.threshold = -8.0
-				compressor.ratio = 3.5
-				compressor.gain = 1.0
-				AudioServer.add_bus_effect(i, compressor)
-				var limiter = AudioEffectLimiter.new()
-				limiter.ceiling_db = -0.5
-				limiter.threshold_db = -1.0
-				AudioServer.add_bus_effect(i, limiter)
+		var bus_name := str(AudioServer.get_bus_name(i))
+		match bus_name:
+			"SFX":
+				if _bus_effect_of_class(i, &"AudioEffectReverb") == null:
+					var reverb := AudioEffectReverb.new()
+					reverb.room_size = 0.2
+					reverb.damping = 0.55
+					reverb.wet = 0.12
+					reverb.dry = 1.0
+					AudioServer.add_bus_effect(i, reverb)
+			"Music":
+				if _bus_effect_of_class(i, &"AudioEffectEQ") == null:
+					AudioServer.add_bus_effect(i, AudioEffectEQ.new())
+			"Master":
+				var eq := _bus_effect_of_class(i, &"AudioEffectEQ6") as AudioEffectEQ6
+				if eq == null:
+					eq = AudioEffectEQ6.new()
+					AudioServer.add_bus_effect(i, eq)
+				eq.set_band_gain_db(0, 3.0) # low
+				eq.set_band_gain_db(2, -2.0) # low-mid
+				eq.set_band_gain_db(3, -1.5) # mid
+				eq.set_band_gain_db(5, 2.0) # high
+				if _bus_effect_of_class(i, &"AudioEffectCompressor") == null:
+					var compressor := AudioEffectCompressor.new()
+					compressor.threshold = -8.0
+					compressor.ratio = 3.5
+					compressor.gain = 1.0
+					AudioServer.add_bus_effect(i, compressor)
+				if _bus_effect_of_class(i, &"AudioEffectLimiter") == null:
+					var limiter := AudioEffectLimiter.new()
+					limiter.ceiling_db = -0.5
+					limiter.threshold_db = -1.0
+					AudioServer.add_bus_effect(i, limiter)
+				if _bus_effect_of_class(i, &"AudioEffectReverb") == null:
+					var master_reverb := AudioEffectReverb.new()
+					master_reverb.room_size = 0.35
+					master_reverb.damping = 0.6
+					master_reverb.wet = 0.06
+					master_reverb.dry = 1.0
+					AudioServer.add_bus_effect(i, master_reverb)
 
-
+	# Dedicated reverb return bus. SFX feeds it, and it returns to Master, giving
+	# a real send/return topology without removing the SFX insert reverb.
+	var reverb_idx := AudioServer.get_bus_index(StringName(REVERB_BUS_NAME))
+	if reverb_idx < 0:
+		AudioServer.add_bus()
+		reverb_idx = AudioServer.bus_count - 1
+		AudioServer.set_bus_name(reverb_idx, REVERB_BUS_NAME)
+	if _bus_effect_of_class(reverb_idx, &"AudioEffectReverb") == null:
+		var send_reverb := AudioEffectReverb.new()
+		send_reverb.room_size = 0.65
+		send_reverb.damping = 0.45
+		send_reverb.wet = 0.22
+		send_reverb.dry = 1.0
+		AudioServer.add_bus_effect(reverb_idx, send_reverb)
+	AudioServer.set_bus_send(reverb_idx, &"Master")
+	var sfx_idx := AudioServer.get_bus_index("SFX")
+	if sfx_idx >= 0:
+		AudioServer.set_bus_send(sfx_idx, StringName(REVERB_BUS_NAME))
+	_restore_bus_volumes()
 
 func _build_stream(duration: float, generator: Callable) -> AudioStreamWAV:
-	var num_samples = int(SAMPLE_RATE * duration)
-	var data = PackedByteArray()
-	data.resize(num_samples * 2)
+	var num_samples := maxi(0, int(SAMPLE_RATE * duration))
+	# Always synthesize at 24-bit resolution first, including on engines that
+	# can only store 16-bit PCM data.
+	var s24_data := PackedByteArray()
+	s24_data.resize(num_samples * S24_BYTES_PER_SAMPLE)
 	for i in num_samples:
-		var sample = generator.call(i / SAMPLE_RATE, i)
-		var clamped = clampi(int(sample), -32768, 32767)
-		data.encode_s16(i * 2, clamped)
-	var stream = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
+		var sample := float(generator.call(i / SAMPLE_RATE, i))
+		encode_s24(s24_data, i * S24_BYTES_PER_SAMPLE, int(round(sample * 256.0)))
+
+	var format := preferred_wav_format()
+	var data := PackedByteArray()
+	if format == AudioStreamWAV.FORMAT_16_BITS:
+		data.resize(num_samples * S16_BYTES_PER_SAMPLE)
+		for i in num_samples:
+			data.encode_s16(i * S16_BYTES_PER_SAMPLE, clampi(decode_s24(s24_data, i * S24_BYTES_PER_SAMPLE) >> 8, -32768, 32767))
+	else:
+		data.resize(num_samples)
+		for i in num_samples:
+			data[i] = clampi(decode_s24(s24_data, i * S24_BYTES_PER_SAMPLE) >> 16, -128, 127) & 0xFF
+
+	var stream := AudioStreamWAV.new()
+	stream.format = format
 	stream.mix_rate = int(SAMPLE_RATE)
 	stream.data = data
 	return stream
@@ -212,6 +352,16 @@ func _resolve_track_stream(track_id: String) -> AudioStreamWAV:
 			if not _stream_game_music_synthetic_chase:
 				_stream_game_music_synthetic_chase = _generate_game_music_synthetic_chase()
 			return _stream_game_music_synthetic_chase
+		"synthwave_chase":
+			_wait_for_task("game_music_synthwave_chase")
+			if not _stream_game_music_synthwave_chase:
+				_stream_game_music_synthwave_chase = _generate_game_music_synthwave_chase()
+			return _stream_game_music_synthwave_chase
+		"cyberpunk_boss":
+			_wait_for_task("game_music_cyberpunk_boss")
+			if not _stream_game_music_cyberpunk_boss:
+				_stream_game_music_cyberpunk_boss = _generate_game_music_cyberpunk_boss()
+			return _stream_game_music_cyberpunk_boss
 		"ambient_highway":
 			_wait_for_task("game_music_ambient_highway")
 			if not _stream_game_music_ambient_highway:
@@ -299,6 +449,49 @@ func play_music(stream: AudioStream) -> void:
 func stop_music() -> void:
 	music_player.stop()
 
+func get_adaptive_music_stream() -> AudioStreamInteractive:
+	if not _adaptive_music:
+		_adaptive_music = _build_adaptive_music()
+	return _adaptive_music
+
+func get_adaptive_clip_index() -> int:
+	return _adaptive_clip_index
+
+static func _select_adaptive_clip(boss_active: bool, difficulty_tier: int, enemy_density: float) -> int:
+	if boss_active:
+		return 3
+	var tier_score := clampf(float(clampi(difficulty_tier, 0, 20)) / 12.0, 0.0, 1.0)
+	var density_score := clampf(enemy_density, 0.0, 1.0)
+	var score := tier_score * 0.45 + density_score * 0.55
+	if score >= 0.68:
+		return 2
+	if score >= 0.32:
+		return 1
+	return 0
+
+func set_music_intensity(boss_active: bool, difficulty_tier: int, enemy_density: float) -> void:
+	var tier := clampi(difficulty_tier, 0, 20)
+	var density := clampf(enemy_density, 0.0, 1.0)
+	if is_nan(density) or is_inf(density):
+		density = 0.0
+	_last_intensity_boss = boss_active
+	_last_intensity_tier = tier
+	_last_intensity_density = density
+	if not _feature_enabled(FEATURE_ADAPTIVE_MUSIC, true) or not _custom_playlist.is_empty():
+		return
+	# Respect an explicitly selected music track; adaptive mixing belongs to the
+	# default "dynamic" mode.
+	if selected_music_track != "dynamic":
+		return
+	var target := _select_adaptive_clip(boss_active, tier, density)
+	_adaptive_clip_index = target
+	var stream := get_adaptive_music_stream()
+	if music_player.stream != stream or not music_player.playing:
+		play_music(stream)
+	var playback := music_player.get_stream_playback()
+	if playback is AudioStreamPlaybackInteractive:
+		playback.switch_to_clip(target)
+
 func set_playlist(tracks: Array[AudioStream], shuffle: bool = true) -> void:
 	_custom_playlist.clear()
 	for t in tracks:
@@ -368,6 +561,19 @@ func play_demo_music(boss_type: String) -> void:
 func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 0) -> void:
 	if not stream:
 		return
+	if is_polyphonic_sfx_active():
+		polyphonic_player.global_position = pos
+		var voice_id := _polyphonic_playback.play_stream(
+			stream,
+			0.0,
+			0.0,
+			_rng.randf_range(0.92, 1.08),
+			AudioServer.PLAYBACK_TYPE_DEFAULT,
+			&"SFX"
+		)
+		if voice_id != AudioStreamPlaybackPolyphonic.INVALID_ID:
+			return
+		# Polyphony exhausted: fall through to the original 16-player pool.
 	var best_idx = -1
 	var lowest_priority = 999
 	var all_busy = true
@@ -393,27 +599,93 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 		_player_priorities[best_idx] = priority
 
 func set_bus_volume(bus: Bus, volume_db: float) -> void:
-	AudioServer.set_bus_volume_db(bus, volume_db)
+	var clean_db := clampf(volume_db, -80.0, 24.0)
+	if is_nan(clean_db) or is_inf(clean_db):
+		clean_db = 0.0
+	AudioServer.set_bus_volume_db(bus, clean_db)
+	if bus >= 0 and bus < AudioServer.bus_count and SettingsManager and SettingsManager.has_method("set_volume"):
+		SettingsManager.set_volume(str(AudioServer.get_bus_name(bus)), db_to_linear(clean_db))
+		# SettingsManager re-derives dB from linear; restore the exact value so
+		# callers still observe the volume they requested.
+		AudioServer.set_bus_volume_db(bus, clean_db)
+
+func _create_sfx_randomizer(base: AudioStream, pitch: float, volume_db: float) -> AudioStreamRandomizer:
+	var randomizer := AudioStreamRandomizer.new()
+	randomizer.playback_mode = AudioStreamRandomizer.PLAYBACK_RANDOM_NO_REPEATS
+	randomizer.random_pitch = pitch
+	randomizer.random_volume_offset_db = volume_db
+	for i in SFX_RANDOMIZER_VARIANTS:
+		var variant: AudioStream = base.duplicate() if i > 0 else base
+		randomizer.add_stream(i, variant, 1.0 - 0.2 * float(i))
+	return randomizer
+
+func _hit_randomizer() -> AudioStreamRandomizer:
+	if not _stream_bunny_hit:
+		_stream_bunny_hit = _generate_bunny_hit_stream()
+	if not _stream_rotor_hit:
+		_stream_rotor_hit = _generate_rotor_hit_stream()
+	if not _stream_scav_hit:
+		_stream_scav_hit = _generate_scav_hit_stream()
+	if not _stream_drone_hit:
+		_stream_drone_hit = _generate_drone_hit_stream()
+	if not _stream_hit_randomizer:
+		var pools := [_stream_bunny_hit, _stream_rotor_hit, _stream_scav_hit, _stream_drone_hit]
+		_stream_hit_randomizer = AudioStreamRandomizer.new()
+		_stream_hit_randomizer.playback_mode = AudioStreamRandomizer.PLAYBACK_RANDOM_NO_REPEATS
+		_stream_hit_randomizer.random_pitch = 1.14
+		_stream_hit_randomizer.random_volume_offset_db = 1.8
+		for i in pools.size():
+			_stream_hit_randomizer.add_stream(i, pools[i], 1.0)
+	return _stream_hit_randomizer
+
+func _death_randomizer() -> AudioStreamRandomizer:
+	if not _stream_bunny_death:
+		_stream_bunny_death = _generate_bunny_death_stream()
+	if not _stream_rotor_death:
+		_stream_rotor_death = _generate_rotor_death_stream()
+	if not _stream_scav_death:
+		_stream_scav_death = _generate_scav_death_stream()
+	if not _stream_drone_death:
+		_stream_drone_death = _generate_drone_death_stream()
+	if not _stream_death_randomizer:
+		var pools := [_stream_bunny_death, _stream_rotor_death, _stream_scav_death, _stream_drone_death]
+		_stream_death_randomizer = AudioStreamRandomizer.new()
+		_stream_death_randomizer.playback_mode = AudioStreamRandomizer.PLAYBACK_RANDOM_NO_REPEATS
+		_stream_death_randomizer.random_pitch = 1.09
+		_stream_death_randomizer.random_volume_offset_db = 2.0
+		for i in pools.size():
+			_stream_death_randomizer.add_stream(i, pools[i], 1.0)
+	return _stream_death_randomizer
 
 func play_synth_laser(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_laser:
 		_stream_laser = _generate_laser_stream()
-	if not _stream_laser_randomizer:
-		_stream_laser_randomizer = AudioStreamRandomizer.new()
-		_stream_laser_randomizer.add_stream(0, _stream_laser, 1.0)
-		_stream_laser_randomizer.random_pitch = 1.06
-		_stream_laser_randomizer.random_volume_offset_db = 1.5
-	play_sfx(_stream_laser_randomizer, pos)
+	var stream: AudioStream = _stream_laser
+	if _feature_enabled(FEATURE_RANDOMIZED_SFX, true):
+		if not _stream_laser_randomizer:
+			_stream_laser_randomizer = _create_sfx_randomizer(_stream_laser, 1.06, 1.5)
+		stream = _stream_laser_randomizer
+	play_sfx(stream, pos)
 
 func play_synth_explosion(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_explosion:
 		_stream_explosion = _generate_explosion_stream()
-	play_sfx(_stream_explosion, pos)
+	var stream: AudioStream = _stream_explosion
+	if _feature_enabled(FEATURE_RANDOMIZED_SFX, true):
+		if not _stream_explosion_randomizer:
+			_stream_explosion_randomizer = _create_sfx_randomizer(_stream_explosion, 1.18, 2.2)
+		stream = _stream_explosion_randomizer
+	play_sfx(stream, pos)
 
 func play_synth_hurt() -> void:
 	if not _stream_hurt:
 		_stream_hurt = _generate_hurt_stream()
-	play_sfx(_stream_hurt, Vector2.ZERO)
+	var stream: AudioStream = _stream_hurt
+	if _feature_enabled(FEATURE_RANDOMIZED_SFX, true):
+		if not _stream_hurt_randomizer:
+			_stream_hurt_randomizer = _create_sfx_randomizer(_stream_hurt, 1.12, 1.6)
+		stream = _stream_hurt_randomizer
+	play_sfx(stream, Vector2.ZERO)
 
 func play_synth_boost() -> void:
 	if not _stream_boost:
@@ -425,45 +697,57 @@ func play_synth_emp(pos: Vector2 = Vector2.ZERO) -> void:
 		_stream_emp = _generate_emp_stream()
 	play_sfx(_stream_emp, pos)
 
+func _play_hit_sfx(fallback: AudioStream, pos: Vector2) -> void:
+	var stream: AudioStream = fallback
+	if _feature_enabled(FEATURE_RANDOMIZED_SFX, true):
+		stream = _hit_randomizer()
+	play_sfx(stream, pos)
+
+func _play_death_sfx(fallback: AudioStream, pos: Vector2) -> void:
+	var stream: AudioStream = fallback
+	if _feature_enabled(FEATURE_RANDOMIZED_SFX, true):
+		stream = _death_randomizer()
+	play_sfx(stream, pos)
+
 func play_bunny_hit(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_bunny_hit:
 		_stream_bunny_hit = _generate_bunny_hit_stream()
-	play_sfx(_stream_bunny_hit, pos)
+	_play_hit_sfx(_stream_bunny_hit, pos)
 
 func play_rotor_hit(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_rotor_hit:
 		_stream_rotor_hit = _generate_rotor_hit_stream()
-	play_sfx(_stream_rotor_hit, pos)
+	_play_hit_sfx(_stream_rotor_hit, pos)
 
 func play_scav_hit(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_scav_hit:
 		_stream_scav_hit = _generate_scav_hit_stream()
-	play_sfx(_stream_scav_hit, pos)
+	_play_hit_sfx(_stream_scav_hit, pos)
 
 func play_drone_hit(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_drone_hit:
 		_stream_drone_hit = _generate_drone_hit_stream()
-	play_sfx(_stream_drone_hit, pos)
+	_play_hit_sfx(_stream_drone_hit, pos)
 
 func play_bunny_death(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_bunny_death:
 		_stream_bunny_death = _generate_bunny_death_stream()
-	play_sfx(_stream_bunny_death, pos)
+	_play_death_sfx(_stream_bunny_death, pos)
 
 func play_rotor_death(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_rotor_death:
 		_stream_rotor_death = _generate_rotor_death_stream()
-	play_sfx(_stream_rotor_death, pos)
+	_play_death_sfx(_stream_rotor_death, pos)
 
 func play_scav_death(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_scav_death:
 		_stream_scav_death = _generate_scav_death_stream()
-	play_sfx(_stream_scav_death, pos)
+	_play_death_sfx(_stream_scav_death, pos)
 
 func play_drone_death(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_drone_death:
 		_stream_drone_death = _generate_drone_death_stream()
-	play_sfx(_stream_drone_death, pos)
+	_play_death_sfx(_stream_drone_death, pos)
 
 func play_synth_crash(pos: Vector2 = Vector2.ZERO) -> void:
 	if not _stream_crash:
@@ -480,7 +764,7 @@ func play_lightning_strike(pos: Vector2 = Vector2.ZERO) -> void:
 		_stream_lightning = _generate_lightning_stream()
 	play_sfx(_stream_lightning, pos)
 
-# =================Procedural 16-bit Synthesizer Stream Generators=================
+# =====Procedural Synthesizers (24-bit resolution, exported to engine PCM format)======
 
 func _generate_laser_stream() -> AudioStreamWAV:
 	return _build_stream(0.12, func(t: float, _i: int) -> float:
@@ -1215,6 +1499,101 @@ func _generate_game_music_synthetic_chase() -> AudioStreamWAV:
 	stream.loop_end = int(SAMPLE_RATE * 16.0)
 	return stream
 
+func _generate_game_music_synthwave_chase() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 310
+	var chord_roots: Array[float] = [110.00, 87.31, 98.00, 82.41]
+	var arp_offsets: Array[int] = [0, 7, 12, 15, 19, 15, 12, 7]
+	var arp_ratios: Array[float] = []
+	for s in arp_offsets:
+		arp_ratios.append(_semitone_ratio(s))
+	var bpm: float = 118.0
+	var beat_duration: float = 60.0 / bpm
+	var step_duration: float = beat_duration / 4.0
+
+	var stream := _build_stream(16.0, func(t: float, _i: int) -> float:
+		var step_idx := int(t / step_duration)
+		var step_t := fmod(t, step_duration)
+		var measure_idx := int(t / (beat_duration * 4.0)) % chord_roots.size()
+		var root: float = chord_roots[measure_idx]
+		var val: float = 0.0
+
+		# Wide detuned pad, gated on each bar.
+		var pad_gate: float = 0.4 + 0.6 * maxf(0.0, 1.0 - step_t / (step_duration * 8.0))
+		val += (sin(TAU * root * t) + sin(TAU * root * _semitone_ratio(7) * t * 1.003)) * 1500.0 * pad_gate
+
+		# Pumping off-beat bass.
+		if step_idx % 2 == 1:
+			var bass_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 1.4))
+			var bass_wave: float = 1.0 if fmod(t * root * 0.5, 1.0) < 0.45 else -1.0
+			val += bass_wave * 3600.0 * bass_env
+
+		# Fast gated arpeggio.
+		var lead_freq: float = root * 2.0 * arp_ratios[step_idx % arp_ratios.size()]
+		var lead_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 0.7))
+		val += sin(TAU * lead_freq * t) * 1900.0 * lead_env
+
+		# Four-on-the-floor kick and reverse-swell snare.
+		if step_idx % 4 == 0:
+			var kick_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 1.4))
+			var kick_pitch: float = lerpf(160.0, 42.0, step_t / (step_duration * 1.4))
+			val += sin(TAU * kick_pitch * step_t) * 5200.0 * kick_env
+		if step_idx % 8 == 4:
+			var snare_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 1.1))
+			val += (rng.randf() * 2.0 - 1.0) * 3400.0 * snare_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(SAMPLE_RATE * 16.0)
+	return stream
+
+func _generate_game_music_cyberpunk_boss() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 311
+	var drone_roots: Array[float] = [55.00, 58.27, 49.00, 51.91]
+	var stab_offsets: Array[int] = [0, 1, 6, 12]
+	var stab_ratios: Array[float] = []
+	for s in stab_offsets:
+		stab_ratios.append(_semitone_ratio(s))
+	var bpm: float = 160.0
+	var beat_duration: float = 60.0 / bpm
+	var step_duration: float = beat_duration / 4.0
+
+	var stream := _build_stream(16.0, func(t: float, _i: int) -> float:
+		var step_idx := int(t / step_duration)
+		var step_t := fmod(t, step_duration)
+		var measure_idx := int(t / (beat_duration * 4.0)) % drone_roots.size()
+		var root: float = drone_roots[measure_idx]
+		var val: float = 0.0
+
+		# Grinding distorted bass (folded saw).
+		var saw: float = fmod(t * root, 1.0) * 2.0 - 1.0
+		var distorted: float = clampf(saw * 2.6, -1.0, 1.0)
+		var bass_env: float = 0.7 + 0.3 * maxf(0.0, 1.0 - step_t / (step_duration * 1.2))
+		val += distorted * 2900.0 * bass_env
+
+		# Dissonant stab hits.
+		if step_idx % 8 == 0 or step_idx % 8 == 6:
+			var stab_freq: float = root * 4.0 * stab_ratios[(step_idx / 8) % stab_ratios.size()]
+			var stab_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 2.0))
+			val += (sin(TAU * stab_freq * t) + sin(TAU * stab_freq * 1.0595 * t)) * 1700.0 * stab_env
+
+		# Triple-kick pattern and metallic noise.
+		if step_idx % 4 == 0 or step_idx % 4 == 3:
+			var kick_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 0.8))
+			var kick_pitch: float = lerpf(210.0, 48.0, step_t / (step_duration * 0.8))
+			val += sin(TAU * kick_pitch * step_t) * 5000.0 * kick_env
+		if step_idx % 2 == 1:
+			var hat_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 0.35))
+			val += (rng.randf() * 2.0 - 1.0) * 1800.0 * hat_env
+
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(SAMPLE_RATE * 16.0)
+	return stream
+
 func _generate_game_music_ambient_highway() -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 309
@@ -1257,6 +1636,96 @@ func _generate_game_music_ambient_highway() -> AudioStreamWAV:
 	stream.loop_end = int(SAMPLE_RATE * 16.0)
 	return stream
 
+# Layered adaptive stems: 0 = drums, 1 = bass, 2 = melody, 3 = intensity.
+# Each stem is a short deterministic loop; intensity mixes change which layers
+# are audible, so the music can grow without restarting a separate track.
+func _generate_adaptive_stem(stem: int) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 700 + stem
+	var roots: Array[float] = [55.00, 65.41, 73.42, 82.41]
+	var offsets: Array[int] = [0, 3, 7, 10, 12, 10, 7, 3]
+	var ratios: Array[float] = []
+	for s in offsets:
+		ratios.append(_semitone_ratio(s))
+	var bpm: float = 128.0
+	var beat_duration: float = 60.0 / bpm
+	var step_duration: float = beat_duration / 4.0
+
+	var stream := _build_stream(4.0, func(t: float, _i: int) -> float:
+		var step_idx := int(t / step_duration)
+		var step_t := fmod(t, step_duration)
+		var measure_idx := int(t / (beat_duration * 4.0)) % roots.size()
+		var root: float = roots[measure_idx]
+		var val: float = 0.0
+		match stem:
+			0: # drums
+				if step_idx % 4 == 0:
+					var kick_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 1.3))
+					var kick_pitch: float = lerpf(175.0, 44.0, step_t / (step_duration * 1.3))
+					val += sin(TAU * kick_pitch * step_t) * 5200.0 * kick_env
+				if step_idx % 8 == 4:
+					var snare_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 0.8))
+					val += (rng.randf() * 2.0 - 1.0) * 3000.0 * snare_env
+				if step_idx % 2 == 1:
+					var hat_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 0.3))
+					val += (rng.randf() * 2.0 - 1.0) * 1100.0 * hat_env
+			1: # sub bass
+				var bass_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 1.1))
+				val += sin(TAU * root * t) * 3600.0 * bass_env
+			2: # melodic arpeggio
+				var lead_freq: float = root * 4.0 * ratios[step_idx % ratios.size()]
+				var lead_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 1.2))
+				val += sin(TAU * lead_freq * t) * 2100.0 * lead_env
+			3: # intensity layer: fast detuned saw pulse
+				var pulse_freq: float = root * 8.0
+				var saw: float = fmod(t * pulse_freq, 1.0) * 2.0 - 1.0
+				var intensity_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 0.9))
+				val += (saw + sin(TAU * pulse_freq * 1.007 * t)) * 1500.0 * intensity_env
+		return val
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(SAMPLE_RATE * 4.0)
+	return stream
+
+func _build_adaptive_music() -> AudioStreamInteractive:
+	var stems: Array[AudioStreamWAV] = []
+	for i in ADAPTIVE_STEM_COUNT:
+		stems.append(_generate_adaptive_stem(i))
+
+	var clip_names: Array[StringName] = [&"Cruise", &"Chase", &"Overdrive", &"Boss"]
+	# Per-clip stem volumes in dB: [drums, bass, melody, intensity].
+	var mixes: Array = [
+		[-12.0, -6.0, -10.0, -60.0],
+		[-6.0, -3.0, -6.0, -22.0],
+		[-2.0, 0.0, -3.0, -9.0],
+		[0.0, 1.0, -1.0, -2.0],
+	]
+	var interactive := AudioStreamInteractive.new()
+	interactive.clip_count = ADAPTIVE_CLIP_COUNT
+	for clip_idx in ADAPTIVE_CLIP_COUNT:
+		var synced := AudioStreamSynchronized.new()
+		synced.stream_count = ADAPTIVE_STEM_COUNT
+		for stem_idx in ADAPTIVE_STEM_COUNT:
+			synced.set_sync_stream(stem_idx, stems[stem_idx])
+			synced.set_sync_stream_volume(stem_idx, float(mixes[clip_idx][stem_idx]))
+		interactive.set_clip_stream(clip_idx, synced)
+		interactive.set_clip_name(clip_idx, clip_names[clip_idx])
+
+	interactive.initial_clip = 0
+	for from_idx in ADAPTIVE_CLIP_COUNT:
+		for to_idx in ADAPTIVE_CLIP_COUNT:
+			if from_idx == to_idx:
+				continue
+			interactive.add_transition(
+				from_idx,
+				to_idx,
+				AudioStreamInteractive.TRANSITION_FROM_TIME_NEXT_BAR,
+				AudioStreamInteractive.TRANSITION_TO_TIME_SAME_POSITION,
+				AudioStreamInteractive.FADE_CROSS,
+				2.0
+			)
+	return interactive
+
 func _generate_all_async() -> void:
 	_async_tasks["menu_music"] = WorkerThreadPool.add_task(func(): _stream_menu_music = _generate_menu_music())
 	
@@ -1269,6 +1738,8 @@ func _generate_all_async() -> void:
 	_async_tasks["game_music_industrial"] = WorkerThreadPool.add_task(func(): _stream_game_music_industrial = _generate_game_music_industrial())
 	_async_tasks["game_music_neon_drift"] = WorkerThreadPool.add_task(func(): _stream_game_music_neon_drift = _generate_game_music_neon_drift())
 	_async_tasks["game_music_synthetic_chase"] = WorkerThreadPool.add_task(func(): _stream_game_music_synthetic_chase = _generate_game_music_synthetic_chase())
+	_async_tasks["game_music_synthwave_chase"] = WorkerThreadPool.add_task(func(): _stream_game_music_synthwave_chase = _generate_game_music_synthwave_chase())
+	_async_tasks["game_music_cyberpunk_boss"] = WorkerThreadPool.add_task(func(): _stream_game_music_cyberpunk_boss = _generate_game_music_cyberpunk_boss())
 	_async_tasks["game_music_ambient_highway"] = WorkerThreadPool.add_task(func(): _stream_game_music_ambient_highway = _generate_game_music_ambient_highway())
 	
 	_async_tasks["demo_boss_bunny"] = WorkerThreadPool.add_task(func(): _stream_demo_boss_bunny = _generate_demo_music_bunny())
@@ -1294,8 +1765,19 @@ func _exit_tree() -> void:
 		if is_instance_valid(p):
 			p.stop()
 			p.stream = null
+	if is_instance_valid(polyphonic_player):
+		polyphonic_player.stop()
+		polyphonic_player.stream = null
+	_polyphonic_playback = null
+	_polyphonic_stream = null
 	_custom_playlist.clear()
+	_adaptive_music = null
 	_stream_laser = null
+	_stream_laser_randomizer = null
+	_stream_explosion_randomizer = null
+	_stream_hurt_randomizer = null
+	_stream_hit_randomizer = null
+	_stream_death_randomizer = null
 	_stream_explosion = null
 	_stream_hurt = null
 	_stream_boost = null
@@ -1310,6 +1792,8 @@ func _exit_tree() -> void:
 	_stream_game_music_industrial = null
 	_stream_game_music_neon_drift = null
 	_stream_game_music_synthetic_chase = null
+	_stream_game_music_synthwave_chase = null
+	_stream_game_music_cyberpunk_boss = null
 	_stream_game_music_ambient_highway = null
 	_stream_crash = null
 	_stream_bounce = null

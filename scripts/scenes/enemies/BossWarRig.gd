@@ -176,12 +176,15 @@ func _update_phase_visuals() -> void:
 	match phase:
 		2:
 			sprite.modulate = Color(1.0, 0.9, 0.3, 1.0)
+			play_boss_animation("phase2")
 		3:
 			sprite.modulate = Color(1.0, 0.3, 0.3, 1.0)
+			play_boss_animation("enrage")
 		_:
 			sprite.modulate = Color.WHITE
 
 func _execute_attack() -> void:
+	play_boss_animation("attack")
 	if hp <= Constants.BOSS_WAR_RIG_HP * 0.3 and not minion_spawned:
 		minion_spawned = true
 		_spawn_minions()

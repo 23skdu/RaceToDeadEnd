@@ -23,10 +23,10 @@ func test_bullet_damage_enemy():
 	assert_eq(enemy.hp, 0, "Enemy should have 0 hp after damage")
 
 func test_bunny_stays_in_front_and_dies_when_shot_in_scaled_world():
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var game = load("res://scenes/Game.tscn").instantiate()
 	add_child_autofree(game)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	var player = game.player
 	var spawner = game.spawner
 	player.position = Vector2(0, -2000)

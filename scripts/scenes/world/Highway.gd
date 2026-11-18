@@ -1,5 +1,7 @@
 extends Node2D
 
+const RoadmapWorld = preload("res://scripts/utils/RoadmapWorld.gd")
+
 signal segment_completed(segment: int)
 signal ice_entered(body: Node)
 signal ice_exited(body: Node)
@@ -18,6 +20,13 @@ const LANE_START_COL: int = 3
 const LANE_END_COL: int = 10
 const HALF_CHUNK: float = (CHUNK_WIDTH - 1) / 2.0
 
+# Tile atlas entries (single row, four columns).
+const TILE_LANE: int = 0
+const TILE_GUARDRAIL: int = 1
+const TILE_ICE: int = 2
+const TILE_HAZARD: int = 3
+const TILE_ATLAS_WIDTH: int = 4
+
 enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
 
 var chunk_weights: Dictionary = {
@@ -33,6 +42,7 @@ var current_segment: int = 0
 var player: Node = null
 var white_texture: Texture2D
 var lane_tilemap: TileMapLayer = null
+var use_tilemap_highway: bool = true
 
 func setup_lane_tilemap() -> void:
 	if not is_instance_valid(lane_tilemap):
@@ -41,16 +51,24 @@ func setup_lane_tilemap() -> void:
 		lane_tilemap = TileMapLayer.new()
 		lane_tilemap.name = "LaneTileMap"
 		add_child(lane_tilemap)
-	# Create a minimal tileset for lane markings at runtime (autotile-friendly)
+	# Runtime atlas: lane marking, guardrail, ice patch, hazard overlay.
 	var tileset := TileSet.new()
 	tileset.tile_size = TILE_SIZE
 	var source := TileSetAtlasSource.new()
-	var img := Image.create(TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
-	img.fill(Color(1.0, 1.0, 0.8, 0.6))
-	source.texture = ImageTexture.create_from_image(img)
+	var atlas := Image.create(TILE_SIZE.x * TILE_ATLAS_WIDTH, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	var colors: Array[Color] = [
+		Color(1.0, 1.0, 0.8, 0.55),
+		Color(0.9, 0.9, 0.6, 0.9),
+		Color(0.5, 0.85, 1.0, 0.4),
+		Color(1.0, 0.35, 0.1, 0.85),
+	]
+	for i in TILE_ATLAS_WIDTH:
+		atlas.fill_rect(Rect2i(i * TILE_SIZE.x, 0, TILE_SIZE.x, TILE_SIZE.y), colors[i])
+	source.texture = ImageTexture.create_from_image(atlas)
 	source.texture_region_size = TILE_SIZE
+	for i in TILE_ATLAS_WIDTH:
+		source.create_tile(Vector2i(i, 0))
 	tileset.add_source(source, 0)
-	# Terrain set for autotiling lane markings
 	var terrain_set := 0
 	tileset.add_terrain_set(terrain_set)
 	tileset.set_terrain_set_mode(terrain_set, TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES)
@@ -60,6 +78,90 @@ func setup_lane_tilemap() -> void:
 
 var _chunk_buffers: Dictionary = {}
 var _buffer_in_use: Dictionary = {}
+var _tile_cells: Dictionary = {}
+
+## Enable/disable the TileMapLayer highway at runtime and repopulate live chunks.
+func set_tilemap_highway_enabled(enabled: bool) -> void:
+	use_tilemap_highway = enabled
+	if not is_instance_valid(lane_tilemap):
+		setup_lane_tilemap()
+	if not use_tilemap_highway:
+		clear_tilemap()
+	for chunk in active_chunks:
+		if use_tilemap_highway:
+			var chunk_type := int(chunk.get_meta("chunk_type", ChunkType.STANDARD))
+			_populate_chunk_tiles(chunk, chunk_type)
+		_refresh_chunk_visibility(chunk)
+
+## Remove every cell owned by the highway tilemap.
+func clear_tilemap() -> void:
+	if not is_instance_valid(lane_tilemap):
+		return
+	for coords in _tile_cells.keys():
+		lane_tilemap.erase_cell(coords)
+	_tile_cells.clear()
+
+func _clear_chunk_tilemap(chunk: Node2D) -> void:
+	var cells: Array = chunk.get_meta("tilemap_cells", [])
+	for coords in cells:
+		if is_instance_valid(lane_tilemap):
+			lane_tilemap.erase_cell(coords)
+		_tile_cells.erase(coords)
+	chunk.set_meta("tilemap_cells", [])
+
+func _place_tile(x_pos: float, y_cell: int, tile_index: int, cells: Array[Vector2i]) -> void:
+	if not is_instance_valid(lane_tilemap):
+		return
+	var x_cell := int(floor((x_pos + 640.0) / float(TILE_SIZE.x)))
+	var coords := Vector2i(x_cell, y_cell)
+	lane_tilemap.set_cell(coords, 0, Vector2i(tile_index, 0), 0)
+	_tile_cells[coords] = tile_index
+	cells.append(coords)
+
+func _populate_chunk_tiles(chunk: Node2D, chunk_type: int) -> void:
+	if not use_tilemap_highway or not is_instance_valid(lane_tilemap):
+		return
+	_clear_chunk_tilemap(chunk)
+	var cells: Array[Vector2i] = []
+	var origin_y := int(round(chunk.position.y))
+	for row in CHUNK_HEIGHT:
+		var y_cell := int((origin_y + row * TILE_SIZE.y) / TILE_SIZE.y)
+		# Lane separator markings.
+		for boundary in range(1, LANE_COUNT):
+			_place_tile(-480.0 + float(boundary) * 120.0, y_cell, TILE_LANE, cells)
+		# Guardrails on both shoulders.
+		_place_tile(-480.0, y_cell, TILE_GUARDRAIL, cells)
+		_place_tile(480.0, y_cell, TILE_GUARDRAIL, cells)
+		if chunk_type == ChunkType.ICE:
+			for lane in LANE_COUNT:
+				_place_tile(Constants.LANE_POSITIONS[lane], y_cell, TILE_ICE, cells)
+		elif chunk_type == ChunkType.DEBRIS and row % 4 == 0:
+			_place_tile(Constants.LANE_POSITIONS[3], y_cell, TILE_HAZARD, cells)
+		elif chunk_type == ChunkType.CONSTRUCTION and row % 2 == 0:
+			_place_tile(-520.0, y_cell, TILE_HAZARD, cells)
+			_place_tile(520.0, y_cell, TILE_HAZARD, cells)
+	chunk.set_meta("tilemap_cells", cells)
+
+func _refresh_chunk_visibility(chunk: Node2D) -> void:
+	var tiles := _get_tiles_node(chunk)
+	if not is_instance_valid(tiles):
+		return
+	for child in tiles.get_children():
+		if child is Line2D and (child.name == "LeftRail" or child.name == "RightRail"):
+			child.visible = not use_tilemap_highway
+		elif child is MultiMeshInstance2D and (
+			child.name == "LaneMultiMesh" or child.name == "EdgeMarking" or child.name == "StripeMarking"
+		):
+			child.visible = not use_tilemap_highway
+
+func _attach_occluder(parent: Node2D, kind: String, size: Vector2, pos: Vector2, node_name: String) -> void:
+	if not SettingsManager or not SettingsManager.is_feature_enabled(RoadmapWorld.FEATURE_LIGHTING, true):
+		return
+	var occluder := RoadmapWorld.make_light_occluder(kind, size)
+	occluder.name = node_name
+	occluder.position = pos
+	parent.add_child(occluder)
+
 
 static var _diamond_mesh_cache: ArrayMesh = null
 static var _diamond_mesh_lane_cache: ArrayMesh = null
@@ -84,8 +186,10 @@ func _ready() -> void:
 	img.fill(Color.WHITE)
 	white_texture = ImageTexture.create_from_image(img)
 	lane_tilemap = get_node_or_null("LaneTileMap")
+	if SettingsManager:
+		use_tilemap_highway = SettingsManager.is_feature_enabled(RoadmapWorld.FEATURE_TILEMAP_HIGHWAY, true)
 	setup_lane_tilemap()
-	
+
 	if PackManager:
 		if PackManager.has_method("get_custom_theme_color"):
 			for key in _theme_colors.keys():
@@ -98,12 +202,12 @@ func _ready() -> void:
 			PackManager.theme_color_loaded.connect(_on_theme_color_loaded)
 		if PackManager.has_signal("theme_texture_loaded") and not PackManager.theme_texture_loaded.is_connected(_on_theme_texture_loaded):
 			PackManager.theme_texture_loaded.connect(_on_theme_texture_loaded)
-	
+
 	if GameManager and GameManager.get("daily_run_active"):
 		_rng.seed = int(GameManager.get("daily_seed"))
 	else:
 		_rng.seed = hash("highway_seed")
-	
+
 	for i in range(-3, PREWARM_CHUNKS - 3):
 		_spawn_chunk(i)
 
@@ -129,10 +233,13 @@ func _rebuild_active_chunks() -> void:
 				tiles.queue_free()
 	_chunk_buffers.clear()
 	_buffer_in_use.clear()
+	clear_tilemap()
 	for chunk in active_chunks:
 		if is_instance_valid(chunk):
 			var chunk_type: ChunkType = chunk.get_meta("chunk_type", ChunkType.STANDARD)
 			chunk.add_child(_reserve_tiles(chunk_type))
+			_populate_chunk_tiles(chunk, int(chunk_type))
+			_refresh_chunk_visibility(chunk)
 
 func _process(_delta: float) -> void:
 	if not player:
@@ -151,12 +258,14 @@ func _spawn_chunk(offset: int) -> void:
 	chunk.position.y = -offset * CHUNK_PIXEL_HEIGHT
 	chunk.set_meta("chunk_type", chunk_type)
 	chunk.set_meta("segment", current_segment)
-	
+
 	var tiles = _reserve_tiles(chunk_type)
 	chunk.add_child(tiles)
-	
+
 	active_chunks.append(chunk)
 	add_child(chunk)
+	_populate_chunk_tiles(chunk, int(chunk_type))
+	_refresh_chunk_visibility(chunk)
 	current_segment += 1
 
 func _recycle_chunk(chunk: Node2D) -> void:
@@ -164,19 +273,22 @@ func _recycle_chunk(chunk: Node2D) -> void:
 	for c in active_chunks:
 		if c.position.y < lowest_y:
 			lowest_y = c.position.y
+	_clear_chunk_tilemap(chunk)
 	chunk.position.y = lowest_y - CHUNK_PIXEL_HEIGHT
 	var new_type = _pick_chunk_type()
 	chunk.set_meta("chunk_type", new_type)
 	chunk.set_meta("segment", current_segment)
-	
+
 	var old_tiles = _get_tiles_node(chunk)
 	if old_tiles:
 		chunk.remove_child(old_tiles)
 		_mark_buffer_free(old_tiles)
-	
+
 	var new_tiles = _reserve_tiles(new_type)
 	chunk.add_child(new_tiles)
-	
+	_populate_chunk_tiles(chunk, int(new_type))
+	_refresh_chunk_visibility(chunk)
+
 	current_segment += 1
 	segment_completed.emit(current_segment)
 
@@ -184,16 +296,16 @@ func _reserve_tiles(chunk_type: ChunkType) -> Node2D:
 	if not _chunk_buffers.has(chunk_type):
 		_chunk_buffers[chunk_type] = []
 		_buffer_in_use[chunk_type] = []
-	
+
 	var buffers: Array = _chunk_buffers[chunk_type]
 	var in_use: Array = _buffer_in_use[chunk_type]
-	
+
 	for i in buffers.size():
 		if not in_use[i]:
 			in_use[i] = true
 			_reconnect_chunk_signals(buffers[i], chunk_type)
 			return buffers[i]
-	
+
 	var tiles = Node2D.new()
 	tiles.name = "Tiles"
 	tiles.set_y_sort_enabled(true)
@@ -263,7 +375,7 @@ func _generate_chunk_tiles_into(parent: Node2D, chunk_type: ChunkType) -> void:
 
 func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	var half_h = TILE_SIZE.y / 2.0
-	
+
 	var bg_color: Color
 	match chunk_type:
 		ChunkType.BRIDGE:
@@ -284,17 +396,17 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 	])
 	bg.color = bg_color
 	chunk_local.add_child(bg)
-	
+
 	var lane_polygons = []
 	var shoulder_polygons = []
 	var stripe_positions = []
 	var desert_decorations = []
 	var obstacle_positions = []
-	
+
 	for row in CHUNK_HEIGHT:
 		for col in CHUNK_WIDTH:
 			var tile_variant = _get_tile_variant(chunk_type, row, col)
-			
+
 			var x_pos: float = 0.0
 			if col < LANE_START_COL:
 				var sh_col_w = 160.0 / 3.0
@@ -319,9 +431,9 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 					x_pos += lane_w / 2.0
 					if x_pos >= 480.0:
 						x_pos -= 960.0
-						
+
 			var y_pos = row * TILE_SIZE.y
-			
+
 			if col < LANE_START_COL or col > LANE_END_COL:
 				if chunk_type == ChunkType.BRIDGE:
 					var tile_color = Color(0.12, 0.11, 0.10)
@@ -335,7 +447,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 				else:
 					var tile_color: Color = _theme_colors.get("shoulder_color", Color(0.76, 0.64, 0.42))
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
-					
+
 					if _rng.randf() < 0.03:
 						var decor_type = _rng.randi() % 4
 						desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type})
@@ -351,19 +463,19 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 				else:
 					var tile_color: Color = _theme_colors.get("lane_color", Color(0.18, 0.18, 0.22))
 					lane_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
-					
+
 					if col > LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 2 == 0:
 						if row % 2 == 0:
 							var stripe_x = -480.0 + (col - LANE_START_COL) * 120.0
 							stripe_positions.append({"pos": Vector2(stripe_x, y_pos)})
-			
+
 			if tile_variant == 1 or tile_variant == 3:
 				obstacle_positions.append({
 					"pos": Vector2(x_pos, y_pos),
 					"type": "barrel" if tile_variant == 3 else "rock",
 					"color": Color(1.0, 0.35, 0.15) if tile_variant == 1 else Color(1.0, 0.75, 0.0)
 				})
-	
+
 	if lane_polygons.size() > 0:
 		var lane_merged = MultiMeshInstance2D.new()
 		lane_merged.name = "LaneMultiMesh"
@@ -378,9 +490,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		lane_merged.multimesh = multimesh
 		lane_merged.modulate = Color.WHITE
 		chunk_local.add_child(lane_merged)
-		
+
 		var edge_marking_color = Color(0.9, 0.9, 0.5, 0.6)
 		var edge_marking = MultiMeshInstance2D.new()
+		edge_marking.name = "EdgeMarking"
 		edge_marking.texture = white_texture
 		var emesh = MultiMesh.new()
 		emesh.mesh = _create_rect_mesh(Vector2(2, half_h * 0.9))
@@ -395,7 +508,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		edge_marking.multimesh = emesh
 		edge_marking.modulate = edge_marking_color
 		chunk_local.add_child(edge_marking)
-	
+
 	if shoulder_polygons.size() > 0:
 		var shoulder_merged = MultiMeshInstance2D.new()
 		shoulder_merged.name = "ShoulderMultiMesh"
@@ -410,9 +523,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		shoulder_merged.multimesh = multimesh
 		shoulder_merged.modulate = Color.WHITE
 		chunk_local.add_child(shoulder_merged)
-	
+
 	if stripe_positions.size() > 0:
 		var stripe_mmi = MultiMeshInstance2D.new()
+		stripe_mmi.name = "StripeMarking"
 		stripe_mmi.texture = white_texture
 		var smesh = MultiMesh.new()
 		smesh.mesh = _create_rect_mesh(Vector2(4, half_h * 1.2))
@@ -422,7 +536,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		stripe_mmi.multimesh = smesh
 		stripe_mmi.modulate = _theme_colors.get("stripe_color", Color(1.0, 1.0, 0.8))
 		chunk_local.add_child(stripe_mmi)
-	
+
 	var decor_positions: Dictionary = {}
 	var crash_obstacle_positions: Array[Vector2] = []
 	for decor in desert_decorations:
@@ -432,7 +546,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		decor_positions[type].append(decor["pos"])
 		if type == 2 or type == 3:
 			crash_obstacle_positions.append(decor["pos"])
-			
+
 	for type in decor_positions:
 		var positions = decor_positions[type]
 		var mmi = MultiMeshInstance2D.new()
@@ -444,28 +558,29 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			mm.set_instance_transform_2d(i, Transform2D(0.0, positions[i]))
 		mmi.multimesh = mm
 		chunk_local.add_child(mmi)
-		
+
 	for pos in crash_obstacle_positions:
 		var crash_obstacle = StaticBody2D.new()
 		crash_obstacle.collision_layer = 1
 		crash_obstacle.collision_mask = 1
 		crash_obstacle.position = pos
 		crash_obstacle.add_to_group("deadly_obstacles")
-		
+
 		var col_shape = CollisionShape2D.new()
 		var rect_shape = RectangleShape2D.new()
 		rect_shape.size = Vector2(20, 20)
 		col_shape.shape = rect_shape
 		crash_obstacle.add_child(col_shape)
+		_attach_occluder(crash_obstacle, "obstacle", Vector2(20, 20), Vector2.ZERO, "CrashOccluder")
 		chunk_local.add_child(crash_obstacle)
-		
+
 	var obs_positions: Dictionary = {}
 	for obs in obstacle_positions:
 		var type = obs["type"]
 		if not obs_positions.has(type):
 			obs_positions[type] = []
 		obs_positions[type].append(obs["pos"])
-		
+
 	for type in obs_positions:
 		var positions = obs_positions[type]
 		var mmi = MultiMeshInstance2D.new()
@@ -477,21 +592,22 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			mm.set_instance_transform_2d(i, Transform2D(0.0, positions[i]))
 		mmi.multimesh = mm
 		chunk_local.add_child(mmi)
-		
+
 		for pos in positions:
 			var obstacle = StaticBody2D.new()
 			obstacle.collision_layer = 1
 			obstacle.collision_mask = 1
 			obstacle.position = pos
 			obstacle.add_to_group("obstacles")
-			
+
 			var col_shape = CollisionShape2D.new()
 			var circle = CircleShape2D.new()
 			circle.radius = 12.0
 			col_shape.shape = circle
 			obstacle.add_child(col_shape)
+			_attach_occluder(obstacle, "circle" if type == "barrel" else "obstacle", Vector2(24, 24), Vector2.ZERO, "ObstacleOccluder")
 			chunk_local.add_child(obstacle)
-	
+
 	if lane_polygons.size() > 0 and chunk_type != ChunkType.ICE and chunk_type != ChunkType.BRIDGE:
 		var crack_mmi = MultiMeshInstance2D.new()
 		crack_mmi.texture = white_texture
@@ -515,7 +631,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 
 	var left_rail_x = -480.0
 	var right_rail_x = 480.0
-	
+
 	var rail_color: Color = _theme_colors.get("guardrail_color", Constants.GUARDRAIL_COLOR) if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var left_rail = Line2D.new()
 	left_rail.name = "LeftRail"
@@ -527,7 +643,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		left_points.append(Vector2(left_rail_x, y_pos))
 	left_rail.points = left_points
 	chunk_local.add_child(left_rail)
-	
+
 	var right_rail = Line2D.new()
 	right_rail.name = "RightRail"
 	right_rail.width = Constants.GUARDRAIL_WIDTH
@@ -538,7 +654,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		right_points.append(Vector2(right_rail_x, y_pos))
 	right_rail.points = right_points
 	chunk_local.add_child(right_rail)
-	
+
+	_attach_occluder(chunk_local, "guardrail", Vector2(Constants.GUARDRAIL_WIDTH * 2.0, CHUNK_PIXEL_HEIGHT), Vector2(left_rail_x, CHUNK_PIXEL_HEIGHT * 0.5), "LeftRailOccluder")
+	_attach_occluder(chunk_local, "guardrail", Vector2(Constants.GUARDRAIL_WIDTH * 2.0, CHUNK_PIXEL_HEIGHT), Vector2(right_rail_x, CHUNK_PIXEL_HEIGHT * 0.5), "RightRailOccluder")
+
 	if chunk_type != ChunkType.BRIDGE and chunk_type != ChunkType.ICE:
 		var post_color = Color(0.5, 0.5, 0.5, 0.7)
 		var post_mmi = MultiMeshInstance2D.new()
@@ -556,7 +675,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		post_mmi.multimesh = pmesh
 		post_mmi.modulate = post_color
 		chunk_local.add_child(post_mmi)
-	
+
 	if chunk_type == ChunkType.ICE:
 		var ice_area = Area2D.new()
 		ice_area.collision_layer = 0
@@ -572,13 +691,13 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		ice_area.body_entered.connect(_on_ice_entered)
 		ice_area.body_exited.connect(_on_ice_exited)
 		chunk_local.add_child(ice_area)
-	
+
 	if chunk_type == ChunkType.BRIDGE:
 		var bridge_mesh_inst = MeshInstance2D.new()
 		bridge_mesh_inst.name = "BridgeStructureMesh"
 		bridge_mesh_inst.mesh = _get_bridge_structure_mesh()
 		chunk_local.add_child(bridge_mesh_inst)
-		
+
 		var bridge_width = 160.0
 		var left_bridge = Area2D.new()
 		left_bridge.collision_layer = 0
@@ -593,7 +712,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		left_bridge.add_child(left_col)
 		left_bridge.body_entered.connect(_on_bridge_fall)
 		chunk_local.add_child(left_bridge)
-		
+
 		var right_bridge = Area2D.new()
 		right_bridge.collision_layer = 0
 		right_bridge.collision_mask = 1
@@ -734,7 +853,7 @@ func _create_desert_decoration(type: int) -> Node2D:
 			])
 			cactus.color = Color(0.2, 0.5, 0.2)
 			decor.add_child(cactus)
-			
+
 			var arm1 = Polygon2D.new()
 			arm1.polygon = PackedVector2Array([
 				Vector2(0, -4),
@@ -756,7 +875,7 @@ func _create_desert_decoration(type: int) -> Node2D:
 			])
 			skull.color = Color(0.85, 0.8, 0.7)
 			decor.add_child(skull)
-			
+
 			var eye1 = Polygon2D.new()
 			eye1.polygon = PackedVector2Array([
 				Vector2(-3, -3),
@@ -766,7 +885,7 @@ func _create_desert_decoration(type: int) -> Node2D:
 			])
 			eye1.color = Color(0.1, 0.1, 0.1)
 			decor.add_child(eye1)
-			
+
 			var eye2 = Polygon2D.new()
 			eye2.polygon = PackedVector2Array([
 				Vector2(1, -3),
@@ -799,7 +918,7 @@ func _create_desert_decoration(type: int) -> Node2D:
 			])
 			rusted_car.color = Color(0.6, 0.3, 0.15)
 			decor.add_child(rusted_car)
-			
+
 			var window = Polygon2D.new()
 			window.polygon = PackedVector2Array([
 				Vector2(-6, -4),
@@ -845,7 +964,7 @@ static func _node_to_mesh(node: Node2D) -> ArrayMesh:
 	var colors = PackedColorArray()
 	var indices = PackedInt32Array()
 	_gather_polygons(node, Transform2D(), vertices, colors, indices)
-	
+
 	var mesh = ArrayMesh.new()
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
@@ -859,7 +978,7 @@ static func _gather_polygons(node: Node, parent_xform: Transform2D, vertices: Pa
 	var local_xform = parent_xform
 	if node is Node2D:
 		local_xform = parent_xform * node.transform
-		
+
 	if node is Polygon2D:
 		var start_idx = vertices.size()
 		var poly = node.polygon
@@ -880,28 +999,28 @@ static func _gather_polygons(node: Node, parent_xform: Transform2D, vertices: Pa
 			var p2 = pts[j+1]
 			var dir = (p2 - p1).normalized()
 			var normal = Vector2(-dir.y, dir.x)
-			
+
 			var v1 = p1 - normal * half_w
 			var v2 = p1 + normal * half_w
 			var v3 = p2 + normal * half_w
 			var v4 = p2 - normal * half_w
-			
+
 			var start_idx = vertices.size()
 			vertices.append(local_xform * v1)
 			vertices.append(local_xform * v2)
 			vertices.append(local_xform * v3)
 			vertices.append(local_xform * v4)
-			
+
 			for k in 4:
 				colors.append(col)
-				
+
 			indices.append(start_idx + 0)
 			indices.append(start_idx + 1)
 			indices.append(start_idx + 2)
 			indices.append(start_idx + 0)
 			indices.append(start_idx + 2)
 			indices.append(start_idx + 3)
-			
+
 	for child in node.get_children():
 		_gather_polygons(child, local_xform, vertices, colors, indices)
 
@@ -917,7 +1036,7 @@ func _get_decor_mesh(type: int) -> ArrayMesh:
 func _get_obstacle_mesh(type: String) -> ArrayMesh:
 	if _obstacle_mesh_cache.has(type):
 		return _obstacle_mesh_cache[type]
-	
+
 	var temp_obs = Node2D.new()
 	if type == "barrel":
 		var base = Polygon2D.new()
@@ -927,7 +1046,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		base.color = Color(0.12, 0.12, 0.14)
 		temp_obs.add_child(base)
-		
+
 		var body = Polygon2D.new()
 		body.polygon = PackedVector2Array([
 			Vector2(-10, -14), Vector2(10, -14),
@@ -935,7 +1054,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		body.color = Color(1.0, 0.4, 0.0)
 		temp_obs.add_child(body)
-		
+
 		var stripe1 = Polygon2D.new()
 		stripe1.polygon = PackedVector2Array([
 			Vector2(-10.2, -6), Vector2(10.2, -6),
@@ -943,7 +1062,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		stripe1.color = Color(0.95, 0.95, 0.98)
 		temp_obs.add_child(stripe1)
-		
+
 		var stripe2 = Polygon2D.new()
 		stripe2.polygon = PackedVector2Array([
 			Vector2(-10.6, 3), Vector2(10.6, 3),
@@ -951,13 +1070,13 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		stripe2.color = Color(0.95, 0.95, 0.98)
 		temp_obs.add_child(stripe2)
-		
+
 		var ridge = Line2D.new()
 		ridge.width = 1.5
 		ridge.default_color = Color(0.6, 0.25, 0.0)
 		ridge.points = PackedVector2Array([Vector2(-10.4, 1), Vector2(10.4, 1)])
 		temp_obs.add_child(ridge)
-		
+
 		var light_base = Polygon2D.new()
 		light_base.polygon = PackedVector2Array([
 			Vector2(-4, -14), Vector2(4, -14),
@@ -965,7 +1084,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		light_base.color = Color(0.2, 0.2, 0.2)
 		temp_obs.add_child(light_base)
-		
+
 		var bulb = Polygon2D.new()
 		bulb.polygon = PackedVector2Array([
 			Vector2(-2, -19), Vector2(2, -19),
@@ -973,7 +1092,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		bulb.color = Color(1.0, 0.0, 0.1)
 		temp_obs.add_child(bulb)
-		
+
 		var glow = Polygon2D.new()
 		glow.polygon = PackedVector2Array([
 			Vector2(0, -28), Vector2(6, -24), Vector2(0, -20), Vector2(-6, -24)
@@ -989,7 +1108,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		rock_poly.color = Color(0.48, 0.48, 0.5)
 		temp_obs.add_child(rock_poly)
-		
+
 		var rock_shadow = Polygon2D.new()
 		rock_shadow.polygon = PackedVector2Array([
 			Vector2(0, -13), Vector2(4, -14), Vector2(13, -6),
@@ -997,7 +1116,7 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		rock_shadow.color = Color(0.35, 0.35, 0.38)
 		temp_obs.add_child(rock_shadow)
-		
+
 		var rock_lite = Polygon2D.new()
 		rock_lite.polygon = PackedVector2Array([
 			Vector2(-14, 8), Vector2(-15, -2), Vector2(-8, -12),
@@ -1005,19 +1124,19 @@ func _get_obstacle_mesh(type: String) -> ArrayMesh:
 		])
 		rock_lite.color = Color(0.62, 0.62, 0.65)
 		temp_obs.add_child(rock_lite)
-		
+
 		var crack = Line2D.new()
 		crack.width = 1.5
 		crack.default_color = Color(0.2, 0.2, 0.22)
 		crack.points = PackedVector2Array([Vector2(-4, -12), Vector2(-2, -3), Vector2(3, 4)])
 		temp_obs.add_child(crack)
-		
+
 		var crack2 = Line2D.new()
 		crack2.width = 1.0
 		crack2.default_color = Color(0.2, 0.2, 0.22)
 		crack2.points = PackedVector2Array([Vector2(-2, -3), Vector2(-10, 2)])
 		temp_obs.add_child(crack2)
-		
+
 	var mesh = _node_to_mesh(temp_obs)
 	temp_obs.free()
 	_obstacle_mesh_cache[type] = mesh
@@ -1120,6 +1239,7 @@ static func _get_bridge_structure_mesh() -> ArrayMesh:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
+		clear_tilemap()
 		for chunk_type in _chunk_buffers:
 			for tiles in _chunk_buffers[chunk_type]:
 				if is_instance_valid(tiles) and tiles.get_parent() == null:

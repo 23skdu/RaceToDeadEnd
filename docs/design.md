@@ -54,7 +54,7 @@ The highway is divided into **segments** (each ~10 seconds of driving). Every 5 
 - **Health**: 5 hit points (repair pickups restore 1 HP)
 - **Lane switching**: Left/right across 8 lanes + weave (quick dodge)
 - **Boost**: Temporary 2× speed, grants collision immunity during activation
-- **Skins**: 5 built-in Interceptor styles (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, plus *Urban Camo* unlocked by defeating the 1st boss) + custom skin packs
+- **Skins**: 10 built-in Interceptor styles (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, *Urban Camo*, *Nitro Phantom*, *Ghost Protocol*, *Solar Flare*, *Neon Drifter*, *Apex Predator*) with real boss/achievement/score unlocks + custom skin packs
 
 **Controls** (keyboard/gamepad):
 - `W` / `S` or Up/Down: Accelerate / brake
@@ -185,10 +185,10 @@ Full specifications live in [docs/bosses.md](bosses.md).
   - +Boost capacity
   - +Starting secondary ammo
   - +Primary fire rate
-- Equip Interceptor skins in the Garage *Customize* tab (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, and boss-unlockable *Urban Camo*)
+- Equip Interceptor skins in the Garage *Customize* tab; locked skins show their unlock condition, with localization and keyboard focus navigation
 - Select from 9 procedural music tracks in **Options → Audio** (*Dynamic*, *Outrun Synthwave*, *Cyber Industrial*, *Neon Drift*, *Classic Arcade*, and stage themes)
 
 ### Replayability hooks:
-- Leaderboard (local, later online)
+- Leaderboard (encrypted local scores with optional online endpoint and automatic offline fallback)
 - Achievement badges for kill counts, distance milestones, no-hit segments
 - Daily run challenge (same seed for all players)

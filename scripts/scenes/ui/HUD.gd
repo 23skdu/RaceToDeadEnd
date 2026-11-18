@@ -1,6 +1,6 @@
 extends CanvasLayer
 
-
+const RoadmapWorld = preload("res://scripts/utils/RoadmapWorld.gd")
 
 @onready var score_label: Label = $ScoreLabel
 @onready var score_rich_label: RichTextLabel = get_node_or_null("ScoreRichLabel")
@@ -24,6 +24,14 @@ extends CanvasLayer
 var boost_indicators: Array[Control] = []
 var _multiplier_pulse_timer: float = 0.0
 var _boost_active: bool = false
+
+var rich_hud_enabled: bool = true
+var hud_text_scale: float = 1.0
+var health_rich_label: RichTextLabel = null
+var multiplier_rich_label: RichTextLabel = null
+var tier_rich_label: RichTextLabel = null
+var lives_rich_label: RichTextLabel = null
+var _rich_base_sizes: Dictionary = {}
 
 var _player: Node = null
 var _active_boss: Node = null
@@ -55,6 +63,13 @@ func _ready() -> void:
 	GameManager.difficulty_tier_changed.connect(_on_tier_changed)
 	GameManager.lives_updated.connect(_on_lives_updated)
 	boost_indicators.assign(boost_container.get_children().filter(func(c): return c is ColorRect))
+	rich_hud_enabled = SettingsManager.is_feature_enabled(RoadmapWorld.FEATURE_RICH_HUD, true)
+	health_rich_label = get_node_or_null("HealthRichLabel") as RichTextLabel
+	multiplier_rich_label = get_node_or_null("MultiplierRichLabel") as RichTextLabel
+	tier_rich_label = get_node_or_null("TierRichLabel") as RichTextLabel
+	lives_rich_label = get_node_or_null("LivesRichLabel") as RichTextLabel
+	_apply_rich_hud_visibility()
+	apply_hud_text_scale(RoadmapWorld.clamp_text_scale(SettingsManager.get_roadmap_value(RoadmapWorld.KEY_HUD_TEXT_SCALE, 1.0)))
 	_on_lives_updated(GameManager.lives)
 	if weapon_icon:
 		weapon_icon.visible = false
@@ -73,6 +88,48 @@ func _ready() -> void:
 	_setup_boss_bar()
 	_setup_threat_indicators()
 	_setup_touch_controls()
+
+func _rich_labels() -> Array[RichTextLabel]:
+	var labels: Array[RichTextLabel] = []
+	for label in [score_rich_label, health_rich_label, multiplier_rich_label, tier_rich_label, lives_rich_label]:
+		if is_instance_valid(label):
+			labels.append(label)
+	return labels
+
+func _apply_rich_hud_visibility() -> void:
+	var pairs: Array = [
+		[score_label, score_rich_label],
+		[multiplier_label, multiplier_rich_label],
+		[tier_label, tier_rich_label],
+		[lives_label, lives_rich_label],
+	]
+	for pair in pairs:
+		var legacy: Label = pair[0] as Label
+		var rich: RichTextLabel = pair[1] as RichTextLabel
+		if is_instance_valid(legacy):
+			legacy.visible = not rich_hud_enabled or not is_instance_valid(rich)
+		if is_instance_valid(rich):
+			rich.visible = rich_hud_enabled
+
+## Apply a persisted text scale to every BBCode readout.
+func apply_hud_text_scale(scale: float) -> void:
+	hud_text_scale = RoadmapWorld.clamp_text_scale(scale)
+	if _rich_base_sizes.is_empty():
+		for label in _rich_labels():
+			_rich_base_sizes[label.get_instance_id()] = label.get_theme_font_size("normal_font_size")
+	for label in _rich_labels():
+		var base := int(_rich_base_sizes.get(label.get_instance_id(), 16))
+		label.add_theme_font_size_override("normal_font_size", RoadmapWorld.scaled_font_size(base, hud_text_scale))
+
+func set_hud_text_scale(scale: float) -> void:
+	SettingsManager.set_roadmap_value(RoadmapWorld.KEY_HUD_TEXT_SCALE, scale)
+	apply_hud_text_scale(scale)
+
+## Toggle BBCode readouts at runtime and persist the preference.
+func set_rich_hud_enabled(enabled: bool) -> void:
+	rich_hud_enabled = enabled
+	SettingsManager.set_feature_enabled(RoadmapWorld.FEATURE_RICH_HUD, enabled)
+	_apply_rich_hud_visibility()
 
 func _setup_boss_bar() -> void:
 	_boss_panel = VBoxContainer.new()
@@ -259,9 +316,19 @@ func _on_score_updated(score: int) -> void:
 
 func _on_health_updated(health: int) -> void:
 	health_bar.value = health
+	if is_instance_valid(health_rich_label):
+		var max_hp := maxi(1, int(health_bar.max_value))
+		var color := "#66ff99"
+		if health <= 2:
+			color = "#ff3366"
+		elif float(health) <= float(max_hp) * 0.6:
+			color = "#ffcc00"
+		health_rich_label.text = RoadmapWorld.bbcode_text("HP %d/%d" % [health, max_hp], color, true)
 
 func _on_multiplier_updated(multiplier: int) -> void:
 	multiplier_label.text = "x%d" % multiplier
+	if is_instance_valid(multiplier_rich_label):
+		multiplier_rich_label.text = RoadmapWorld.bbcode_text("x%d" % multiplier, "#ffcc00", true)
 
 func _on_multiplier_timer_updated(time_left: float) -> void:
 	var active = time_left > 0.0
@@ -278,9 +345,14 @@ func _on_multiplier_timer_updated(time_left: float) -> void:
 
 func _on_tier_changed(tier: int) -> void:
 	tier_label.text = "TIER %d" % tier
+	if is_instance_valid(tier_rich_label):
+		tier_rich_label.text = RoadmapWorld.bbcode_text("TIER %d" % tier, RoadmapWorld.bbcode_color(tier), true)
 
 func _on_lives_updated(lives: int) -> void:
 	lives_label.text = "♥ %d" % lives
+	if is_instance_valid(lives_rich_label):
+		var color := "#ff3366" if lives <= 1 else "#ff66aa"
+		lives_rich_label.text = RoadmapWorld.bbcode_text("♥ %d" % lives, color, true)
 
 func set_boost_active(active: bool) -> void:
 	_boost_active = active

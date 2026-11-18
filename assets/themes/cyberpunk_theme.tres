@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=6 format=3]
+[gd_resource type="Theme" load_steps=12 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/Orbitron.ttf" id="1_orbitron"]
 
@@ -66,6 +66,102 @@ content_margin_top = 6.0
 content_margin_right = 10.0
 content_margin_bottom = 6.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_focus"]
+bg_color = Color(0.0, 0.0, 0.0, 0.0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1.0, 0.92, 0.2, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.05, 0.06, 0.12, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.0, 0.75, 1.0, 0.6)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_control_normal"]
+bg_color = Color(0.08, 0.1, 0.18, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.8, 1.0, 0.7)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_control_focus"]
+bg_color = Color(0.16, 0.13, 0.26, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1.0, 0.9, 0.25, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_normal"]
+bg_color = Color(0.04, 0.05, 0.1, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.55, 0.75, 0.8)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider"]
+bg_color = Color(0.08, 0.09, 0.16, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.7, 0.9, 0.7)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+
 [resource]
 default_font = ExtResource("1_orbitron")
 default_font_size = 16
@@ -73,7 +169,29 @@ Button/colors/font_color = Color(0.88, 0.96, 1.0, 1)
 Button/colors/font_hover_color = Color(1.0, 0.85, 0.95, 1)
 Button/colors/font_pressed_color = Color(0.0, 1.0, 0.9, 1)
 Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-Button/styles/focus = SubResource("StyleBoxFlat_btn_hover")
+Button/styles/focus = SubResource("StyleBoxFlat_btn_focus")
 Button/styles/hover = SubResource("StyleBoxFlat_btn_hover")
 Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+CheckButton/colors/font_color = Color(0.88, 0.96, 1.0, 1)
+CheckButton/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+CheckButton/styles/focus = SubResource("StyleBoxFlat_btn_focus")
+CheckButton/styles/hover = SubResource("StyleBoxFlat_control_normal")
+CheckButton/styles/normal = SubResource("StyleBoxFlat_control_normal")
+CheckButton/styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+OptionButton/colors/font_color = Color(0.88, 0.96, 1.0, 1)
+OptionButton/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+OptionButton/styles/focus = SubResource("StyleBoxFlat_btn_focus")
+OptionButton/styles/hover = SubResource("StyleBoxFlat_control_normal")
+OptionButton/styles/normal = SubResource("StyleBoxFlat_control_normal")
+OptionButton/styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+LineEdit/colors/font_color = Color(0.9, 0.97, 1.0, 1)
+LineEdit/styles/focus = SubResource("StyleBoxFlat_control_focus")
+LineEdit/styles/normal = SubResource("StyleBoxFlat_input_normal")
+Panel/styles/panel = SubResource("StyleBoxFlat_panel")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+TabContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+TabContainer/styles/tab_selected = SubResource("StyleBoxFlat_control_focus")
+HSlider/styles/grabber = SubResource("StyleBoxFlat_control_normal")
+HSlider/styles/grabber_highlight = SubResource("StyleBoxFlat_control_focus")
+HSlider/styles/slider = SubResource("StyleBoxFlat_slider")

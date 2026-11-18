@@ -1,17 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://pausemenu123"]
+[gd_scene load_steps=3 format=3 uid="uid://pausemenu123"]
 
 [ext_resource type="Script" path="res://scripts/scenes/ui/PauseMenu.gd" id="1_pause"]
+[ext_resource type="Theme" path="res://assets/themes/cyberpunk_theme.tres" id="2_theme"]
 
 [node name="PauseMenu" type="CanvasLayer"]
 process_mode = 3
 layer = 128
+groups = ["roadmap_ui_root"]
 script = ExtResource("1_pause")
 
 [node name="Panel" type="Panel" parent="."]
-offset_left = 490.0
-offset_top = 235.0
-offset_right = 790.0
-offset_bottom = 485.0
+anchors_preset = 8
+anchor_left = 0.3828
+anchor_top = 0.3264
+anchor_right = 0.6172
+anchor_bottom = 0.6736
+offset_left = -0.5
+offset_top = -0.5
+offset_right = 0.5
+offset_bottom = 0.5
+theme = ExtResource("2_theme")
 
 [node name="Title" type="Label" parent="Panel"]
 offset_right = 300.0
@@ -30,15 +38,20 @@ offset_bottom = 200.0
 offset_right = 200.0
 offset_bottom = 40.0
 text = "Resume"
+focus_neighbor_bottom = NodePath("OptionsButton")
 
 [node name="OptionsButton" type="Button" parent="Panel/VBox"]
 offset_top = 50.0
 offset_right = 200.0
 offset_bottom = 90.0
 text = "Options"
+focus_neighbor_top = NodePath("ResumeButton")
+focus_neighbor_bottom = NodePath("QuitButton")
 
 [node name="QuitButton" type="Button" parent="Panel/VBox"]
 offset_top = 100.0
 offset_right = 200.0
 offset_bottom = 140.0
 text = "Quit to Menu"
+focus_neighbor_top = NodePath("OptionsButton")
+focus_neighbor_bottom = NodePath("ResumeButton")

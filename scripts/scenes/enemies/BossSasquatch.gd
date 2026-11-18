@@ -138,6 +138,7 @@ func _dodge() -> void:
 	target_lane_x = Constants.LANE_POSITIONS[new_lane]
 
 func _throw_poop() -> void:
+	play_boss_animation("attack")
 	var poop = ObjectPool.acquire("poop_weapon")
 	if not poop:
 		poop = preload("res://scenes/weapons/PoopWeapon.tscn").instantiate()

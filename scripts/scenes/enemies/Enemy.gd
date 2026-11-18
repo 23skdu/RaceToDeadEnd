@@ -4,10 +4,13 @@ const HelpersUtil = preload("res://scripts/utils/Helpers.gd")
 
 
 signal destroyed(position: Vector2, enemy_type: String, enemy: Node)
+signal animation_event_fired(event: String)
 
 enum EnemyType { BUNNY, ROTOR, SCAV, DRONE, SASQUATCH }
 
 const TYPE_NAMES: Array[String] = ["bunny", "rotor", "scav", "drone", "sasquatch"]
+const ANIMATION_STATES: Array[String] = ["idle", "move", "attack", "hit", "enrage", "phase2", "death"]
+const ANIMATION_LIBRARY_NAME: String = "roadmap"
 const ROTOR_TEXTURE = preload("res://assets/sprites/enemies/rotor.png")
 const SCAV_TEXTURE = preload("res://assets/sprites/enemies/scav.png")
 const DRONE_TEXTURE = preload("res://assets/sprites/enemies/drone.png")
@@ -29,10 +32,12 @@ var stun_timer: float = 0.0
 var _spawner: Node = null
 
 var animation_state: String = "idle"
+var animation_hold_timer: float = 0.0
 var animation_player: AnimationPlayer = null
 var animation_tree: AnimationTree = null
 var _animation_player: AnimationPlayer = null
 var _animation_tree: AnimationTree = null
+var _animation_library: AnimationLibrary = null
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
@@ -144,102 +149,151 @@ void fragment() {
 	sprite.material = _eye_shader_material
 
 static func _create_bunny_texture() -> ImageTexture:
-	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	return _create_rabbit_texture(64, false)
+
+# Natural rabbit portrait authored in a 64x64 design space. The same drawing is
+# scaled up for the boss so both enemies read as real rabbits, not robots.
+static func _create_rabbit_texture(size: int = 64, boss: bool = false) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.0, 0.0, 0.0, 0.0))
+	var s := float(size) / 64.0
 
-	var dark_green    = Color(0.06, 0.28, 0.06, 1.0)
-	var camo_dark     = Color(0.12, 0.38, 0.10, 1.0)
-	var camo_med      = Color(0.20, 0.50, 0.15, 1.0)
-	var camo_light    = Color(0.30, 0.55, 0.18, 1.0)
-	var camo_olive    = Color(0.25, 0.45, 0.12, 1.0)
-	var glow_green    = Color(0.0, 1.0, 0.2, 1.0)
-	var eye_glow      = Color(1.0, 0.0, 0.1, 1.0)
-	var inner_ear_col = Color(0.0, 0.8, 0.1, 1.0)
+	var fur_base := Color(0.96, 0.95, 0.92, 1.0)
+	var fur_shadow := Color(0.70, 0.70, 0.69, 1.0)
+	var fur_deep := Color(0.47, 0.46, 0.45, 1.0)
+	var fur_highlight := Color(1.0, 0.99, 0.97, 0.55)
+	var fur_speck := Color(0.60, 0.60, 0.58, 0.10)
+	var pink_soft := Color(0.95, 0.62, 0.68, 0.32)
+	var pink_inner := Color(0.88, 0.48, 0.55, 1.0)
+	var pink_inner_light := Color(0.97, 0.70, 0.74, 1.0)
+	var pink_nose := Color(0.86, 0.38, 0.46, 1.0)
+	var eye_socket := Color(0.30, 0.18, 0.17, 1.0)
+	var eye_ruby := Color(0.86, 0.08, 0.14, 1.0)
+	var eye_dark := Color(0.14, 0.02, 0.03, 1.0)
+	var eye_glint := Color(1.0, 1.0, 1.0, 1.0)
+	var ear_tip := fur_deep
 
-	var camo_colors = [camo_dark, camo_med, camo_light, camo_olive]
+	if boss:
+		# A larger wild hare: greyer fur, darker ear tips, heavier brow.
+		fur_base = Color(0.82, 0.79, 0.73, 1.0)
+		fur_shadow = Color(0.50, 0.48, 0.44, 1.0)
+		fur_deep = Color(0.32, 0.30, 0.27, 1.0)
+		fur_highlight = Color(0.95, 0.92, 0.86, 0.50)
+		fur_speck = Color(0.42, 0.40, 0.37, 0.14)
+		pink_soft = Color(0.70, 0.40, 0.42, 0.30)
+		pink_inner = Color(0.72, 0.36, 0.40, 1.0)
+		pink_inner_light = Color(0.86, 0.52, 0.54, 1.0)
+		pink_nose = Color(0.62, 0.28, 0.32, 1.0)
+		eye_socket = Color(0.22, 0.13, 0.12, 1.0)
+		eye_ruby = Color(0.88, 0.07, 0.10, 1.0)
+		eye_dark = Color(0.12, 0.02, 0.03, 1.0)
+		ear_tip = Color(0.38, 0.33, 0.30, 1.0)
 
-	var fill_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color) -> void:
-		for px in range(int(cx - rx - 1), int(cx + rx + 2)):
-			for py in range(int(cy - ry - 1), int(cy + ry + 2)):
-				if px < 0 or px >= 64 or py < 0 or py >= 64:
-					continue
-				var nx = (px - cx) / rx
-				var ny = (py - cy) / ry
-				if nx * nx + ny * ny <= 1.0:
-					img.set_pixel(px, py, col)
+	var put := func(dx: float, dy: float, col: Color) -> void:
+		var px := int(round(dx * s))
+		var py := int(round(dy * s))
+		if px >= 0 and px < size and py >= 0 and py < size:
+			img.set_pixel(px, py, col)
 
-	var fill_ellipse_camo = func(cx: int, cy: int, rx: float, ry: float) -> void:
-		for px in range(int(cx - rx - 1), int(cx + rx + 2)):
-			for py in range(int(cy - ry - 1), int(cy + ry + 2)):
-				if px < 0 or px >= 64 or py < 0 or py >= 64:
-					continue
-				var nx = (px - cx) / rx
-				var ny = (py - cy) / ry
-				if nx * nx + ny * ny <= 1.0:
-					var idx = (px * 7 + py * 13) % camo_colors.size()
-					img.set_pixel(px, py, camo_colors[idx])
+	var blend := func(dx: float, dy: float, col: Color) -> void:
+		var px := int(round(dx * s))
+		var py := int(round(dy * s))
+		if px < 0 or px >= size or py < 0 or py >= size:
+			return
+		var old := img.get_pixel(px, py)
+		if old.a <= 0.0:
+			img.set_pixel(px, py, col)
+		else:
+			img.set_pixel(px, py, old.lerp(Color(col.r, col.g, col.b, 1.0), col.a))
 
-	var outline_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color) -> void:
-		for px in range(int(cx - rx - 2), int(cx + rx + 3)):
-			for py in range(int(cy - ry - 2), int(cy + ry + 3)):
-				if px < 0 or px >= 64 or py < 0 or py >= 64:
-					continue
-				var nx = (px - cx) / (rx + 1.0)
-				var ny = (py - cy) / (ry + 1.0)
-				if nx * nx + ny * ny <= 1.0:
-					if img.get_pixel(px, py).a < 0.5:
-						img.set_pixel(px, py, col)
+	var ellipse := func(cx: float, cy: float, rx: float, ry: float, col: Color, angle: float, painter: Callable) -> void:
+		var ca := cos(angle)
+		var sa := sin(angle)
+		var reach := maxf(rx, ry) + 1.0
+		var min_x := clampi(int((cx - reach) * s), 0, size - 1)
+		var max_x := clampi(int((cx + reach) * s), 0, size - 1)
+		var min_y := clampi(int((cy - reach) * s), 0, size - 1)
+		var max_y := clampi(int((cy + reach) * s), 0, size - 1)
+		for px in range(min_x, max_x + 1):
+			for py in range(min_y, max_y + 1):
+				var x := float(px) / s - cx
+				var y := float(py) / s - cy
+				var lx := x * ca + y * sa
+				var ly := -x * sa + y * ca
+				if lx * lx / (rx * rx) + ly * ly / (ry * ry) <= 1.0:
+					painter.call(x + cx, y + cy, col)
 
-	var glow_ellipse = func(cx: int, cy: int, rx: float, ry: float, col: Color, thickness: float) -> void:
-		for px in range(int(cx - rx - thickness - 1), int(cx + rx + thickness + 2)):
-			for py in range(int(cy - ry - thickness - 1), int(cy + ry + thickness + 2)):
-				if px < 0 or px >= 64 or py < 0 or py >= 64:
-					continue
-				var nx = (px - cx) / (rx + thickness)
-				var ny = (py - cy) / (ry + thickness)
-				if nx * nx + ny * ny <= 1.0:
-					nx = (px - cx) / rx
-					ny = (py - cy) / ry
-					if nx * nx + ny * ny > 1.0:
-						var dist = min(1.0, sqrt(nx * nx + ny * ny) - 1.0)
-						var alpha = clamp((1.0 - dist / thickness) * 0.5, 0.0, 0.5)
-						if img.get_pixel(px, py).a < alpha:
-							img.set_pixel(px, py, Color(col.r, col.g, col.b, alpha))
+	var soft_line := func(x0: float, y0: float, x1: float, y1: float, col: Color) -> void:
+		var distance := Vector2(x1 - x0, y1 - y0).length()
+		var steps := maxi(1, int(distance * 2.0))
+		for i in range(steps + 1):
+			var t := float(i) / steps
+			blend.call(lerpf(x0, x1, t), lerpf(y0, y1, t), col)
 
-	glow_ellipse.call(32, 34, 16.0, 15.0, glow_green, 3.5)
-	glow_ellipse.call(32, 50, 13.0, 11.0, glow_green, 3.5)
-	glow_ellipse.call(22, 16, 7.0, 15.0, glow_green, 3.0)
-	glow_ellipse.call(42, 16, 7.0, 15.0, glow_green, 3.0)
+	var fur_noise := func(cx: float, cy: float, rx: float, ry: float) -> void:
+		for px in range(size):
+			for py in range(size):
+				var x := float(px) / s - cx
+				var y := float(py) / s - cy
+				if x * x / (rx * rx) + y * y / (ry * ry) <= 1.0:
+					if (px * 7 + py * 11) % 9 == 0:
+						blend.call(x + cx, y + cy, fur_speck)
 
-	fill_ellipse.call(22, 16, 5.0, 13.0, dark_green)
-	fill_ellipse.call(42, 16, 5.0, 13.0, dark_green)
-	outline_ellipse.call(32, 50, 11.0, 9.0, dark_green)
-	outline_ellipse.call(32, 34, 14.0, 13.0, dark_green)
+	# Long upright ears with a soft fur rim and pink interior.
+	ellipse.call(21.0, 14.0, 6.0, 13.5, fur_deep, -0.12, put)
+	ellipse.call(43.0, 14.0, 6.0, 13.5, fur_deep, 0.12, put)
+	ellipse.call(21.0, 14.0, 5.2, 12.7, fur_base, -0.12, put)
+	ellipse.call(43.0, 14.0, 5.2, 12.7, fur_base, 0.12, put)
+	ellipse.call(21.0, 14.5, 3.2, 10.5, pink_inner, -0.12, put)
+	ellipse.call(43.0, 14.5, 3.2, 10.5, pink_inner, 0.12, put)
+	ellipse.call(21.0, 14.0, 2.0, 8.5, pink_inner_light, -0.12, put)
+	ellipse.call(43.0, 14.0, 2.0, 8.5, pink_inner_light, 0.12, put)
+	if boss:
+		ellipse.call(21.0, 3.0, 4.4, 3.2, ear_tip, -0.12, put)
+		ellipse.call(43.0, 3.0, 4.4, 3.2, ear_tip, 0.12, put)
 
-	fill_ellipse_camo.call(22, 16, 3.5, 11.0)
-	fill_ellipse.call(22, 17, 2.0, 8.0, inner_ear_col)
-	fill_ellipse_camo.call(42, 16, 3.5, 11.0)
-	fill_ellipse.call(42, 17, 2.0, 8.0, inner_ear_col)
-	fill_ellipse_camo.call(32, 50, 10.0, 8.0)
-	fill_ellipse_camo.call(32, 34, 13.0, 12.0)
+	# Fluffy tail, rounded body and head, each with a shaded rim and fur grain.
+	ellipse.call(32.0, 58.5, 5.5, 3.8, fur_base, 0.0, put)
+	ellipse.call(32.0, 58.0, 3.5, 2.2, fur_highlight, 0.0, blend)
 
-	for dx in [0, 1]:
-		for dy in [0, 1]:
-			img.set_pixel(25 + dx, 30 + dy, eye_glow)
-			img.set_pixel(38 + dx, 30 + dy, eye_glow)
+	ellipse.call(32.0, 51.0, 12.0, 10.0, fur_shadow, 0.0, put)
+	ellipse.call(32.0, 50.0, 11.0, 9.2, fur_base, 0.0, put)
+	ellipse.call(29.0, 47.0, 6.0, 4.0, fur_highlight, 0.0, blend)
+	fur_noise.call(32.0, 50.0, 11.0, 9.0)
 
-	fill_ellipse.call(32, 38, 2.5, 1.8, glow_green)
+	ellipse.call(32.0, 34.0, 16.0, 14.2, fur_shadow, 0.0, put)
+	ellipse.call(32.0, 34.0, 15.0, 13.2, fur_base, 0.0, put)
+	ellipse.call(28.0, 29.0, 8.0, 5.5, fur_highlight, 0.0, blend)
+	ellipse.call(32.0, 39.5, 8.0, 4.5, fur_highlight, 0.0, blend)
+	fur_noise.call(32.0, 34.0, 15.0, 13.0)
 
-	img.set_pixel(30, 41, dark_green)
-	img.set_pixel(31, 42, dark_green)
-	img.set_pixel(32, 41, dark_green)
-	img.set_pixel(33, 42, dark_green)
-	img.set_pixel(34, 41, dark_green)
+	# Cheeks, ruby eyes with pupils and catchlights (the shader pulses the red).
+	ellipse.call(22.0, 38.0, 3.4, 2.2, pink_soft, 0.0, blend)
+	ellipse.call(42.0, 38.0, 3.4, 2.2, pink_soft, 0.0, blend)
 
-	var whisker_col = Color(0.0, 0.8, 0.2, 0.8)
-	for wd in [0, 1, 2]:
-		img.set_pixel(16 + wd * 2, 38, whisker_col)
-		img.set_pixel(46 - wd * 2, 38, whisker_col)
+	for eye_x in [25.0, 39.0]:
+		ellipse.call(eye_x, 30.0, 3.4, 3.8, eye_socket, 0.0, put)
+		ellipse.call(eye_x, 30.0, 2.5, 2.9, eye_ruby, 0.0, put)
+		ellipse.call(eye_x, 31.7, 1.1, 1.3, eye_dark, 0.0, put)
+		ellipse.call(eye_x - 1.0, 28.5, 0.8, 0.9, eye_glint, 0.0, put)
+		ellipse.call(eye_x + 1.2, 29.3, 0.4, 0.5, eye_glint, 0.0, put)
+
+	if boss:
+		soft_line.call(21.0, 25.5, 28.0, 26.5, Color(fur_deep.r, fur_deep.g, fur_deep.b, 0.55))
+		soft_line.call(43.0, 25.5, 36.0, 26.5, Color(fur_deep.r, fur_deep.g, fur_deep.b, 0.55))
+
+	# Pink nose, mouth and fine whiskers.
+	ellipse.call(32.0, 37.5, 2.2, 1.5, pink_nose, 0.0, put)
+	ellipse.call(31.4, 37.0, 0.7, 0.5, pink_inner_light, 0.0, put)
+	soft_line.call(32.0, 39.0, 29.0, 41.0, Color(fur_deep.r, fur_deep.g, fur_deep.b, 0.7))
+	soft_line.call(32.0, 39.0, 35.0, 41.0, Color(fur_deep.r, fur_deep.g, fur_deep.b, 0.7))
+
+	var whisker := Color(0.55, 0.54, 0.52, 0.75)
+	for side: float in [-1.0, 1.0]:
+		var root := 32.0 + side * 5.0
+		soft_line.call(root, 38.0, 32.0 + side * 18.0, 35.0, whisker)
+		soft_line.call(root, 39.0, 32.0 + side * 19.0, 39.0, whisker)
+		soft_line.call(root, 40.0, 32.0 + side * 18.0, 44.0, whisker)
 
 	return ImageTexture.create_from_image(img)
 
@@ -249,6 +303,8 @@ func _physics_process(delta: float) -> void:
 		if stun_timer <= 0.0:
 			stunned = false
 			sprite.modulate = Color.WHITE
+	if animation_hold_timer > 0.0:
+		animation_hold_timer -= delta
 	_update_animation_state()
 
 func _get_slide_collisions() -> Array:
@@ -283,6 +339,7 @@ func take_damage(amount: int = 1) -> void:
 func on_pool_acquire() -> void:
 	stunned = false
 	stun_timer = 0.0
+	animation_hold_timer = 0.0
 	velocity = Vector2.ZERO
 	if sprite:
 		sprite.scale = Vector2.ONE
@@ -294,6 +351,7 @@ func on_pool_acquire() -> void:
 func on_pool_release() -> void:
 	stunned = false
 	stun_timer = 0.0
+	animation_hold_timer = 0.0
 	hp = 1
 	speed = 200.0
 	if sprite:
@@ -333,6 +391,7 @@ func _die() -> void:
 	CameraShake.shake(0.3, 0.2, 4.0)
 	CameraShake.rumble(0.3, 0.2)
 	collision.set_deferred(&"disabled", true)
+	set_animation_state("death")
 	_death_animation()
 	var type_str = boss_key if boss_key else TYPE_NAMES[enemy_type]
 	destroyed.emit(global_position, type_str, self)
@@ -356,25 +415,147 @@ func _setup_animation_rig() -> void:
 	_animation_tree = get_node_or_null("AnimationTree")
 	animation_player = _animation_player
 	animation_tree = _animation_tree
-	if is_instance_valid(animation_tree) and is_instance_valid(animation_player):
-		animation_tree.anim_player = animation_player.get_path()
-		animation_tree.active = false
+	if not is_instance_valid(animation_player) or not is_instance_valid(animation_tree):
+		return
+
+	_animation_library = AnimationLibrary.new()
+	for state in ANIMATION_STATES:
+		_animation_library.add_animation(state, _build_animation_clip(state))
+	if not animation_player.has_animation_library(ANIMATION_LIBRARY_NAME):
+		animation_player.add_animation_library(ANIMATION_LIBRARY_NAME, _animation_library)
+
+	animation_tree.anim_player = animation_player.get_path()
+	animation_tree.tree_root = _build_state_machine()
+	animation_tree.active = true
+	_start_animation_playback()
+
+func _build_animation_clip(state: String) -> Animation:
+	var clip := Animation.new()
+	var length: float = 0.6
+	match state:
+		"idle", "move":
+			length = 1.0
+			clip.loop_mode = Animation.LOOP_LINEAR
+		"hit":
+			length = 0.25
+		"enrage":
+			length = 1.2
+		"phase2":
+			length = 1.0
+		"death":
+			length = 0.5
+	clip.length = length
+
+	var rotations: Array[float] = [0.0, 0.03, 0.0]
+	var colors: Array[Color] = [Color.WHITE, Color.WHITE, Color.WHITE]
+	match state:
+		"move":
+			rotations = [-0.05, 0.05, -0.05]
+		"attack":
+			rotations = [0.0, 0.25, 0.0]
+			colors = [Color.WHITE, Color(1.0, 0.65, 0.2, 1.0), Color.WHITE]
+		"hit":
+			rotations = [0.0, -0.12, 0.0]
+			colors = [Color.WHITE, Color.RED, Color.WHITE]
+		"enrage":
+			rotations = [0.0, 0.18, 0.0]
+			colors = [Color.WHITE, Color(1.0, 0.12, 0.12, 1.0), Color.WHITE]
+		"phase2":
+			rotations = [0.0, -0.18, 0.0]
+			colors = [Color.WHITE, Color(0.7, 0.2, 1.0, 1.0), Color.WHITE]
+		"death":
+			rotations = [0.0, 0.55, 0.8]
+			colors = [Color.WHITE, Color(1.0, 1.0, 1.0, 0.6), Color(1.0, 1.0, 1.0, 0.0)]
+
+	_add_value_track(clip, "Sprite2D:rotation", [0.0, length * 0.5, length], rotations)
+	_add_value_track(clip, "Sprite2D:modulate", [0.0, length * 0.5, length], colors)
+	if state == "attack":
+		_add_event_key(clip, length * 0.25, "attack_strike")
+	elif state == "enrage":
+		_add_event_key(clip, length * 0.5, "enrage_burst")
+	elif state == "phase2":
+		_add_event_key(clip, length * 0.5, "phase2_shift")
+	return clip
+
+func _add_value_track(clip: Animation, property: String, times: Array, values: Array) -> void:
+	var track: int = clip.add_track(Animation.TYPE_VALUE)
+	clip.track_set_path(track, property)
+	for i in range(times.size()):
+		clip.track_insert_key(track, float(times[i]), values[i])
+
+func _add_event_key(clip: Animation, time: float, event: String) -> void:
+	var track: int = clip.add_track(Animation.TYPE_METHOD)
+	clip.track_set_path(track, ".")
+	clip.track_insert_key(track, time, {"method": "fire_animation_event", "args": [event]})
+
+func _build_state_machine() -> AnimationNodeStateMachine:
+	var machine := AnimationNodeStateMachine.new()
+	for i in range(ANIMATION_STATES.size()):
+		var state: String = ANIMATION_STATES[i]
+		var node := AnimationNodeAnimation.new()
+		node.animation = state
+		machine.add_node(state, node, Vector2(float(i) * 160.0, 0.0))
+	for from in ANIMATION_STATES:
+		for to in ANIMATION_STATES:
+			if from == to:
+				continue
+			var transition := AnimationNodeStateMachineTransition.new()
+			transition.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
+			transition.advance_condition = "to_" + to
+			machine.add_transition(from, to, transition)
+	return machine
+
+func _start_animation_playback() -> void:
+	var playback: Variant = animation_tree.get("parameters/playback")
+	if playback != null and playback.has_method("start"):
+		playback.call("start", "idle")
 
 func play_animation(state: String) -> void:
-	animation_state = state
-	if is_instance_valid(animation_player) and animation_player.has_animation(state):
-		animation_player.play(state)
+	var resolved: String = state if ANIMATION_STATES.has(state) else "idle"
+	animation_state = resolved
+	if resolved in ["attack", "enrage", "phase2"]:
+		animation_hold_timer = 0.6
+	if is_instance_valid(animation_player) and animation_player.has_animation(resolved):
+		animation_player.play(resolved)
+	if is_instance_valid(animation_tree):
+		var playback: Variant = animation_tree.get("parameters/playback")
+		if playback != null and playback.has_method("travel"):
+			playback.call("travel", resolved)
+		for other in ANIMATION_STATES:
+			animation_tree.set("parameters/conditions/to_" + other, false)
+		animation_tree.set("parameters/conditions/to_" + resolved, true)
+	fire_animation_event("state:" + resolved)
 
 func set_animation_state(state: String) -> void:
 	play_animation(state)
 
+func play_boss_animation(state: String) -> void:
+	if SettingsManager and SettingsManager.is_feature_enabled(Constants.FEATURE_BOSS_ANIMATIONS, true):
+		set_animation_state(state)
+
+func fire_animation_event(event: String) -> void:
+	animation_event_fired.emit(event)
+	_sync_demo_overlay(event)
+
+func _sync_demo_overlay(event: String) -> void:
+	if not is_inside_tree() or get_tree() == null:
+		return
+	for overlay in get_tree().get_nodes_in_group("boss_animation_demo"):
+		if is_instance_valid(overlay) and overlay.has_method("on_enemy_animation_event"):
+			overlay.call("on_enemy_animation_event", event, self)
+
 func _update_animation_state() -> void:
-	var new_state := "idle"
 	if hp <= 0:
-		new_state = "death"
-	elif stunned:
-		new_state = "hit"
-	set_animation_state(new_state)
+		set_animation_state("death")
+		return
+	if stunned:
+		if animation_state != "hit":
+			set_animation_state("hit")
+		return
+	if animation_hold_timer > 0.0:
+		return
+	if animation_state != "idle":
+		set_animation_state("idle")
 
 func _play_death_sound() -> void:
 	match enemy_type:

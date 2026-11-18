@@ -20,6 +20,7 @@ shape = SubResource("2_vm4f2")
 position = Vector2(0, -28)
 
 [node name="Camera2D" type="Camera2D" parent="."]
+physics_interpolation_mode = 2
 position_smoothing_enabled = true
 position_smoothing_speed = 5.0
 

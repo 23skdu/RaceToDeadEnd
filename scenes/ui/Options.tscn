@@ -1,18 +1,45 @@
-[gd_scene load_steps=3 format=3 uid="uid://options123"]
+[gd_scene load_steps=7 format=3 uid="uid://options123"]
 
 [ext_resource type="Script" path="res://scripts/scenes/ui/Options.gd" id="1_opts"]
 [ext_resource type="Script" path="res://scripts/scenes/ui/InputRemap.gd" id="2_input"]
+[ext_resource type="Script" path="res://scripts/utils/OnlineLeaderboard.gd" id="3_online"]
+[ext_resource type="Theme" path="res://assets/themes/cyberpunk_theme.tres" id="4_theme"]
+
+[sub_resource type="Gradient" id="Gradient_panel"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.05, 0.07, 0.13, 0.97, 0.11, 0.09, 0.18, 0.97)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_panel"]
+gradient = SubResource("Gradient_panel")
+width = 64
+height = 64
 
 [node name="Options" type="CanvasLayer"]
 process_mode = 3
+groups = ["roadmap_ui_root"]
 script = ExtResource("1_opts")
 
-[node name="Panel" type="ColorRect" parent="."]
-offset_left = 340.0
-offset_top = 120.0
-offset_right = 940.0
-offset_bottom = 600.0
-color = Color(0.1, 0.1, 0.15, 0.95)
+[node name="OnlineLeaderboard" type="Node" parent="."]
+script = ExtResource("3_online")
+endpoint_url = "invalid://leaderboard.local/scores"
+timeout_seconds = 3.0
+
+[node name="Panel" type="NinePatchRect" parent="."]
+anchors_preset = 15
+anchor_left = 0.25
+anchor_top = 0.12
+anchor_right = 0.75
+anchor_bottom = 0.88
+offset_left = -0.5
+offset_top = -0.5
+offset_right = 0.5
+offset_bottom = 0.5
+texture = SubResource("GradientTexture2D_panel")
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
+theme = ExtResource("4_theme")
 
 [node name="Title" type="Label" parent="Panel"]
 offset_left = 160.0
@@ -46,6 +73,8 @@ offset_bottom = 30.0
 value = 1.0
 max_value = 1.0
 step = 0.05
+focus_neighbor_top = NodePath("../MusicTrackRow/MusicTrackOption")
+focus_neighbor_bottom = NodePath("../MusicSlider")
 
 [node name="MusicLabel" type="Label" parent="Panel/TabContainer/AudioTab"]
 offset_top = 40.0
@@ -60,6 +89,8 @@ offset_bottom = 100.0
 value = 1.0
 max_value = 1.0
 step = 0.05
+focus_neighbor_top = NodePath("../MasterSlider")
+focus_neighbor_bottom = NodePath("../SFXSlider")
 
 [node name="SFXLabel" type="Label" parent="Panel/TabContainer/AudioTab"]
 offset_top = 110.0
@@ -74,12 +105,16 @@ offset_bottom = 170.0
 value = 1.0
 max_value = 1.0
 step = 0.05
+focus_neighbor_top = NodePath("../MusicSlider")
+focus_neighbor_bottom = NodePath("../FullscreenCheck")
 
 [node name="FullscreenCheck" type="CheckButton" parent="Panel/TabContainer/AudioTab"]
 offset_top = 190.0
 offset_right = 200.0
 offset_bottom = 220.0
 text = "FULLSCREEN"
+focus_neighbor_top = NodePath("../SFXSlider")
+focus_neighbor_bottom = NodePath("../TouchControlsModeButton")
 
 [node name="InputTab" type="VBoxContainer" parent="Panel/TabContainer"]
 offset_left = 10.0
@@ -96,9 +131,137 @@ script = ExtResource("2_input")
 offset_right = 560.0
 offset_bottom = 310.0
 
+[node name="AccessibilityTab" type="VBoxContainer" parent="Panel/TabContainer"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 570.0
+offset_bottom = 330.0
+
+[node name="LocaleLabel" type="Label" parent="Panel/TabContainer/AccessibilityTab"]
+offset_right = 180.0
+offset_bottom = 28.0
+text = "Language"
+
+[node name="LocaleOption" type="OptionButton" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 30.0
+offset_right = 260.0
+offset_bottom = 62.0
+focus_neighbor_top = NodePath("../ReduceMotionCheck")
+focus_neighbor_bottom = NodePath("../HighContrastCheck")
+
+[node name="HighContrastCheck" type="CheckButton" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 70.0
+offset_right = 260.0
+offset_bottom = 102.0
+text = "High contrast"
+focus_neighbor_top = NodePath("../LocaleOption")
+focus_neighbor_bottom = NodePath("../ColorblindOption")
+
+[node name="ColorblindLabel" type="Label" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 110.0
+offset_right = 180.0
+offset_bottom = 138.0
+text = "Colorblind mode"
+
+[node name="ColorblindOption" type="OptionButton" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 140.0
+offset_right = 260.0
+offset_bottom = 172.0
+focus_neighbor_top = NodePath("../HighContrastCheck")
+focus_neighbor_bottom = NodePath("../ReduceMotionCheck")
+
+[node name="ReduceMotionCheck" type="CheckButton" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 182.0
+offset_right = 260.0
+offset_bottom = 214.0
+text = "Reduced motion"
+focus_neighbor_top = NodePath("../ColorblindOption")
+focus_neighbor_bottom = NodePath("../LocaleOption")
+
+[node name="FeaturesHeaderLabel" type="Label" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 224.0
+offset_right = 260.0
+offset_bottom = 252.0
+text = "FEATURES"
+
+[node name="FeatureToggles" type="VBoxContainer" parent="Panel/TabContainer/AccessibilityTab"]
+offset_top = 254.0
+offset_right = 280.0
+offset_bottom = 330.0
+
+[node name="LeaderboardTab" type="VBoxContainer" parent="Panel/TabContainer"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 570.0
+offset_bottom = 330.0
+
+[node name="LeaderboardEndpointLabel" type="Label" parent="Panel/TabContainer/LeaderboardTab"]
+offset_right = 220.0
+offset_bottom = 26.0
+text = "Leaderboard endpoint"
+
+[node name="EndpointInput" type="LineEdit" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 28.0
+offset_right = 520.0
+offset_bottom = 58.0
+placeholder_text = "https://example.com/scores"
+focus_neighbor_bottom = NodePath("../PlayerNameInput")
+
+[node name="PlayerNameLabel" type="Label" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 66.0
+offset_right = 220.0
+offset_bottom = 92.0
+text = "Player name"
+
+[node name="PlayerNameInput" type="LineEdit" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 94.0
+offset_right = 300.0
+offset_bottom = 124.0
+text = "PLAYER"
+focus_neighbor_top = NodePath("../EndpointInput")
+focus_neighbor_bottom = NodePath("../FetchScoresButton")
+
+[node name="FetchScoresButton" type="Button" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 134.0
+offset_right = 180.0
+offset_bottom = 172.0
+text = "FETCH SCORES"
+focus_neighbor_top = NodePath("../PlayerNameInput")
+focus_neighbor_right = NodePath("../SubmitScoreButton")
+
+[node name="SubmitScoreButton" type="Button" parent="Panel/TabContainer/LeaderboardTab"]
+offset_left = 190.0
+offset_top = 134.0
+offset_right = 370.0
+offset_bottom = 172.0
+text = "SUBMIT SCORE"
+focus_neighbor_top = NodePath("../PlayerNameInput")
+focus_neighbor_left = NodePath("../FetchScoresButton")
+
+[node name="LeaderboardStatus" type="Label" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 182.0
+offset_right = 520.0
+offset_bottom = 210.0
+text = "Offline - showing local scores"
+autowrap_mode = 2
+
+[node name="ScoresHeaderLabel" type="Label" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 216.0
+offset_right = 220.0
+offset_bottom = 244.0
+text = "TOP SCORES"
+
+[node name="LeaderboardList" type="Label" parent="Panel/TabContainer/LeaderboardTab"]
+offset_top = 246.0
+offset_right = 520.0
+offset_bottom = 330.0
+text = "No scores yet"
+autowrap_mode = 2
+
 [node name="BackButton" type="Button" parent="Panel"]
 offset_left = 190.0
 offset_top = 420.0
 offset_right = 390.0
 offset_bottom = 470.0
 text = "BACK"
+focus_neighbor_top = NodePath("../TabContainer/AudioTab/MasterSlider")

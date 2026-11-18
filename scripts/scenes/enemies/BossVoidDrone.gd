@@ -114,5 +114,6 @@ func _physics_process(delta: float) -> void:
 	handle_obstacle_collisions()
 
 func _spawn_drones() -> void:
+	play_boss_animation("attack")
 	if _spawner and _spawner.has_signal("spawn_minion_requested"):
 		_spawner.spawn_minion_requested.emit("drone", 2)

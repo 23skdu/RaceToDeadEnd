@@ -28,6 +28,7 @@ var enemy_list: Array[Node] = []
 var bosses_killed: int = 0
 var first_boss_defeated: bool = false
 var boss_active: bool = false
+var bosses_defeated_keys: Array[String] = []
 
 var upgrade_levels: Dictionary = {
 	max_health = 1,
@@ -157,20 +158,70 @@ func record_run_kill(enemy_type: String) -> void:
 		_unlock_achievement("centurion")
 	if enemy_type.begins_with("boss"):
 		first_boss_defeated = true
+		_remember_boss_key(enemy_type)
 		_unlock_achievement("boss_slayer")
 
-func record_boss_defeated(_boss_type: String = "") -> void:
+func record_boss_defeated(boss_type: String = "") -> void:
 	bosses_killed += 1
 	first_boss_defeated = true
+	_remember_boss_key(boss_type)
 	save_progress()
 
+func _remember_boss_key(boss_type: String) -> void:
+	var key: String = boss_type.strip_edges()
+	if key.is_empty():
+		key = "boss"
+	if not bosses_defeated_keys.has(key):
+		bosses_defeated_keys.append(key)
+
 func is_skin_unlocked(skin_id: String) -> bool:
+	var skin: Dictionary = _find_skin(skin_id)
+	if skin.is_empty():
+		return false
+	# Legacy first-boss reward must stay compatible with older save files.
 	if skin_id == "urban_camo":
 		return first_boss_defeated or bosses_killed >= 1 or ("boss_slayer" in unlocked_achievements)
+	if skin.has("unlock_boss_key"):
+		var boss_key: String = str(skin.get("unlock_boss_key", "boss"))
+		if boss_key == "boss":
+			# Legacy saves predate boss keys; three kills means War Rig was beaten.
+			return bosses_defeated_keys.has(boss_key) or bosses_killed >= 3
+		return bosses_defeated_keys.has(boss_key)
+	if skin.has("unlock_achievement"):
+		return str(skin.get("unlock_achievement", "")) in unlocked_achievements
+	if skin.has("unlock_score"):
+		return high_score >= int(skin.get("unlock_score", 0))
+	return not bool(skin.get("unlock_boss", false))
+
+func _find_skin(skin_id: String) -> Dictionary:
 	for skin in Constants.PLAYER_SKINS:
 		if str(skin.get("id", "")) == skin_id:
-			return not bool(skin.get("unlock_boss", false))
-	return false
+			return skin
+	return {}
+
+func get_skin_unlock_requirement(skin_id: String) -> Dictionary:
+	var skin: Dictionary = _find_skin(skin_id)
+	if skin.is_empty():
+		return {}
+	if skin_id == "urban_camo" or skin.has("unlock_boss_key"):
+		return {
+			"type": "boss",
+			"key": str(skin.get("unlock_boss_key", "boss")),
+			"text": "Defeat a boss",
+		}
+	if skin.has("unlock_achievement"):
+		return {
+			"type": "achievement",
+			"key": str(skin.get("unlock_achievement", "")),
+			"text": "Unlock achievement: " + str(skin.get("unlock_achievement", "")),
+		}
+	if skin.has("unlock_score"):
+		return {
+			"type": "score",
+			"key": str(skin.get("unlock_score", 0)),
+			"text": "Reach a high score of " + str(skin.get("unlock_score", 0)),
+		}
+	return {"type": "default", "key": "", "text": "Available from the start"}
 
 func record_civilian_protected() -> void:
 	run_stats["civilians_protected"] = int(run_stats.get("civilians_protected", 0)) + 1
@@ -353,6 +404,7 @@ func save_progress() -> void:
 		"leaderboard": leaderboard.duplicate(true),
 		"achievements": unlocked_achievements.duplicate(),
 		"first_boss_defeated": first_boss_defeated,
+		"bosses_defeated_keys": bosses_defeated_keys.duplicate(),
 	}
 	var save_data = {
 		"version": SAVE_VERSION,
@@ -437,3 +489,8 @@ func load_progress() -> void:
 		first_boss_defeated = payload.first_boss_defeated
 	elif "boss_slayer" in unlocked_achievements:
 		first_boss_defeated = true
+	if payload.has("bosses_defeated_keys") and typeof(payload.bosses_defeated_keys) == TYPE_ARRAY:
+		bosses_defeated_keys.clear()
+		for key in payload.bosses_defeated_keys:
+			if key is String and not key.is_empty() and not (key in bosses_defeated_keys):
+				bosses_defeated_keys.append(key)

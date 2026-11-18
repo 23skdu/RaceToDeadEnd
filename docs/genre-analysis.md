@@ -8,7 +8,7 @@ This document captures a genre-level analysis of top-down / isometric vehicular 
 |---|---|---|
 | **Spy Hunter** (Bally Midway, 1983) | Arcade hardware | 8-lane vertical scroller, weapon van upgrades, civilian penalty, boat transformation |
 | **Spy Hunter (2001/2012 reboots)** | Custom | 3D camera, weapon loadouts, boss vehicles, destructible environments |
-| **Race to Dead End** (this project) | Godot 4.7.2 | Procedural 8-lane highway, 4 bosses, 5 car skins, 11 music tracks, 9 autoloads |
+| **Race to Dead End** (this project) | Godot 4.7.2 | Procedural 8-lane highway, 4 bosses, 10 car skins, 11 music tracks, 9 autoloads, themed/localized UI |
 | Godot "Top-Down Racer" demos | Godot 4.x | CharacterBody2D + Camera2D smoothing, GPUParticles2D exhaust |
 | Godot "Space Shooter" / "Dodge" templates | Godot 4.x | Object pooling, MultiMeshInstance2D batching, signal-based spawners |
 | Community "Retro Highway" clones | Godot 4.x | TileMapLayer road, ParallaxBackground sky, AudioStreamInteractive adaptive music |
@@ -34,15 +34,17 @@ This document captures a genre-level analysis of top-down / isometric vehicular 
 | HDR rendering | WorldEnvironment + CameraAttributesPhysical | ⚠️ Basic environment only |
 | Tile-based road | TileMapLayer (Godot 4.3+) | ⚠️ Custom MultiMesh |
 | In-game screenshots | Viewport.get_texture().get_image() + save_png | ✅ ScreenshotManager (F12) |
-| Car skins | Constants.PLAYER_SKINS + SettingsManager persistence | ✅ 7 skins (1 boss-unlockable) |
+| Car skins | Constants.PLAYER_SKINS + GameManager unlock persistence | ✅ 10 skins (boss/achievement/score unlocks) |
 | Music selector | AudioManager.MUSIC_OPTIONS + Options UI | ✅ 11 tracks |
 | Touch controls | CanvasLayer overlay + DisplayServer.is_touchscreen_available() | ✅ Implemented |
 | Input remapping | InputMap + ConfigFile persistence | ✅ Implemented |
 | Save/load | FileAccess encrypted + CRC32 checksum | ✅ Implemented |
-| Accessibility | TranslationServer, screen-reader hooks, colorblind modes | ⚠️ Not implemented |
-| Online features | HTTPRequest / WebSocketPeer / ENetMultiplayerPeer | ⚠️ Local-only leaderboard |
+| Accessibility | TranslationServer, AccessibilityServer bridge, StyleBoxFlat focus states, colorblind palettes | ✅ en/es/fr/de locale, screen-reader labels, focus chains, high contrast/colorblind/reduced motion |
+| Online features | HTTPRequest / WebSocketPeer / ENetMultiplayerPeer | ✅ Optional online leaderboard with local fallback |
 
-## Godot 4.7.2 Features Not Yet Exploited (Opportunity List)
+## Godot 4.7.2 Feature Coverage (Opportunity List)
+
+Items marked **used** were added by roadmap items 11, 13 and 15; the rest remain opportunities.
 
 1. **AudioStreamInteractive** — layer stems (drums, bass, melody) that crossfade by combat intensity instead of hard track swaps.
 2. **AudioStreamRandomizer** — wrap hit/explosion SFX with pitch + stream randomization for less repetition.
@@ -52,13 +54,13 @@ This document captures a genre-level analysis of top-down / isometric vehicular 
 6. **Physics interpolation** — buttery 120 Hz+ motion on high-refresh displays without changing simulation step.
 7. **TileMapLayer** — GPU-batched road tiles with autotiling for lane markings and hazard overlays.
 8. **SubViewport / SubViewportContainer** — minimap, rear-view mirror, or picture-in-picture boss cam.
-9. **AnimationPlayer / AnimationTree** — skeletal boss animations instead of static procedural textures.
+9. **AnimationPlayer / AnimationTree** — **used**: seven-clip `AnimationLibrary` and state machine drive boss attack, enrage, phase-2 and death cues.
 10. **RichTextLabel + BBCode** — formatted HUD, damage numbers, and animated score popups.
-11. **NinePatchRect / StyleBoxFlat** — crisp scalable UI panels and themed buttons.
+11. **NinePatchRect / StyleBoxFlat** — **used**: themed panels and focus/hover/pressed button states across owned UI scenes.
 12. **BackBufferCopy + screen-space shaders** — heat distortion, water ripple, speed-line post FX.
 13. **NavigationRegion2D / NavigationAgent2D** — smarter Scav/Drone pathing around obstacles.
-14. **HttpRequest** — optional online leaderboard / daily-run sync.
-15. **AccessibilityServer** — screen-reader labels, high-contrast theme, colorblind palettes.
+14. **HttpRequest** — **used**: optional online leaderboard client with graceful local fallback.
+15. **AccessibilityServer** — **used**: headless-safe screen-reader labels plus high-contrast, colorblind and reduced-motion support.
 16. **GDExtension / C++** — native hot paths (highway generation, audio DSP) for mobile targets.
 17. **MultiMeshInstance2D** — already used for highway; extend to bullets, pickups, and weather rain.
 18. **RenderingServer / RID** — manual draw calls for ultra-high enemy counts.
@@ -67,4 +69,4 @@ This document captures a genre-level analysis of top-down / isometric vehicular 
 
 ## Conclusion
 
-Race to Dead End already implements the core Spy Hunter loop (procedural highway, 4 bosses, weapon van-style pickups, civilian protection, weather, meta-progression, daily runs, leaderboards, achievements, remappable input, touch controls, screenshots, 7 skins, 11 music tracks) and exploits several Godot 4.7 features (MultiMesh, GPUParticles, procedural audio, encrypted saves, CanvasItem shaders). The 15-point plan in [roadmap.md](roadmap.md) closes the remaining gaps in **performance, graphic resolution, sound fidelity, music variety, and skin variety** while staying within the Godot 4.7.2 feature set.
+Race to Dead End already implements the core Spy Hunter loop (procedural highway, 4 bosses, weapon van-style pickups, civilian protection, weather, meta-progression, daily runs, leaderboards, achievements, remappable input, touch controls, screenshots, 10 skins, 11 music tracks) and exploits several Godot 4.7 features (MultiMesh, GPUParticles, procedural audio, encrypted saves, CanvasItem shaders). Roadmap items 11, 13, 14 and 15 add animation clips, themed UI, real skin unlocks, localization, accessibility and an optional online leaderboard. The remaining plan in [roadmap.md](roadmap.md) closes the other gaps in **performance, graphic resolution, sound fidelity, music variety, and skin variety** while staying within the Godot 4.7.2 feature set.

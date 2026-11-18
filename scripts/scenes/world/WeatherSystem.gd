@@ -1,5 +1,7 @@
 extends Node2D
 
+const RoadmapFx = preload("res://scripts/utils/RoadmapFx.gd")
+
 @export_group("Weather Timing")
 @export var transition_speed: float = 0.5
 @export var lightning_cooldown_min: float = 1.0
@@ -51,7 +53,7 @@ func _init_gpu_particles() -> void:
 	_rain_particles = GPUParticles2D.new()
 	_rain_particles.name = "RainParticles"
 	_rain_particles.z_index = 10
-	_rain_particles.amount = Constants.RAIN_DROP_COUNT
+	_rain_particles.amount = RoadmapFx.scaled_particle_amount(Constants.RAIN_DROP_COUNT)
 	_rain_particles.lifetime = 1.5
 	_rain_particles.one_shot = false
 	_rain_particles.emitting = false
@@ -86,7 +88,7 @@ func _init_gpu_particles() -> void:
 	_splash_particles = GPUParticles2D.new()
 	_splash_particles.name = "RainSplashes"
 	_splash_particles.z_index = 2
-	_splash_particles.amount = 64
+	_splash_particles.amount = RoadmapFx.scaled_particle_amount(64)
 	_splash_particles.lifetime = 0.28
 	_splash_particles.one_shot = false
 	_splash_particles.emitting = false
@@ -160,6 +162,12 @@ func _update_weather_transition(delta: float) -> void:
 		weather_intensity = 1.0 if current_weather != WeatherType.CLEAR else 0.0
 
 func _update_rain_particles(_delta: float) -> void:
+	var gpu_on: bool = RoadmapFx.gpu_effects_enabled()
+	if not gpu_on:
+		_rain_particles.emitting = false
+		if _splash_particles:
+			_splash_particles.emitting = false
+		return
 	if _splash_particles and player_ref and is_instance_valid(player_ref):
 		_splash_particles.global_position = player_ref.global_position + Vector2(0, -140)
 	match current_weather:
@@ -249,6 +257,7 @@ func _spawn_lightning_strike() -> void:
 	
 	var flash = _create_lightning_flash(strike_pos)
 	lightning_container.add_child(flash)
+	RoadmapFx.spawn_explosion_flash(lightning_container, strike_pos, Color(0.8, 0.9, 1.0, 1.0), 0.35, 2.5)
 	
 	var tween = create_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.3)
@@ -350,6 +359,12 @@ func set_weather(type: WeatherType) -> void:
 		target_weather = type
 		weather_transition = 0.0
 		weather_changed.emit(_weather_name(type))
+
+func get_color_grading_lut(weather_name: String = "") -> Texture2D:
+	if not RoadmapFx.hdr_lighting_enabled():
+		return null
+	var key: String = weather_name if not weather_name.is_empty() else _weather_name(current_weather)
+	return RoadmapFx.make_weather_lut(key)
 
 func get_color_grading_tint(type: WeatherType = current_weather) -> Color:
 	match type:

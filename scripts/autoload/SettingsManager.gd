@@ -4,6 +4,7 @@ signal player_skin_changed(skin_id: String)
 signal music_track_changed(track_id: String)
 signal high_contrast_changed(enabled: bool)
 signal colorblind_mode_changed(mode: String)
+signal feature_toggle_changed(feature: String, enabled: bool)
 
 const InputRemapUtil = preload("res://scripts/scenes/ui/InputRemap.gd")
 
@@ -14,6 +15,8 @@ const PACKS_SECTION: String = "packs"
 const CONTROLS_SECTION: String = "controls"
 const APPEARANCE_SECTION: String = "appearance"
 const ACCESSIBILITY_SECTION: String = "accessibility"
+const FEATURES_SECTION: String = "features"
+const ROADMAP_SECTION: String = "roadmap"
 
 var _config: ConfigFile = ConfigFile.new()
 var _loaded: bool = false
@@ -176,3 +179,31 @@ func get_music_track() -> String:
 		var val := str(_config.get_value(AUDIO_SECTION, "music_track", "dynamic")).strip_edges()
 		return val if not val.is_empty() else "dynamic"
 	return "dynamic"
+
+# Generic roadmap feature toggles. Each roadmap point can be disabled
+# independently without adding another bespoke pair of accessors.
+func is_feature_enabled(feature: String, default_value: bool = true) -> bool:
+	if feature.is_empty():
+		return default_value
+	if _config.has_section_key(FEATURES_SECTION, feature):
+		return bool(_config.get_value(FEATURES_SECTION, feature, default_value))
+	return default_value
+
+func set_feature_enabled(feature: String, enabled: bool) -> void:
+	if feature.is_empty():
+		return
+	_config.set_value(FEATURES_SECTION, feature, enabled)
+	save_settings()
+	feature_toggle_changed.emit(feature, enabled)
+
+# Generic persisted values for roadmap settings (resolution, text scale, etc.).
+func get_roadmap_value(key: String, default_value: Variant = null) -> Variant:
+	if key.is_empty() or not _config.has_section_key(ROADMAP_SECTION, key):
+		return default_value
+	return _config.get_value(ROADMAP_SECTION, key, default_value)
+
+func set_roadmap_value(key: String, value: Variant) -> void:
+	if key.is_empty():
+		return
+	_config.set_value(ROADMAP_SECTION, key, value)
+	save_settings()

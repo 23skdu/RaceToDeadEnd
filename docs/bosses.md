@@ -26,7 +26,8 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
   - Maintains a `350px` lead ahead of the player on the highway while crushing road obstacles on contact.
   - Features a pulsating red-eye shader and armored cybernetic chest plate.
   - Every `1.5s`, drops a `BabyBunnyBomb` (`scenes/weapons/BabyBunnyBomb.tscn`) directly ahead of the player.
-- **Progression:** Defeating Cyber Bunny triggers `demo/DemoBossBunny.tscn`, transitions regular waves from Bunnies to Rotors (`bosses_killed >= 1`), and permanently unlocks the **Urban Camo** Interceptor skin (`GameManager.first_boss_defeated`).
+- **Progression:** Defeating Cyber Bunny triggers `demo/DemoBossBunny.tscn`, transitions regular waves from Bunnies to Rotors (`bosses_killed >= 1`), and permanently unlocks the **Urban Camo** Interceptor skin via `GameManager.record_boss_defeated("boss_bunny")`.
+- **Animation:** Attack cues call `play_boss_animation("attack")` on the shared `Enemy` rig.
 
 ---
 
@@ -41,7 +42,7 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
 - **Behavior & Attacks:**
   - Tracks the player horizontally while pacing `350px` ahead on a rotor-crowned spiked motorcycle.
   - Attacks with a sweeping `ChainSwing` (`scenes/weapons/ChainSwing.tscn`) melee arc.
-  - **Enrage (< 50% HP):** Glows red, increases speed by `1.6x`, and cuts attack cooldown to `0.9s` (`0.6x`).
+  - **Enrage (< 50% HP):** Glows red, increases speed by `1.6x`, cuts attack cooldown to `0.9s` (`0.6x`), and plays the `enrage` animation clip.
 - **Progression:** Defeating Giant Biker triggers `demo/DemoBossGiantBiker.tscn` and unlocks Scavs and wandering Sasquatches (`bosses_killed >= 2`).
 
 ---
@@ -57,6 +58,7 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
 - **Behavior & Attacks:**
   - Begins appearing in normal highway waves right after Giant Biker is defeated (`bosses_killed >= 2`).
   - Changes lanes every `1.5s` to evade incoming fire (`_dodge()`) and hurls `PoopWeapon` projectiles (`scenes/weapons/PoopWeapon.tscn`) aimed at the player every `2.25s`.
+  - Throws use the shared `attack` animation clip.
 
 ---
 
@@ -70,9 +72,9 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
 - **Score Reward:** `1,000` (`Constants.BOSS_SCORE`)
 - **Multi-Phase Behavior & Attacks:**
   - **Phase 1 (`> 60%` HP):** Performs aggressive lateral ram charges toward the player's lane (`BOSS_RAM_FORCE = 200.0`, `BOSS_RAM_SPEED = 500.0`) with screen shake and gamepad rumble.
-  - **Phase 2 (`<= 60%` HP):** Tints yellow, increases base speed by `20%` (`96.0`), and adds a 3-way downward bullet spread (`-15°`, `0°`, `+15°`).
-  - **Phase 3 (`<= 30%` HP):** Tints red, increases base speed by `40%` (`112.0`), and summons `2` `Scav` reinforcements once while continuing spread fire and rams.
-- **Progression:** Defeating War Rig triggers `demo/DemoBossWarRig.tscn` and unlocks Void Drone waves (`bosses_killed >= 3`).
+  - **Phase 2 (`<= 60%` HP):** Tints yellow, increases base speed by `20%` (`96.0`), adds a 3-way downward bullet spread (`-15°`, `0°`, `+15°`), and plays the `phase2` clip.
+  - **Phase 3 (`<= 30%` HP):** Tints red, increases base speed by `40%` (`112.0`), plays the `enrage` clip, and summons `2` `Scav` reinforcements once while continuing spread fire and rams.
+- **Progression:** Defeating War Rig triggers `demo/DemoBossWarRig.tscn`, unlocks Void Drone waves (`bosses_killed >= 3`), and unlocks the **Apex Predator** skin.
 
 ---
 
@@ -86,5 +88,11 @@ Boss encounters trigger every **3,000 points** (`Constants.BOSS_SCORE_INTERVAL`)
 - **Score Reward:** `1,000` (`Constants.BOSS_SCORE`)
 - **Behavior & Attacks:**
   - Obsidian stealth saucer with a central cyan-purple reactor core hovering `350px` ahead of the player.
-  - Every `2.25s`, calls in `2` `Drone` minions via `spawn_minion_requested` to bombard lanes.
-- **Progression:** Defeating Void Drone triggers `demo/DemoBossVoidDrone.tscn`. Void Drone also serves as the recurring boss encounter for subsequent 3,000-point milestones (`12,000+`).
+  - Every `2.25s`, calls in `2` `Drone` minions via `spawn_minion_requested` to bombard lanes and plays the `attack` clip.
+- **Progression:** Defeating Void Drone triggers `demo/DemoBossVoidDrone.tscn` and unlocks the **Nitro Phantom** skin. Void Drone also serves as the recurring boss encounter for subsequent 3,000-point milestones (`12,000+`).
+
+---
+
+## Shared Animation Rig
+
+All enemies inherit `scripts/scenes/enemies/Enemy.gd`, which registers a `roadmap` `AnimationLibrary` with `idle`, `move`, `attack`, `hit`, `enrage`, `phase2` and `death` clips on an `AnimationTree` state machine. Boss scripts use `play_boss_animation(state)` (gated by `Constants.FEATURE_BOSS_ANIMATIONS`) so `attack`, `enrage`, `phase2` and `death` cues stay in sync with procedural texture effects. The `animation_event_fired(String)` signal and the optional `boss_animation_demo` group let demo overlays react to clips without coupling to boss scripts.

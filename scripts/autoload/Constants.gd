@@ -1,5 +1,17 @@
 extends Node
 
+# Roadmap feature toggles (owned by SettingsManager; keys live here for consumers)
+const FEATURE_BOSS_ANIMATIONS: String = "boss_animations"
+const FEATURE_THEMED_UI: String = "themed_ui"
+const FEATURE_LOCALIZATION: String = "localization"
+const FEATURE_ONLINE_LEADERBOARD: String = "online_leaderboard"
+const ROADMAP_FEATURE_KEYS: Array[String] = [
+	FEATURE_BOSS_ANIMATIONS,
+	FEATURE_THEMED_UI,
+	FEATURE_LOCALIZATION,
+	FEATURE_ONLINE_LEADERBOARD,
+]
+
 # Highway / Lane
 const LANE_POSITIONS: Array[float] = [-420.0, -300.0, -180.0, -60.0, 60.0, 180.0, 300.0, 420.0]
 const LANE_WIDTH: float = 120.0
@@ -209,6 +221,7 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"use_default_modulate": false,
 		"colors": ["#2b3038", "#6b7482", "#b4becb"],
 		"unlock_boss": true,
+		"unlock_boss_key": "boss",
 	},
 	{
 		"id": "nitro_phantom",
@@ -218,6 +231,7 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"use_default_modulate": false,
 		"colors": ["#0a0612", "#b026ff", "#00f0ff"],
 		"unlock_boss": false,
+		"unlock_boss_key": "boss_void_drone",
 	},
 	{
 		"id": "ghost_protocol",
@@ -227,6 +241,7 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"use_default_modulate": false,
 		"colors": ["#0d1014", "#66e0ff", "#ff2a55"],
 		"unlock_boss": false,
+		"unlock_achievement": "protector",
 	},
 	{
 		"id": "solar_flare",
@@ -236,6 +251,7 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"use_default_modulate": false,
 		"colors": ["#3a2a0a", "#ff8800", "#ffcc00"],
 		"unlock_boss": false,
+		"unlock_score": 10000,
 	},
 	{
 		"id": "neon_drifter",
@@ -245,6 +261,7 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"use_default_modulate": false,
 		"colors": ["#0a1a1e", "#ff00aa", "#00f0ff"],
 		"unlock_boss": false,
+		"unlock_achievement": "speed_demon",
 	},
 	{
 		"id": "apex_predator",
@@ -254,5 +271,6 @@ const PLAYER_SKINS: Array[Dictionary] = [
 		"use_default_modulate": false,
 		"colors": ["#14100a", "#ff6600", "#ff9900"],
 		"unlock_boss": false,
+		"unlock_boss_key": "boss",
 	},
 ]

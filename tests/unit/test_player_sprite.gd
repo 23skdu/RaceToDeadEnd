@@ -60,37 +60,37 @@ func test_interceptor_scene_loads():
 
 func test_interceptor_scene_has_sprite():
 	var scene = load("res://scenes/player/Interceptor.tscn")
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	var sprite = instance.get_node_or_null("Sprite2D")
 	assert_not_null(sprite, "Should have Sprite2D node")
 
 func test_interceptor_scene_has_collision():
 	var scene = load("res://scenes/player/Interceptor.tscn")
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	var col = instance.get_node_or_null("CollisionShape2D")
 	assert_not_null(col, "Should have CollisionShape2D node")
 
 func test_interceptor_scene_has_weapon_mount():
 	var scene = load("res://scenes/player/Interceptor.tscn")
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	var mount = instance.get_node_or_null("WeaponMount")
 	assert_not_null(mount, "Should have WeaponMount node")
 
 func test_interceptor_scene_has_camera():
 	var scene = load("res://scenes/player/Interceptor.tscn")
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var instance = scene.instantiate()
 	add_child_autofree(instance)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	var cam = instance.get_node_or_null("Camera2D")
 	assert_not_null(cam, "Should have Camera2D node")
 

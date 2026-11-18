@@ -111,7 +111,7 @@ res://
 - Sprite scaled to 108px design height (via `Helpers.scale_sprite_to_viewport`)
 - `_lane_to_x()` maps lane index to world X position via `Constants.LANE_POSITIONS` (clamped 0–7)
 - 6 upgradeable stats: max health, boost capacity, fire rate, missile ammo, mine ammo, EMP ammo
-- 5 built-in Interceptor skins (`Constants.PLAYER_SKINS`): *Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, and *Urban Camo* (unlocked after defeating the 1st boss, persisted via `GameManager.first_boss_defeated`), plus `PackManager` custom skins
+- 10 built-in Interceptor skins (`Constants.PLAYER_SKINS`): *Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, *Urban Camo* (boss `boss_bunny`), *Nitro Phantom* (`boss_void_drone`), *Ghost Protocol* (`protector` achievement), *Solar Flare* (10,000 high score), *Neon Drifter* (`speed_demon` achievement) and *Apex Predator* (`boss`); unlock progress is persisted in `GameManager.bosses_defeated_keys` / `unlocked_achievements` / `high_score`, plus `PackManager` custom skins
 - Boost: 2× speed multiplier, 3 charges, 8s recharge per charge
 - Slippery steering when on ice chunks
 - Bridge fall: takes damage when driven off the edge of a bridge chunk
@@ -124,9 +124,21 @@ res://
 - 16-channel SFX player pool with priority system
 - Reverb on SFX bus, compressor on Master bus
 
+### Enemy Animation Rig
+- `Enemy.gd` builds a named `AnimationLibrary` ("roadmap") with seven clips: `idle`, `move`, `attack`, `hit`, `enrage`, `phase2`, `death`
+- `AnimationTree` uses a direct `AnimationNodeStateMachine` with `parameters/playback` travel and `to_<state>` transition conditions
+- Boss scripts call `play_boss_animation(state)` for attack, enrage and phase-2 cues; `play_animation()` / `set_animation_state()` remain the public entry points
+- Method tracks emit `animation_event_fired(String)` and can sync nodes in the `boss_animation_demo` group
+
+### Localization, Accessibility & Online Leaderboard
+- `LocalizationUtil.gd` registers programmatic `Translation` resources for `en`, `es`, `fr`, `de`; the selected locale is persisted via `SettingsManager.set_roadmap_value("locale", ...)`
+- `AccessibilityUtil.gd` provides headless-safe `AccessibilityServer` bridging, focus chains/grids, control descriptions, announcements and high-contrast/colorblind palette application
+- `OnlineLeaderboard.gd` wraps an `HTTPRequest` child, configurable endpoint/timeout, and falls back to the encrypted `GameManager.leaderboard` on any failure
+- All four roadmap features are gated by `SettingsManager.is_feature_enabled()` keys in `Constants.ROADMAP_FEATURE_KEYS`
+
 ### Save System
 - Save file at `user://save.dat` with CRC32 checksum via `hash(var_to_str(payload))`
-- Stores: credits, high score, upgrade levels
+- Stores: credits, high score, upgrade levels, defeated boss keys, unlocked achievements
 - Load validates checksum, type-checks all fields, falls back to defaults on corruption
 
 ### Weather System

@@ -421,17 +421,18 @@ Configure in **Project → Export**:
 
 ---
 
-## Not Yet Implemented
+## Roadmap Feature Status
 
-These features are defined in the design doc but not yet coded:
+Implemented foundations for roadmap items 11, 13, 14 and 15:
 
-- Daily run challenge / seed system
-- Achievement badges
-- Online leaderboard
-- Touch/mobile controls
-- Cosmetic skins in garage
+- Boss animation rig (`Enemy.AnimationLibrary` + `AnimationTree` state machine) with attack/enrage/phase hooks and animation events
+- Themed UI with `NinePatchRect` panels and `StyleBoxFlat` focus/hover/pressed states
+- Ten Interceptor skins with real boss, achievement and score unlock conditions
+- Localization (`en`/`es`/`fr`/`de`), accessibility palettes/focus descriptions, and an optional `HTTPRequest` leaderboard with local fallback
 
-See `docs/design.md` for full specifications.
+All four features are individually toggleable through `Constants.ROADMAP_FEATURE_KEYS` and covered by GUT unit/fuzz tests plus `python3 scripts/check_coverage.py` and `python3 scripts/check_deadcode.py`.
+
+Other roadmap items are owned by the parent branch; see `docs/roadmap.md` for their remaining checkboxes. See `docs/design.md` for the full game design specification.
 
 ---
 

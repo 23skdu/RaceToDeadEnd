@@ -3,6 +3,10 @@ extends CanvasLayer
 signal back_to_menu_requested
 signal start_run_requested
 
+const LocalizationUtilScript = preload("res://scripts/utils/LocalizationUtil.gd")
+const AccessibilityUtilScript = preload("res://scripts/utils/AccessibilityUtil.gd")
+
+@onready var panel: NinePatchRect = $Panel
 @onready var credits_label: Label = $Panel/CreditsLabel
 @onready var upgrade_container: VBoxContainer = $Panel/TabContainer/Upgrades
 @onready var customize_container: VBoxContainer = $Panel/TabContainer/Customize
@@ -11,6 +15,8 @@ signal start_run_requested
 
 var _selected_preview_pack_id: String = ""
 var _preview_panel: PanelContainer = null
+var _localization = null
+var _accessibility = null
 
 const UPGRADE_COSTS: Dictionary = {
 	max_health = [0, 500, 1500, 3000, 5000],
@@ -31,19 +37,60 @@ const UPGRADE_NAMES: Dictionary = {
 }
 
 func _ready() -> void:
+	_localization = LocalizationUtilScript.new()
+	_accessibility = AccessibilityUtilScript.new()
 	back_button.pressed.connect(_on_back_pressed)
 	start_button.pressed.connect(_on_start_pressed)
+	_apply_localized_texts()
+	_apply_accessibility_settings()
 	refresh()
+	_setup_focus_navigation()
+	_describe_controls()
+
+func _t(key: String, fallback: String = "") -> String:
+	return LocalizationUtilScript.t(key, fallback)
 
 func refresh() -> void:
-	credits_label.text = "CREDITS: " + str(GameManager.credits)
+	credits_label.text = _t("R2DE_CREDITS_PREFIX", "CREDITS: ") + str(GameManager.credits)
 	_refresh_upgrades()
 	_refresh_customize()
+
+func _apply_localized_texts() -> void:
+	var title := get_node_or_null("Panel/TitleLabel")
+	if title is Label:
+		(title as Label).text = _t("R2DE_GARAGE_TITLE")
+	back_button.text = _t("R2DE_BACK", "BACK")
+	if _accessibility:
+		_accessibility.refresh_descriptions()
+
+func _apply_accessibility_settings() -> void:
+	if not _accessibility:
+		return
+	_accessibility.apply_palette(
+		self,
+		SettingsManager.get_high_contrast(),
+		SettingsManager.get_colorblind_mode()
+	)
+
+func _setup_focus_navigation() -> void:
+	if not SettingsManager.is_feature_enabled(Constants.FEATURE_THEMED_UI, true):
+		return
+	AccessibilityUtilScript.link_focus_chain([start_button, back_button])
+	if _accessibility:
+		_accessibility.describe_control(start_button, "START RUN", "Start a new run")
+		_accessibility.describe_control(back_button, _t("R2DE_BACK", "BACK"), "Return to the main menu")
+
+func _describe_controls() -> void:
+	if not _accessibility:
+		return
+	_accessibility.describe_control(start_button, "START RUN", "Start a new run")
+	_accessibility.describe_control(back_button, _t("R2DE_BACK", "BACK"), "Return to the main menu")
 
 func _refresh_upgrades() -> void:
 	for child in upgrade_container.get_children():
 		upgrade_container.remove_child(child)
 		child.queue_free()
+	var buttons: Array[Control] = []
 	for key in UPGRADE_NAMES:
 		var level = GameManager.upgrade_levels.get(key, 1)
 		var costs = UPGRADE_COSTS[key]
@@ -58,6 +105,11 @@ func _refresh_upgrades() -> void:
 			btn.disabled = GameManager.credits < cost
 			btn.pressed.connect(_on_upgrade_pressed.bind(key, cost))
 		upgrade_container.add_child(btn)
+		buttons.append(btn)
+		if _accessibility:
+			_accessibility.describe_control(btn, UPGRADE_NAMES[key], "Spend credits to upgrade " + UPGRADE_NAMES[key].to_lower())
+	if SettingsManager.is_feature_enabled(Constants.FEATURE_THEMED_UI, true):
+		AccessibilityUtilScript.link_focus_grid(buttons, 2)
 
 func _on_upgrade_pressed(key: String, cost: int) -> void:
 	if GameManager.spend_credits(cost):
@@ -65,6 +117,8 @@ func _on_upgrade_pressed(key: String, cost: int) -> void:
 		if GameManager.upgrade_levels[key] < costs.size() - 1:
 			GameManager.upgrade_levels[key] += 1
 		refresh()
+		if _accessibility:
+			_accessibility.announce(UPGRADE_NAMES.get(key, key) + " upgraded")
 
 func _refresh_customize() -> void:
 	for child in customize_container.get_children():
@@ -80,13 +134,13 @@ func _refresh_customize() -> void:
 	if packs.size() == 0:
 		var lbl = Label.new()
 		lbl.name = "NoPacksLabel"
-		lbl.text = "No custom content packs installed."
+		lbl.text = _t("R2DE_NO_PACKS")
 		customize_container.add_child(lbl)
 		return
 
 	var pack_header = Label.new()
 	pack_header.name = "PacksHeaderLabel"
-	pack_header.text = "CUSTOM CONTENT PACKS"
+	pack_header.text = _t("R2DE_CUSTOM_PACKS")
 	customize_container.add_child(pack_header)
 
 	for pack_id in packs:
@@ -99,7 +153,7 @@ func _refresh_customize() -> void:
 		hb.add_child(lbl)
 
 		var preview_btn = Button.new()
-		preview_btn.text = "Preview"
+		preview_btn.text = _t("R2DE_PREVIEW_LABEL", "Preview")
 		preview_btn.pressed.connect(func():
 			_selected_preview_pack_id = pack_id
 			_update_pack_preview(pack_id)
@@ -119,7 +173,7 @@ func _refresh_customize() -> void:
 func _build_car_skins_section() -> void:
 	var header = Label.new()
 	header.name = "SkinsHeaderLabel"
-	header.text = "INTERCEPTOR SKINS"
+	header.text = _t("R2DE_INTERCEPTOR_SKINS")
 	customize_container.add_child(header)
 
 	var scroll = ScrollContainer.new()
@@ -138,10 +192,15 @@ func _build_car_skins_section() -> void:
 	if GameManager and GameManager.has_method("is_skin_unlocked") and not GameManager.is_skin_unlocked(selected_id):
 		selected_id = "default"
 
+	var skin_buttons: Array[Control] = []
 	for skin_info in Constants.PLAYER_SKINS:
 		var skin_id := str(skin_info.get("id", ""))
-		var skin_name := str(skin_info.get("name", skin_id))
+		var skin_name := LocalizationUtilScript.skin_name(skin_id)
+		if skin_name.is_empty():
+			skin_name = skin_id
 		var desc := str(skin_info.get("description", ""))
+		var requirement: Dictionary = GameManager.get_skin_unlock_requirement(skin_id)
+		var unlock_hint := str(requirement.get("text", ""))
 		var unlocked := GameManager.is_skin_unlocked(skin_id) if GameManager and GameManager.has_method("is_skin_unlocked") else true
 		var is_equipped := (skin_id == selected_id)
 
@@ -179,6 +238,8 @@ func _build_car_skins_section() -> void:
 		info_box.add_child(name_lbl)
 		var desc_lbl = Label.new()
 		desc_lbl.text = desc
+		if not unlock_hint.is_empty() and unlock_hint != "Available from the start":
+			desc_lbl.text += "\n" + _t("R2DE_UNLOCK_HINT_PREFIX") + unlock_hint
 		desc_lbl.add_theme_font_size_override("font_size", 11)
 		desc_lbl.modulate = Color(0.75, 0.8, 0.9, 0.9)
 		info_box.add_child(desc_lbl)
@@ -190,7 +251,7 @@ func _build_car_skins_section() -> void:
 		if not unlocked:
 			btn.text = "LOCKED"
 			btn.disabled = true
-			btn.tooltip_text = "Defeat the 1st Boss (Cyber Bunny) to unlock"
+			btn.tooltip_text = unlock_hint
 		elif is_equipped:
 			btn.text = "EQUIPPED"
 			btn.disabled = true
@@ -198,8 +259,14 @@ func _build_car_skins_section() -> void:
 			btn.text = "EQUIP"
 			btn.pressed.connect(_on_select_skin_pressed.bind(skin_id))
 		row.add_child(btn)
+		skin_buttons.append(btn)
+		if _accessibility:
+			_accessibility.describe_control(btn, skin_name, unlock_hint)
 
 		list.add_child(row)
+
+	if SettingsManager.is_feature_enabled(Constants.FEATURE_THEMED_UI, true):
+		AccessibilityUtilScript.link_focus_grid(skin_buttons, 3)
 
 func _on_select_skin_pressed(skin_id: String) -> void:
 	if not GameManager.is_skin_unlocked(skin_id):
@@ -207,6 +274,8 @@ func _on_select_skin_pressed(skin_id: String) -> void:
 	if SettingsManager and SettingsManager.has_method("set_player_skin"):
 		SettingsManager.set_player_skin(skin_id)
 	_refresh_customize()
+	if _accessibility:
+		_accessibility.announce(LocalizationUtilScript.skin_name(skin_id) + " equipped")
 
 func _build_preview_panel() -> void:
 	_preview_panel = PanelContainer.new()
@@ -231,7 +300,7 @@ func _update_pack_preview(pack_id: String) -> void:
 		return
 	var title = Label.new()
 	title.name = "PreviewTitle"
-	title.text = "PREVIEW: " + str(info.get("name", pack_id))
+	title.text = _t("R2DE_PREVIEW_LABEL") + ": " + str(info.get("name", pack_id))
 	vb.add_child(title)
 
 	var content_row = HBoxContainer.new()

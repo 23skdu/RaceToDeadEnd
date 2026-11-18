@@ -23,10 +23,10 @@ func before_each():
 	GameManager.state = GameManager.GameState.MENU
 
 func _create_player():
-	Engine.physics_interpolation = false
+	ProjectSettings.set_setting("physics/common/physics_interpolation", false)
 	var player = InterceptorScene.instantiate()
 	add_child_autofree(player)
-	Engine.physics_interpolation = true
+	ProjectSettings.set_setting("physics/common/physics_interpolation", true)
 	return player
 
 func test_constants():
