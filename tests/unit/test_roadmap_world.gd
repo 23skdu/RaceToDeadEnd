@@ -157,11 +157,16 @@ func test_roadmap_world_weather_materials_and_lights() -> void:
 	assert_eq(RoadmapWorld.occluder_polygon("circle", Vector2(20, 20)).size(), 12)
 	assert_eq(RoadmapWorld.occluder_polygon("box", Vector2(20, 20)).size(), 4)
 	var occluder := RoadmapWorld.make_light_occluder("circle", Vector2(24, 24))
+	add_child_autofree(occluder)
 	assert_not_null(occluder.occluder)
 	assert_gte(occluder.occluder.polygon.size(), 3)
 	assert_gt(RoadmapWorld.make_light_texture().get_width(), 0)
-	assert_eq(RoadmapWorld.make_flash_light(Color.RED).energy, 3.0)
-	assert_eq(RoadmapWorld.make_reactor_light().name, "BossReactorLight")
+	var flash := RoadmapWorld.make_flash_light(Color.RED)
+	add_child_autofree(flash)
+	assert_eq(flash.energy, 3.0)
+	var reactor := RoadmapWorld.make_reactor_light()
+	add_child_autofree(reactor)
+	assert_eq(reactor.name, "BossReactorLight")
 
 # --- Game.gd integration --------------------------------------------------------
 

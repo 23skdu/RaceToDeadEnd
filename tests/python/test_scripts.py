@@ -7,6 +7,7 @@ import struct
 import sys
 import tempfile
 import unittest
+import unittest.mock
 import zlib
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -88,6 +89,119 @@ class TestPythonScripts(unittest.TestCase):
                 remove_bg.make_transparent("nonexistent.png")
         else:
             self.assertFalse(remove_bg.make_transparent("nonexistent_12345.png"))
+
+    def test_deadcode_detects_unused_top_level_variable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            script.parent.mkdir(parents=True)
+            text = 'extends Node\nvar unused: int = 1\n'
+            script.write_text(text, encoding="utf-8")
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                issues = check_deadcode.check_unused_symbols({script: text})
+            self.assertTrue(any("Thing.gd::unused" in issue for issue in issues))
+
+    def test_deadcode_ignores_local_vars_and_lifecycle_callbacks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            script.parent.mkdir(parents=True)
+            text = (
+                "extends Node\n"
+                "func _ready() -> void:\n"
+                "\tvar local: int = 1\n"
+                "\tprint(local)\n"
+            )
+            script.write_text(text, encoding="utf-8")
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                issues = check_deadcode.check_unused_symbols({script: text})
+            self.assertEqual(issues, [])
+
+    def test_deadcode_ignores_comments_and_arbitrary_strings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            script.parent.mkdir(parents=True)
+            text = 'extends Node\nvar hidden: int = 1\n# hidden\nconst NOTE := "hidden"\n'
+            script.write_text(text, encoding="utf-8")
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                issues = check_deadcode.check_unused_symbols({script: text})
+            self.assertTrue(any("Thing.gd::hidden" in issue for issue in issues))
+
+    def test_deadcode_dynamic_string_reference_suppresses_unused_symbol(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            script.parent.mkdir(parents=True)
+            text = (
+                "extends Node\n"
+                "signal ping\n"
+                "func _ready() -> void:\n"
+                "\temit_signal(\"ping\")\n"
+            )
+            script.write_text(text, encoding="utf-8")
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                issues = check_deadcode.check_unused_symbols({script: text})
+            self.assertFalse(any("::ping" in issue for issue in issues))
+
+    def test_deadcode_dynamic_method_guard_detects_missing_method(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            script.parent.mkdir(parents=True)
+            text = 'extends Node\nfunc _ready() -> void:\n\tif node.has_method("missing_method"):\n\t\tpass\n'
+            script.write_text(text, encoding="utf-8")
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                issues = check_deadcode.check_dynamic_method_guards({script: text})
+            self.assertTrue(any("missing_method" in issue for issue in issues))
+
+    def test_deadcode_test_only_symbol_modes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            test = root / "tests" / "unit" / "test_thing.gd"
+            script.parent.mkdir(parents=True)
+            test.parent.mkdir(parents=True)
+            script_text = 'extends Node\nvar test_hook: int = 1\n'
+            test_text = 'extends GutTest\nfunc test_hook() -> void:\n\tassert_eq(1, 1)\n'
+            script.write_text(script_text, encoding="utf-8")
+            test.write_text(test_text, encoding="utf-8")
+            texts = {script: script_text, test: test_text}
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                default_issues = check_deadcode.check_unused_symbols(texts)
+                strict_issues = check_deadcode.check_unused_symbols(texts, include_test_only=True)
+            self.assertFalse(any("test_hook" in issue for issue in default_issues))
+            self.assertTrue(any("Thing.gd::test_hook" in issue for issue in strict_issues))
+
+    def test_deadcode_scene_connection_counts_as_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "scripts" / "scenes" / "Thing.gd"
+            scene = root / "scenes" / "Thing.tscn"
+            script.parent.mkdir(parents=True)
+            scene.parent.mkdir(parents=True)
+            script_text = 'extends Node\nfunc _on_pressed() -> void:\n\tpass\n'
+            scene_text = '[connection signal="pressed" method="_on_pressed"]\n'
+            script.write_text(script_text, encoding="utf-8")
+            scene.write_text(scene_text, encoding="utf-8")
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                issues = check_deadcode.check_unused_symbols({script: script_text, scene: scene_text})
+            self.assertFalse(any("_on_pressed" in issue for issue in issues))
+
+    def test_deadcode_requires_exact_resource_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "scripts" / "Foo.gd"
+            other = root / "scripts" / "Bar.gd"
+            candidate.parent.mkdir(parents=True)
+            candidate.write_text('extends Node\n', encoding="utf-8")
+            other.write_text('extends Node\nconst X := "NotFoo.gd"\n', encoding="utf-8")
+            texts = {candidate: candidate.read_text(encoding="utf-8"), other: other.read_text(encoding="utf-8")}
+            with unittest.mock.patch.object(check_deadcode, "ROOT", root):
+                self.assertFalse(check_deadcode._resource_referenced("scripts/Foo.gd", texts, candidate))
+                other.write_text('extends Node\nconst X := "res://scripts/Foo.gd"\n', encoding="utf-8")
+                texts[other] = other.read_text(encoding="utf-8")
+                self.assertTrue(check_deadcode._resource_referenced("scripts/Foo.gd", texts, candidate))
 
 
 if __name__ == "__main__":

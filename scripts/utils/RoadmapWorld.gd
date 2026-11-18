@@ -264,16 +264,7 @@ static func occluder_polygon(kind: String, size: Vector2) -> PackedVector2Array:
 	])
 
 static func make_light_occluder(kind: String, size: Vector2) -> LightOccluder2D:
-	var polygon := PackedVector2Array()
-	var fx_path := "res://scripts/utils/RoadmapFx.gd"
-	if ResourceLoader.exists(fx_path):
-		var fx = load(fx_path)
-		if fx != null and fx.has_method("occluder_polygon_for") and fx.get_method_argument_count("occluder_polygon_for") == 2:
-			var candidate = fx.occluder_polygon_for(kind, size)
-			if candidate is PackedVector2Array and (candidate as PackedVector2Array).size() >= 3:
-				polygon = candidate as PackedVector2Array
-	if polygon.is_empty():
-		polygon = occluder_polygon(kind, size)
+	var polygon := occluder_polygon(kind, size)
 	var shape := OccluderPolygon2D.new()
 	shape.polygon = polygon
 	shape.closed = true

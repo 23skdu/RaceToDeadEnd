@@ -7,22 +7,6 @@ const TRAIL_SPACING: float = 8.0
 const EXPLOSION_POOL_SIZE: int = 6
 
 
-@export_group("Movement")
-@export var move_speed: float = Constants.BASE_SPEED
-@export var weave_dist: float = Constants.WEAVE_DISTANCE
-@export var weave_cooldown: float = Constants.WEAVE_COOLDOWN
-
-@export_group("Boost")
-@export var boost_speed_mult: float = Constants.BOOST_SPEED_MULTIPLIER
-@export var boost_duration: float = Constants.BOOST_DURATION
-@export var boost_recharge: float = Constants.BOOST_RECHARGE_TIME
-@export var max_boost: int = 3
-
-@export_group("Combat")
-@export var primary_cooldown: float = Constants.PRIMARY_FIRE_COOLDOWN
-@export var accel_speed: float = Constants.ACCEL_SPEED
-@export var reverse_speed: float = Constants.REVERSE_SPEED
-
 signal weapon_fired(weapon_type: String, position: Vector2, direction: Vector2)
 signal boost_activated
 signal boost_depleted

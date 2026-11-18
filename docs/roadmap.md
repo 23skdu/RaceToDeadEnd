@@ -138,6 +138,7 @@ Every item below is **partially implemented**: a scaffold, constant, or partial 
 Each point ships with:
 - GUT unit + fuzz tests covering new autoloads, scenes, and utilities (100% coverage maintained via `make check-coverage`).
 - `make deadcode` clean (no unreferenced scripts/scenes or unused symbols).
+- `make check-orphans` clean (GUT post-run guard fails on any orphaned node).
 - `make check-assets` and `make lint-docs` passing.
 - Updated documentation in `docs/` (architecture, design, bosses, development).
 - Export verification via `make build-all` (Web, Linux, Windows, macOS) and `make build-android` / `make build-ios` where toolchains are available.

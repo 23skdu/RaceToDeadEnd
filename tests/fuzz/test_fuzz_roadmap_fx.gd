@@ -64,6 +64,7 @@ func test_fuzz_occluders_and_procedural_textures() -> void:
 		for j in _rng.randi_range(0, 7):
 			points.append(Vector2(_rng.randf_range(-200.0, 200.0), _rng.randf_range(-200.0, 200.0)))
 		var occluder: LightOccluder2D = RoadmapFx.create_light_occluder(points, i % 2 == 0)
+		add_child_autofree(occluder)
 		assert_not_null(occluder, "LightOccluder2D creation should not crash")
 		assert_not_null(occluder.occluder, "Occluder resource should always be attached")
 		var tint := Color(_rng.randf_range(0.0, 1.0), _rng.randf_range(0.0, 1.0), _rng.randf_range(0.0, 1.0), 1.0)
@@ -135,4 +136,5 @@ func test_fuzz_flash_light_and_occluder_toggles() -> void:
 			assert_null(light, "Flash should be gated off")
 		var points := PackedVector2Array([Vector2(NAN, 0.0), Vector2(1.0, INF), Vector2.ZERO, Vector2(2.0, 2.0)])
 		var occluder: LightOccluder2D = RoadmapFx.create_light_occluder(points)
+		add_child_autofree(occluder)
 		assert_not_null(occluder, "Invalid points should still produce an occluder")

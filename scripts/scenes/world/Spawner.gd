@@ -6,8 +6,6 @@ extends Node
 @export var wave_interval_decay: float = Constants.WAVE_INTERVAL_DECAY
 
 @export_group("Spawning")
-@export var spawn_distance: float = Constants.SPAWN_DISTANCE
-@export var cleanup_distance: float = Constants.CLEANUP_DISTANCE
 @export var civilian_chance: float = Constants.CIVILIAN_SPAWN_CHANCE
 
 signal wave_spawned(wave_number: int)

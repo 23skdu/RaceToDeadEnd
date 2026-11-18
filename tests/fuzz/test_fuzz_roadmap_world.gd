@@ -133,12 +133,15 @@ func test_fuzz_roadmap_world_weather_materials_and_occluders() -> void:
 		var kind := "circle" if i % 2 == 0 else "guardrail"
 		assert_gte(RoadmapWorld.occluder_polygon(kind, size).size(), 3)
 		var occluder := RoadmapWorld.make_light_occluder(kind, size)
+		add_child_autofree(occluder)
 		assert_not_null(occluder.occluder)
 		assert_gte(occluder.occluder.polygon.size(), 3)
 		assert_gt(RoadmapWorld.make_light_texture().get_width(), 0)
 		var flash := RoadmapWorld.make_flash_light(Color(1.0, _rng.randf(), 0.2, 1.0))
+		add_child_autofree(flash)
 		assert_gt(flash.energy, 0.0)
 		var reactor := RoadmapWorld.make_reactor_light()
+		add_child_autofree(reactor)
 		assert_gt(reactor.texture_scale, 0.0)
 
 func test_fuzz_game_roadmap_toggles_and_overlays() -> void:

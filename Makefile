@@ -38,10 +38,11 @@ ANDROID_DIR   ?= $(BUILD_DIR)/android
 IOS_DIR       ?= $(BUILD_DIR)/ios
 
 PYTHON_SCRIPTS := scripts/check_bg.py scripts/remove_bg.py scripts/check_coverage.py scripts/check_deadcode.py tests/python/test_scripts.py
+GUT_ORPHAN_GUARD := res://tests/gut_orphan_guard.gd
 
 .PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates build-info prep-build import run editor \
 	test test-unit test-integration test-fuzz test-regression test-runner test-scripts test-python \
-	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage deadcode install-hooks \
+	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage check-orphans deadcode install-hooks \
 	build build-web build-linux build-windows build-macos build-android build-ios build-all serve-web \
 	clean clean-all
 
@@ -74,12 +75,14 @@ help:
 	@echo "  test-runner       Run custom headless SceneTree test runner (scripts/run_tests.gd)"
 	@echo "  test-scripts      Run unified test script (scripts/run_tests.sh)"
 	@echo "  test-python       Run Python utility unit and fuzz tests (tests/python)"
+	@echo "  check-orphans     Run the GUT suite with the post-run orphan guard (fails on any orphan)"
 	@echo ""
 	@echo "Linting & Verification:"
-	@echo "  check             Run check-godot, lint, deadcode, check-coverage, test-python, and full test suite"
+	@echo "  check             Run check-godot, lint, deadcode, check-coverage, check-assets, test-python, and orphan-guarded test suite"
 	@echo "  ci                Alias for check (mirrors CI verification gate)"
 	@echo "  deadcode          Scan scripts and scenes for unreferenced files and unused symbols"
 	@echo "  check-coverage    Verify 100% unit, fuzz, and Python script test coverage"
+	@echo "  check-assets      Verify enemy sprite alpha channels via scripts/check_bg.py"
 	@echo "  install-hooks     Install git pre-commit hook (.githooks/pre-commit)"
 	@echo "  lint              Run Python syntax checks and optional gdlint/markdownlint"
 	@echo "  lint-gd           Run gdlint on scripts/ and tests/ (if installed)"
@@ -87,7 +90,6 @@ help:
 	@echo "  lint-docs         Lint Markdown docs with markdownlint (if installed)"
 	@echo "  fmt               Format GDScript files with gdformat (if installed)"
 	@echo "  fmt-check         Check GDScript formatting with gdformat --check (if installed)"
-	@echo "  check-assets      Inspect enemy sprite alpha channels via scripts/check_bg.py"
 	@echo ""
 	@echo "Build & Export:"
 	@echo "  build             Export Web build (default release artifact)"
@@ -186,23 +188,23 @@ editor: check-godot
 test: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
 		-gdir=res://tests/unit,res://tests/integration,res://tests/fuzz,res://tests/regression \
-		-ginclude_subdirs -gexit -glog=1
+		-ginclude_subdirs -gexit -glog=1 -gpost_run_script=$(GUT_ORPHAN_GUARD)
 
 test-unit: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
-		-gdir=res://tests/unit -gexit -glog=1
+		-gdir=res://tests/unit -gexit -glog=1 -gpost_run_script=$(GUT_ORPHAN_GUARD)
 
 test-integration: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
-		-gdir=res://tests/integration -gexit -glog=1
+		-gdir=res://tests/integration -gexit -glog=1 -gpost_run_script=$(GUT_ORPHAN_GUARD)
 
 test-fuzz: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
-		-gdir=res://tests/fuzz -gexit -glog=1
+		-gdir=res://tests/fuzz -gexit -glog=1 -gpost_run_script=$(GUT_ORPHAN_GUARD)
 
 test-regression: check-godot deps import
 	"$(GODOT)" --headless -s addons/gut/gut_cmdln.gd \
-		-gdir=res://tests/regression -gexit -glog=1
+		-gdir=res://tests/regression -gexit -glog=1 -gpost_run_script=$(GUT_ORPHAN_GUARD)
 
 test-runner: check-godot deps import
 	"$(GODOT)" --headless -s scripts/run_tests.gd
@@ -260,6 +262,9 @@ check-assets:
 check-coverage:
 	$(PYTHON) scripts/check_coverage.py
 
+check-orphans: test
+	@echo "Orphan check passed: GUT post-run guard found 0 orphans."
+
 deadcode:
 	$(PYTHON) scripts/check_deadcode.py
 
@@ -270,7 +275,7 @@ install-hooks:
 	@chmod +x .git/hooks/pre-commit
 	@echo "Installed git pre-commit hook to .git/hooks/pre-commit"
 
-check: check-godot lint lint-docs deadcode check-coverage test-python test
+check: check-godot lint lint-docs deadcode check-coverage check-assets test-python check-orphans
 	@echo "=========================================================="
 	@echo "  Race to Dead End local verification passed!"
 	@echo "=========================================================="

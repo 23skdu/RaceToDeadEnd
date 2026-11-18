@@ -2,16 +2,6 @@ extends Node2D
 
 const RoadmapFx = preload("res://scripts/utils/RoadmapFx.gd")
 
-@export_group("Weather Timing")
-@export var transition_speed: float = 0.5
-@export var lightning_cooldown_min: float = 1.0
-@export var lightning_cooldown_max: float = 3.0
-
-@export_group("Weather Effects")
-@export var acid_damage_interval: float = Constants.ACID_RAIN_DAMAGE_INTERVAL
-@export var acid_damage_amount: int = Constants.ACID_RAIN_DAMAGE
-@export var rain_drop_count: int = Constants.RAIN_DROP_COUNT
-
 signal weather_changed(weather_type: String)
 signal lightning_strike(position: Vector2)
 

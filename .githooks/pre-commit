@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Running Pre-Commit Verification (Lint, Coverage, Unit/Integration/Fuzz/Regression Tests) ==="
+echo "=== Running Pre-Commit Verification (Lint, Docs, Dead Code, Coverage, Assets, Orphans, Unit/Integration/Fuzz/Regression Tests) ==="
 
 make lint
 make lint-docs
 make fmt-check
 make deadcode
 make check-coverage
+make check-assets
 make test-python
-make test
+make check-orphans
 
 echo "=== Pre-Commit Verification Passed (100%) ==="

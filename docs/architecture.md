@@ -159,5 +159,6 @@ res://
 - **Framework**: GUT (Godot Unit Testing) via `addons/gut/` + Python `unittest` (`tests/python/`)
 - **Runner**: `scripts/run_tests.gd` (SceneTree script, headless) and `make test`
 - **Coverage**: `scripts/check_coverage.py` enforces 100% unit (`tests/unit/`) and fuzz (`tests/fuzz/`) coverage across all `.gd` scripts in `scripts/` and `demo/`, plus 100% coverage of Python scripts in `tests/python/`
-- **Dead Code Verification**: `make deadcode` (`scripts/check_deadcode.py`) scans for unreferenced scripts/scenes and unused symbols
-- **Run**: `make check` or `godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit,res://tests/integration,res://tests/fuzz,res://tests/regression -ginclude_subdirs -gexit -glog=1`
+- **Dead Code Verification**: `make deadcode` (`scripts/check_deadcode.py`) scans for unreferenced resources, unused symbols, unconnected handlers, and stale dynamic method guards; `--include-test-only` additionally reports test-only APIs
+- **Orphan Verification**: `make check-orphans` runs GUT with `tests/gut_orphan_guard.gd` as a post-run hook and fails the run on any orphaned node
+- **Run**: `make check` or `godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit,res://tests/integration,res://tests/fuzz,res://tests/regression -ginclude_subdirs -gexit -glog=1 -gpost_run_script=res://tests/gut_orphan_guard.gd`

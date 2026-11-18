@@ -89,7 +89,7 @@ func _describe_controls() -> void:
 func _refresh_upgrades() -> void:
 	for child in upgrade_container.get_children():
 		upgrade_container.remove_child(child)
-		child.queue_free()
+		child.free()
 	var buttons: Array[Control] = []
 	for key in UPGRADE_NAMES:
 		var level = GameManager.upgrade_levels.get(key, 1)
@@ -123,7 +123,7 @@ func _on_upgrade_pressed(key: String, cost: int) -> void:
 func _refresh_customize() -> void:
 	for child in customize_container.get_children():
 		customize_container.remove_child(child)
-		child.queue_free()
+		child.free()
 
 	_build_car_skins_section()
 
@@ -294,7 +294,7 @@ func _update_pack_preview(pack_id: String) -> void:
 		return
 	for child in vb.get_children():
 		vb.remove_child(child)
-		child.queue_free()
+		child.free()
 	var info = PackManager.get_pack_info(pack_id)
 	if info.is_empty():
 		return

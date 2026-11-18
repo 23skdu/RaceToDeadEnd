@@ -13,7 +13,6 @@ const RoadmapWorld = preload("res://scripts/utils/RoadmapWorld.gd")
 @onready var tier_label: Label = $TierLabel
 @onready var lives_label: Label = $LivesLabel
 
-@onready var weapons_container: HBoxContainer = $WeaponsContainer
 @onready var missile_panel: HBoxContainer = $WeaponsContainer/MissilePanel
 @onready var missile_label: Label = $WeaponsContainer/MissilePanel/Label
 @onready var mine_panel: HBoxContainer = $WeaponsContainer/MinePanel

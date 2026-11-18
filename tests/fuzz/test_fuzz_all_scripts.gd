@@ -204,3 +204,59 @@ func test_fuzz_ui_screens_and_widgets() -> void:
 		wb._on_weather_changed(weather_names[_rng.randi() % weather_names.size()])
 		wb._process(_rng.randf_range(0.01, 0.2))
 	assert_not_null(wb)
+
+# --- GUT post-run orphan guard fuzz coverage ---
+
+const OrphanGuard = preload("res://tests/gut_orphan_guard.gd")
+
+class OrphanGuardFuzzOrphanage extends RefCounted:
+	func clean() -> void:
+		pass
+
+class OrphanGuardFuzzCounter extends RefCounted:
+	var live: int = 0
+	var recorded: int = 0
+	var orphanage: OrphanGuardFuzzOrphanage = OrphanGuardFuzzOrphanage.new()
+
+	func orphan_count() -> int:
+		return live
+
+	func get_orphan_ids(_group = null, _subgroup = null) -> Array:
+		var ids := []
+		for i in recorded:
+			ids.append(i)
+		return ids
+
+class OrphanGuardFuzzLogger extends RefCounted:
+	var messages: Array[String] = []
+
+	func error(message: String) -> void:
+		messages.append(message)
+
+	func log(message: String) -> void:
+		messages.append(message)
+
+class OrphanGuardFuzzGut extends RefCounted:
+	var counter: OrphanGuardFuzzCounter = OrphanGuardFuzzCounter.new()
+	var logger: OrphanGuardFuzzLogger = OrphanGuardFuzzLogger.new()
+
+	func get_orphan_counter() -> OrphanGuardFuzzCounter:
+		return counter
+
+func test_fuzz_orphan_guard_counts_and_exit_codes() -> void:
+	for i in 50:
+		var live: int = _rng.randi_range(0, 4)
+		var recorded: int = _rng.randi_range(0, 8)
+		var gut := OrphanGuardFuzzGut.new()
+		gut.counter.live = live
+		gut.counter.recorded = recorded
+		var counts: Dictionary = OrphanGuard.orphan_counts(gut)
+		assert_eq(counts.get("live"), live)
+		assert_eq(counts.get("recorded"), recorded)
+		var guard = OrphanGuard.new()
+		guard.gut = gut
+		guard.run()
+		if live == 0 and recorded == 0:
+			assert_null(guard.get_exit_code())
+		else:
+			assert_eq(guard.get_exit_code(), 1)

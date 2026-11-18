@@ -132,11 +132,13 @@ func test_light_occluder_resources_are_created_and_gated() -> void:
 	assert_eq(polygon.polygon.size(), 3, "Polygon should keep valid points")
 	assert_true(polygon.closed, "Polygon should be closed by default")
 	var occluder: LightOccluder2D = RoadmapFx.create_light_occluder(points)
+	add_child_autofree(occluder)
 	assert_true(occluder is LightOccluder2D)
 	assert_not_null(occluder.occluder, "Occluder resource should be attached")
 	assert_eq(occluder.occluder_light_mask, 1, "Lighting enabled should set occluder mask")
 	SettingsManager.set_feature_enabled(RoadmapFx.FEATURE_LIGHTING_EFFECTS, false)
 	var disabled: LightOccluder2D = RoadmapFx.create_light_occluder(points)
+	add_child_autofree(disabled)
 	assert_eq(disabled.occluder_light_mask, 0, "Disabled lighting should clear occluder mask")
 
 func test_interpolate_transform_endpoints_and_clamping() -> void:

@@ -51,6 +51,8 @@ func _ready() -> void:
 		get_viewport().size_changed.connect(_scale_sprite)
 	if PackManager and PackManager.has_signal("skin_loaded") and not PackManager.skin_loaded.is_connected(_on_pack_skin_loaded):
 		PackManager.skin_loaded.connect(_on_pack_skin_loaded)
+	if hit_flash_timer and not hit_flash_timer.timeout.is_connected(_on_hit_flash_timer_timeout):
+		hit_flash_timer.timeout.connect(_on_hit_flash_timer_timeout)
 	_setup_animation_rig()
 
 func _on_pack_skin_loaded(entity: String, tex: Texture2D) -> void:
