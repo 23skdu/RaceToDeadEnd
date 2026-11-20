@@ -7,6 +7,7 @@
 script = ExtResource("1_uq4ik")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 10
 
 [node name="Border" type="ColorRect" parent="CanvasLayer"]
 anchors_preset = 15
@@ -48,43 +49,43 @@ alignment = 1
 [node name="StartButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "START"
 
 [node name="DailyRunButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "DAILY RUN"
 
 [node name="GarageButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "GARAGE"
 
 [node name="InfoButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "INFO"
 
 [node name="OptionsButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "OPTIONS"
 
 [node name="AboutButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "ABOUT"
 
 [node name="QuitButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18
 text = "QUIT"
 
 [node name="VersionLabel" type="Label" parent="CanvasLayer"]
@@ -93,5 +94,5 @@ offset_top = 690.0
 offset_right = 420.0
 offset_bottom = 720.0
 theme_override_colors/font_color = Color(0.0, 0.85, 1.0, 0.85)
-theme_override_font_sizes/font_size = 13
-text = "v0.2.3"
+theme_override_font_sizes/font_size = 14
+text = "v0.2.4"

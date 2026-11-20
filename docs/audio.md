@@ -30,8 +30,14 @@ The looping menu theme is generated on the main thread at boot before the
 background track pool starts, so the main menu never waits on a worker task.
 `play_game_music()` starts the adaptive mix immediately in the default
 `dynamic` mode; explicit track selections and disabled adaptive music retain
-their existing behavior. On Web, the first press restarts the active stream
-once so a soundtrack begun before the user gesture becomes audible.
+their existing behavior. Every track switch restarts the music player even
+when the selected stream is already assigned, so changing music during a run
+cannot leave it silent. `play_game_music()` also starts a looping car engine
+bed on the SFX bus; `play_menu_music()` stops it. The engine player is
+independent of the music player, so the car and soundtrack remain audible
+together and SFX volume still controls the engine. On Web, the first press
+restarts the active stream once so a soundtrack begun before the user gesture
+becomes audible.
 
 ## 24-bit-resolution synthesis (roadmap item 6)
 
@@ -118,6 +124,8 @@ under the `features` section of `user://settings.cfg`:
 - `decode_s24(data, byte_offset)`
 - `is_polyphonic_sfx_active()`
 - `restart_music()`
+- `start_car_audio()`
+- `stop_car_audio()`
 - `get_adaptive_music_stream()`
 - `get_adaptive_clip_index()`
 - `set_music_intensity(boss_active, difficulty_tier, enemy_density)`

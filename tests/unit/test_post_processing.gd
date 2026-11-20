@@ -11,7 +11,7 @@ func before_each() -> void:
 
 func test_post_processing_autoload_exists() -> void:
 	assert_not_null(PostProcessing, "PostProcessing autoload should be registered")
-	assert_eq(_pp.layer, 90, "PostProcessing should render below ScreenshotManager overlay")
+	assert_eq(_pp.layer, 5, "PostProcessing should render above the world but below UI overlays")
 
 func test_post_processing_ready_creates_rect_and_material() -> void:
 	_pp._ready()

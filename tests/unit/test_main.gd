@@ -49,10 +49,18 @@ func test_main_ready_starts_menu_music():
 
 func test_main_title_lettering_is_sharpened():
 	var main = _create_main()
+	var canvas: CanvasLayer = main.get_node("CanvasLayer")
+	assert_gt(canvas.layer, PostProcessing.layer if PostProcessing else 5, "Main menu should render above the CRT shader")
 	var title: Label = main.get_node("CanvasLayer/TitleLabel")
 	assert_eq(title.get_theme_font_size(&"font_size"), 48, "Title font size should stay legible")
 	assert_eq(title.get_theme_constant(&"outline_size"), 2, "Title outline should not blur glyph edges")
 	assert_not_null(title.get_theme_font(&"font"), "Title should use the themed font")
+
+func test_main_button_lettering_is_crisp():
+	var main = _create_main()
+	var menu_row: HBoxContainer = main.get_node("CanvasLayer/MenuRow")
+	for button in menu_row.get_children():
+		assert_eq(button.get_theme_font_size(&"font_size"), 18, "Menu buttons should use a legible font size")
 
 func test_main_ready_connects_buttons():
 	var main = _create_main()

@@ -3,8 +3,11 @@ extends Node
 enum Bus { MASTER = 0, MUSIC = 1, SFX = 2 }
 
 var music_player: AudioStreamPlayer
+var car_engine_player: AudioStreamPlayer
 var sfx_players: Array[AudioStreamPlayer2D] = []
 const SFX_PLAYER_COUNT: int = 16
+const CAR_ENGINE_VOLUME_DB: float = -18.0
+const CAR_ENGINE_LOOP_SECONDS: float = 2.0
 
 const SAMPLE_RATE: float = 44100.0
 const S24_BYTES_PER_SAMPLE: int = 3
@@ -35,6 +38,7 @@ var _stream_hurt: AudioStreamWAV
 var _stream_boost: AudioStreamWAV
 var _stream_emp: AudioStreamWAV
 var _stream_menu_music: AudioStreamWAV
+var _stream_car_engine: AudioStreamWAV
 var _stream_game_music_bunny: AudioStreamWAV
 var _stream_game_music_biker: AudioStreamWAV
 var _stream_game_music_sasquatch: AudioStreamWAV
@@ -122,6 +126,14 @@ func _ready() -> void:
 	music_player.finished.connect(_on_music_finished)
 	add_child(music_player)
 
+	# The car has its own loop on the SFX bus so changing or restarting the
+	# soundtrack never cuts engine audio, and the SFX volume slider still owns it.
+	car_engine_player = AudioStreamPlayer.new()
+	car_engine_player.bus = "SFX"
+	car_engine_player.name = "CarEnginePlayer"
+	car_engine_player.volume_db = CAR_ENGINE_VOLUME_DB
+	add_child(car_engine_player)
+
 	for i in SFX_PLAYER_COUNT:
 		var p = AudioStreamPlayer2D.new()
 		p.bus = "SFX"
@@ -167,6 +179,20 @@ func _input(event: InputEvent) -> void:
 func restart_music() -> void:
 	if is_instance_valid(music_player) and music_player.stream:
 		music_player.play()
+
+func start_car_audio() -> void:
+	if not is_instance_valid(car_engine_player):
+		return
+	if not _stream_car_engine:
+		_stream_car_engine = _generate_car_engine()
+	if car_engine_player.stream != _stream_car_engine:
+		car_engine_player.stream = _stream_car_engine
+	if not car_engine_player.playing:
+		car_engine_player.play()
+
+func stop_car_audio() -> void:
+	if is_instance_valid(car_engine_player):
+		car_engine_player.stop()
 
 func _on_sfx_finished(player_idx: int) -> void:
 	if player_idx < _player_priorities.size():
@@ -348,8 +374,11 @@ func set_music_track(track_id: String, preview: bool = true) -> void:
 	if SettingsManager and SettingsManager.has_method("set_music_track"):
 		SettingsManager.set_music_track(target)
 	if preview and _custom_playlist.is_empty():
+		var in_gameplay := false
+		if GameManager:
+			in_gameplay = GameManager.state == GameManager.GameState.PLAYING or GameManager.state == GameManager.GameState.PAUSED
 		if target == DEFAULT_MUSIC_TRACK:
-			if GameManager and GameManager.state == GameManager.GameState.PLAYING:
+			if in_gameplay:
 				play_game_music()
 			else:
 				play_menu_music()
@@ -358,7 +387,7 @@ func set_music_track(track_id: String, preview: bool = true) -> void:
 
 func play_music_track(track_id: String) -> void:
 	var stream := _resolve_track_stream(track_id)
-	if stream and music_player.stream != stream:
+	if stream and (music_player.stream != stream or not music_player.playing):
 		play_music(stream)
 
 func _resolve_track_stream(track_id: String) -> AudioStreamWAV:
@@ -428,20 +457,22 @@ func _resolve_track_stream(track_id: String) -> AudioStreamWAV:
 func play_menu_music() -> void:
 	if not _custom_playlist.is_empty():
 		return
+	stop_car_audio()
 	_wait_for_task("menu_music")
 	if not _stream_menu_music:
 		_stream_menu_music = _generate_menu_music()
-	if music_player.stream != _stream_menu_music:
+	if music_player.stream != _stream_menu_music or not music_player.playing:
 		play_music(_stream_menu_music)
 
 func play_game_music() -> void:
+	start_car_audio()
 	if not _custom_playlist.is_empty():
 		if not music_player.playing:
 			_play_current_playlist_track()
 		return
 	if selected_music_track != DEFAULT_MUSIC_TRACK:
 		var selected_stream := _resolve_track_stream(selected_music_track)
-		if selected_stream and music_player.stream != selected_stream:
+		if selected_stream and (music_player.stream != selected_stream or not music_player.playing):
 			play_music(selected_stream)
 		return
 	# The default gameplay soundtrack is the adaptive mix. Start it here so a new
@@ -477,7 +508,7 @@ func play_game_music() -> void:
 			_stream_game_music_void = _generate_game_music_void()
 		stream = _stream_game_music_void
 		
-	if music_player.stream != stream:
+	if music_player.stream != stream or not music_player.playing:
 		play_music(stream)
 
 func play_music(stream: AudioStream) -> void:
@@ -877,6 +908,22 @@ func _generate_menu_music() -> AudioStreamWAV:
 	)
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = int(SAMPLE_RATE * 16.0)
+	return stream
+
+func _generate_car_engine() -> AudioStreamWAV:
+	# A seamless two-second loop: every partial completes a whole number of
+	# cycles, so no click is introduced at the loop boundary.
+	var stream := _build_stream(CAR_ENGINE_LOOP_SECONDS, func(t: float, _i: int) -> float:
+		var fundamental := sin(TAU * 55.0 * t) * 4200.0
+		var second := sin(TAU * 110.0 * t) * 1800.0
+		var third := sin(TAU * 165.0 * t) * 700.0
+		var grit := sin(TAU * 330.0 * t) * 240.0
+		var wobble := 1.0 + 0.08 * sin(TAU * 7.0 * t)
+		var pulse := 0.75 + 0.25 * sin(TAU * 14.0 * t)
+		return (fundamental + second + third + grit) * wobble * pulse * 0.45
+	)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(SAMPLE_RATE * CAR_ENGINE_LOOP_SECONDS)
 	return stream
 
 func _generate_game_music() -> AudioStreamWAV:
@@ -1799,6 +1846,9 @@ func _exit_tree() -> void:
 	if is_instance_valid(music_player):
 		music_player.stop()
 		music_player.stream = null
+	if is_instance_valid(car_engine_player):
+		car_engine_player.stop()
+		car_engine_player.stream = null
 	for p in sfx_players:
 		if is_instance_valid(p):
 			p.stop()

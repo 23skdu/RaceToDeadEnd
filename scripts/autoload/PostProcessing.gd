@@ -15,7 +15,9 @@ var _rect: ColorRect = null
 var _material: ShaderMaterial = null
 
 func _ready() -> void:
-	layer = 90
+	# Keep the CRT pass above the world but below UI canvases so menu, HUD, and
+	# options text is composited after the shader and stays crisp.
+	layer = 5
 	process_mode = PROCESS_MODE_ALWAYS
 	_setup_rect()
 	_apply_uniforms()

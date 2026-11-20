@@ -252,7 +252,7 @@ func test_cyberpunk_theme_and_about_button():
 	var font: FontFile = theme.default_font as FontFile
 	assert_not_null(font, "Default theme font should be the imported Orbitron FontFile")
 	assert_eq(font.hinting, 2, "Orbitron should use normal hinting for crisp menu glyphs")
-	assert_eq(font.subpixel_positioning, 1, "Font size 48 should not use subpixel glyph blur")
+	assert_eq(font.subpixel_positioning, 0, "UI glyphs should snap to pixels instead of using subpixel blur")
 	assert_eq(font.oversampling, 2.0, "Glyph cache should render above display resolution")
 	assert_false(font.generate_mipmaps, "Mipmaps would soften flat UI lettering")
 
@@ -262,6 +262,9 @@ func test_cyberpunk_theme_and_about_button():
 	var menu_row: HBoxContainer = main.get_node_or_null("CanvasLayer/MenuRow")
 	assert_not_null(menu_row, "Main menu should group buttons in MenuRow HBoxContainer")
 	assert_eq(menu_row.get_child_count(), 7, "All 7 main menu buttons should fit in one row")
+	assert_gt((main.get_node("CanvasLayer") as CanvasLayer).layer, 5, "Main menu must render above the CRT pass")
+	for button in menu_row.get_children():
+		assert_eq(button.get_theme_font_size(&"font_size"), 18, "Menu buttons need a crisp, legible font size")
 	main._on_about_pressed()
 	var found_about := false
 	for c in main.get_children():

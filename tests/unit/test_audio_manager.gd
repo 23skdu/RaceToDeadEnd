@@ -16,6 +16,11 @@ func before_each():
 func test_audio_manager_has_music_player():
 	assert_true(AudioManager.music_player != null, "Music player should exist")
 
+func test_audio_manager_has_car_engine_player():
+	assert_not_null(AudioManager.car_engine_player, "Car engine player should exist")
+	assert_eq(AudioManager.car_engine_player.bus, StringName("SFX"), "Car engine should use the SFX bus")
+	assert_eq(AudioManager.car_engine_player.name, StringName("CarEnginePlayer"), "Car engine player should have a stable name")
+
 func test_audio_manager_has_sfx_players():
 	assert_eq(AudioManager.sfx_players.size(), 16, "Should have 16 SFX players")
 
@@ -122,6 +127,17 @@ func test_audio_manager_procedural_music_generates_stream():
 	assert_false(AudioManager._async_tasks.has("menu_music"), "Menu music should not depend on a background task")
 	assert_eq(AudioManager.music_player.stream, AudioManager._stream_menu_music, "Menu player should use the menu stream")
 	assert_true(AudioManager.music_player.playing, "Menu music should be playing")
+	assert_false(AudioManager.car_engine_player.playing, "Menu music should not leave the car engine running")
+
+func test_car_engine_loop_is_ready_for_gameplay():
+	AudioManager.start_car_audio()
+	assert_not_null(AudioManager._stream_car_engine, "Car engine stream should be generated on demand")
+	assert_eq(AudioManager.car_engine_player.stream, AudioManager._stream_car_engine, "Car player should use the cached engine stream")
+	assert_true(AudioManager.car_engine_player.playing, "Car engine should play during gameplay")
+	assert_eq(AudioManager.car_engine_player.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "Car engine should loop seamlessly")
+	assert_eq(AudioManager.car_engine_player.stream.loop_end, int(AudioManager.SAMPLE_RATE * AudioManager.CAR_ENGINE_LOOP_SECONDS), "Car loop should cover the full synthesized buffer")
+	AudioManager.stop_car_audio()
+	assert_false(AudioManager.car_engine_player.playing, "Car engine should stop when gameplay ends")
 
 func test_restart_music_replays_current_stream():
 	AudioManager.play_menu_music()
@@ -541,6 +557,32 @@ func test_default_gameplay_music_starts_adaptive_stream():
 	assert_true(AudioManager.music_player.playing, "Default gameplay music should start immediately")
 	SettingsManager.set_feature_enabled(feature_key, prev_feature)
 	AudioManager.set_music_track(prev_track, false)
+
+func test_switching_track_during_gameplay_restarts_music_and_keeps_car():
+	var am = load("res://scripts/autoload/AudioManager.gd")
+	var prev_track := AudioManager.get_music_track()
+	var prev_state := GameManager.state
+	GameManager.state = GameManager.GameState.PLAYING
+	AudioManager.set_music_track("outrun", false)
+	AudioManager.play_game_music()
+	AudioManager.music_player.stop()
+	assert_false(AudioManager.music_player.playing, "Music should be stopped before the switch")
+	assert_true(AudioManager.car_engine_player.playing, "Car engine should already be running")
+
+	AudioManager.set_music_track("outrun")
+	assert_eq(AudioManager.music_player.stream, AudioManager._stream_game_music_outrun, "Switch should select the requested track")
+	assert_true(AudioManager.music_player.playing, "Switching to an assigned stream should restart playback")
+	assert_true(AudioManager.car_engine_player.playing, "Switching music must not stop the car engine")
+
+	GameManager.state = GameManager.GameState.PAUSED
+	AudioManager.set_music_track(am.DEFAULT_MUSIC_TRACK)
+	assert_eq(AudioManager.music_player.stream, AudioManager.get_adaptive_music_stream(), "Dynamic mode should restore the adaptive mix")
+	assert_true(AudioManager.music_player.playing, "Paused options should still preview gameplay music")
+	assert_true(AudioManager.car_engine_player.playing, "Car engine should survive a return to dynamic mode")
+
+	GameManager.state = prev_state
+	AudioManager.set_music_track(prev_track, false)
+	AudioManager.stop_car_audio()
 
 func test_music_track_selection_and_playback():
 	var prev_track := AudioManager.get_music_track()
