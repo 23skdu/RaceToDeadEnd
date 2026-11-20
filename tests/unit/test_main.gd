@@ -42,6 +42,18 @@ func test_main_sets_menu_state():
 	var main = _create_main()
 	assert_eq(GameManager.state, GameManager.GameState.MENU, "Should set state to MENU")
 
+func test_main_ready_starts_menu_music():
+	var main = _create_main()
+	assert_not_null(AudioManager._stream_menu_music, "Menu theme should be ready before the menu asks for it")
+	assert_eq(AudioManager.music_player.stream, AudioManager._stream_menu_music, "Main menu should play the menu theme")
+
+func test_main_title_lettering_is_sharpened():
+	var main = _create_main()
+	var title: Label = main.get_node("CanvasLayer/TitleLabel")
+	assert_eq(title.get_theme_font_size(&"font_size"), 48, "Title font size should stay legible")
+	assert_eq(title.get_theme_constant(&"outline_size"), 2, "Title outline should not blur glyph edges")
+	assert_not_null(title.get_theme_font(&"font"), "Title should use the themed font")
+
 func test_main_ready_connects_buttons():
 	var main = _create_main()
 	watch_signals(main)

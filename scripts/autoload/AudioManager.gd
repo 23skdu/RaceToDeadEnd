@@ -13,6 +13,7 @@ const POLYPHONIC_VOICES: int = 48
 const SFX_RANDOMIZER_VARIANTS: int = 3
 const ADAPTIVE_STEM_COUNT: int = 4
 const ADAPTIVE_CLIP_COUNT: int = 4
+const DEFAULT_MUSIC_TRACK: String = "dynamic"
 
 const FEATURE_POLYPHONIC_SFX: String = "polyphonic_sfx"
 const FEATURE_RANDOMIZED_SFX: String = "randomized_sfx"
@@ -69,7 +70,7 @@ const MUSIC_OPTIONS: Array[Dictionary] = [
 	{"id": "void", "name": "Void Resonance (Stage 4)"},
 ]
 
-var selected_music_track: String = "dynamic"
+var selected_music_track: String = DEFAULT_MUSIC_TRACK
 var _stream_crash: AudioStreamWAV
 var _stream_bounce: AudioStreamWAV
 
@@ -96,6 +97,7 @@ var _async_tasks: Dictionary = {}
 var _custom_playlist: Array[AudioStream] = []
 var _custom_playlist_idx: int = 0
 var _custom_playlist_shuffle: bool = true
+var _web_audio_unlocked: bool = false
 
 static func _semitone_ratio(semitones: int) -> float:
 	return pow(2.0, float(semitones) / 12.0)
@@ -135,7 +137,36 @@ func _ready() -> void:
 		var saved_track: String = SettingsManager.get_music_track()
 		if is_valid_music_track(saved_track):
 			selected_music_track = saved_track
+	# The menu asks for music immediately. Generate it on the main thread so it
+	# never depends on WorkerThreadPool availability or a slow background task,
+	# both of which can leave the Web menu silent.
+	_stream_menu_music = _generate_menu_music()
 	_generate_all_async()
+
+# Web browsers keep their audio context suspended until a real user gesture.
+# The engine resumes the context for us, but a music stream started before that
+# gesture can remain silent. Restart it once on the first press so menu and
+# gameplay soundtracks are actually audible.
+func _input(event: InputEvent) -> void:
+	if not OS.has_feature("web") or _web_audio_unlocked:
+		return
+	var pressed := false
+	if event is InputEventKey:
+		pressed = event.pressed and not event.echo
+	elif event is InputEventMouseButton:
+		pressed = event.pressed
+	elif event is InputEventScreenTouch:
+		pressed = event.pressed
+	elif event is InputEventJoypadButton:
+		pressed = event.pressed
+	if not pressed:
+		return
+	_web_audio_unlocked = true
+	restart_music()
+
+func restart_music() -> void:
+	if is_instance_valid(music_player) and music_player.stream:
+		music_player.play()
 
 func _on_sfx_finished(player_idx: int) -> void:
 	if player_idx < _player_priorities.size():
@@ -312,12 +343,12 @@ func get_music_track() -> String:
 	return selected_music_track
 
 func set_music_track(track_id: String, preview: bool = true) -> void:
-	var target := track_id if is_valid_music_track(track_id) else "dynamic"
+	var target := track_id if is_valid_music_track(track_id) else DEFAULT_MUSIC_TRACK
 	selected_music_track = target
 	if SettingsManager and SettingsManager.has_method("set_music_track"):
 		SettingsManager.set_music_track(target)
 	if preview and _custom_playlist.is_empty():
-		if target == "dynamic":
+		if target == DEFAULT_MUSIC_TRACK:
 			if GameManager and GameManager.state == GameManager.GameState.PLAYING:
 				play_game_music()
 			else:
@@ -408,11 +439,20 @@ func play_game_music() -> void:
 		if not music_player.playing:
 			_play_current_playlist_track()
 		return
-	if selected_music_track != "dynamic":
+	if selected_music_track != DEFAULT_MUSIC_TRACK:
 		var selected_stream := _resolve_track_stream(selected_music_track)
 		if selected_stream and music_player.stream != selected_stream:
 			play_music(selected_stream)
 		return
+	# The default gameplay soundtrack is the adaptive mix. Start it here so a new
+	# run has music immediately; the stage-based stream below is the fallback for
+	# players who disable adaptive music.
+	if _feature_enabled(FEATURE_ADAPTIVE_MUSIC, true):
+		var boss_active := bool(GameManager.boss_active) if GameManager else false
+		var tier := clampi(int(GameManager.difficulty_tier), 0, 20) if GameManager else 0
+		set_music_intensity(boss_active, tier, 0.0)
+		if music_player.stream == get_adaptive_music_stream() and music_player.playing:
+			return
 	var stream: AudioStreamWAV = null
 	var bosses_killed = GameManager.bosses_killed
 	
@@ -481,7 +521,7 @@ func set_music_intensity(boss_active: bool, difficulty_tier: int, enemy_density:
 		return
 	# Respect an explicitly selected music track; adaptive mixing belongs to the
 	# default "dynamic" mode.
-	if selected_music_track != "dynamic":
+	if selected_music_track != DEFAULT_MUSIC_TRACK:
 		return
 	var target := _select_adaptive_clip(boss_active, tier, density)
 	_adaptive_clip_index = target
@@ -1727,8 +1767,6 @@ func _build_adaptive_music() -> AudioStreamInteractive:
 	return interactive
 
 func _generate_all_async() -> void:
-	_async_tasks["menu_music"] = WorkerThreadPool.add_task(func(): _stream_menu_music = _generate_menu_music())
-	
 	_async_tasks["game_music_bunny"] = WorkerThreadPool.add_task(func(): _stream_game_music_bunny = _generate_game_music_bunny())
 	_async_tasks["game_music_biker"] = WorkerThreadPool.add_task(func(): _stream_game_music_biker = _generate_game_music_biker())
 	_async_tasks["game_music_sasquatch"] = WorkerThreadPool.add_task(func(): _stream_game_music_sasquatch = _generate_game_music_sasquatch())

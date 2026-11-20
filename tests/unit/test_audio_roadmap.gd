@@ -51,6 +51,7 @@ func test_audio_script_constants_and_sample_rate() -> void:
 	assert_eq(_am.SFX_RANDOMIZER_VARIANTS, 3)
 	assert_eq(_am.ADAPTIVE_STEM_COUNT, 4)
 	assert_eq(_am.ADAPTIVE_CLIP_COUNT, 4)
+	assert_eq(_am.DEFAULT_MUSIC_TRACK, "dynamic")
 	assert_eq(_am.FEATURE_POLYPHONIC_SFX, "polyphonic_sfx")
 	assert_eq(_am.FEATURE_RANDOMIZED_SFX, "randomized_sfx")
 	assert_eq(_am.FEATURE_ADAPTIVE_MUSIC, "adaptive_music")

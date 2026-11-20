@@ -249,6 +249,12 @@ func test_cyberpunk_theme_and_about_button():
 	var theme: Theme = load(theme_path)
 	assert_not_null(theme, "Cyberpunk theme should load")
 	assert_not_null(theme.default_font, "Cyberpunk theme should set techno default font")
+	var font: FontFile = theme.default_font as FontFile
+	assert_not_null(font, "Default theme font should be the imported Orbitron FontFile")
+	assert_eq(font.hinting, 2, "Orbitron should use normal hinting for crisp menu glyphs")
+	assert_eq(font.subpixel_positioning, 1, "Font size 48 should not use subpixel glyph blur")
+	assert_eq(font.oversampling, 2.0, "Glyph cache should render above display resolution")
+	assert_false(font.generate_mipmaps, "Mipmaps would soften flat UI lettering")
 
 	var main = load("res://scenes/Main.tscn").instantiate()
 	add_child_autofree(main)

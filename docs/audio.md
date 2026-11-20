@@ -24,6 +24,15 @@ SFX ──> [insert reverb] ──> Reverb ─────────┘
   `set_bus_volume()` writes back through `SettingsManager.set_volume()` so
   volume changes persist in `user://settings.cfg`.
 
+## Startup playback
+
+The looping menu theme is generated on the main thread at boot before the
+background track pool starts, so the main menu never waits on a worker task.
+`play_game_music()` starts the adaptive mix immediately in the default
+`dynamic` mode; explicit track selections and disabled adaptive music retain
+their existing behavior. On Web, the first press restarts the active stream
+once so a soundtrack begun before the user gesture becomes audible.
+
 ## 24-bit-resolution synthesis (roadmap item 6)
 
 All procedural audio is **computed at 24-bit resolution** and then exported to
@@ -108,6 +117,7 @@ under the `features` section of `user://settings.cfg`:
 - `encode_s24(data, byte_offset, sample)`
 - `decode_s24(data, byte_offset)`
 - `is_polyphonic_sfx_active()`
+- `restart_music()`
 - `get_adaptive_music_stream()`
 - `get_adaptive_clip_index()`
 - `set_music_intensity(boss_active, difficulty_tier, enemy_density)`

@@ -23,6 +23,10 @@ func test_audio_manager_uses_sfx_bus():
 	assert_true(AudioManager.sfx_players.size() > 0, "Should have SFX players")
 	assert_true(AudioManager.sfx_players[0] is AudioStreamPlayer2D, "SFX players should be AudioStreamPlayer2D")
 
+func test_audio_manager_default_music_track_constant():
+	var am = load("res://scripts/autoload/AudioManager.gd")
+	assert_eq(am.DEFAULT_MUSIC_TRACK, "dynamic", "Default gameplay music should be dynamic")
+
 func test_audio_manager_caches_laser_stream():
 	assert_null(AudioManager._stream_laser, "Laser stream should be null until first play")
 	AudioManager.play_synth_laser(Vector2.ZERO)
@@ -114,7 +118,28 @@ func test_audio_manager_play_sfx_null_stream():
 
 func test_audio_manager_procedural_music_generates_stream():
 	AudioManager.play_menu_music()
-	assert_true(AudioManager.music_player.playing or AudioManager.music_player.stream != null, "Music should be playing")
+	assert_not_null(AudioManager._stream_menu_music, "Menu music should be ready without a worker wait")
+	assert_false(AudioManager._async_tasks.has("menu_music"), "Menu music should not depend on a background task")
+	assert_eq(AudioManager.music_player.stream, AudioManager._stream_menu_music, "Menu player should use the menu stream")
+	assert_true(AudioManager.music_player.playing, "Menu music should be playing")
+
+func test_restart_music_replays_current_stream():
+	AudioManager.play_menu_music()
+	var stream := AudioManager.music_player.stream
+	AudioManager.music_player.stop()
+	assert_false(AudioManager.music_player.playing, "Music should be stopped before restart")
+	AudioManager.restart_music()
+	assert_eq(AudioManager.music_player.stream, stream, "Restart should keep the current stream")
+	assert_true(AudioManager.music_player.playing, "Restart should resume playback")
+
+func test_input_does_not_unlock_audio_outside_web():
+	var prev_unlocked := AudioManager._web_audio_unlocked
+	AudioManager._web_audio_unlocked = false
+	var event := InputEventKey.new()
+	event.pressed = true
+	AudioManager._input(event)
+	assert_eq(AudioManager._web_audio_unlocked, OS.has_feature("web"), "Audio unlock should only trigger on Web")
+	AudioManager._web_audio_unlocked = prev_unlocked
 
 func test_sfx_player_count_constant():
 	var am = load("res://scripts/autoload/AudioManager.gd")
@@ -501,6 +526,21 @@ func test_new_music_generators_produce_looping_16bit_streams():
 		assert_eq(s.format, AudioStreamWAV.FORMAT_16_BITS)
 		assert_eq(s.loop_mode, AudioStreamWAV.LOOP_FORWARD)
 		assert_gt(s.data.size(), 0)
+
+func test_default_gameplay_music_starts_adaptive_stream():
+	var am = load("res://scripts/autoload/AudioManager.gd")
+	var prev_track := AudioManager.get_music_track()
+	var feature_key: String = am.FEATURE_ADAPTIVE_MUSIC
+	var prev_feature := SettingsManager.is_feature_enabled(feature_key, true)
+	SettingsManager.set_feature_enabled(feature_key, true)
+	AudioManager._custom_playlist.clear()
+	AudioManager.set_music_track(am.DEFAULT_MUSIC_TRACK, false)
+	AudioManager.play_game_music()
+	assert_eq(AudioManager.get_music_track(), am.DEFAULT_MUSIC_TRACK, "Default mode should remain dynamic")
+	assert_eq(AudioManager.music_player.stream, AudioManager.get_adaptive_music_stream(), "Default gameplay music should be the adaptive mix")
+	assert_true(AudioManager.music_player.playing, "Default gameplay music should start immediately")
+	SettingsManager.set_feature_enabled(feature_key, prev_feature)
+	AudioManager.set_music_track(prev_track, false)
 
 func test_music_track_selection_and_playback():
 	var prev_track := AudioManager.get_music_track()

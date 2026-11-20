@@ -20,6 +20,8 @@ func test_fuzz_autoloads_and_utilities() -> void:
 		var track_id := "track_%d" % _rng.randi_range(-10, 50)
 		AudioManager.set_music_track(track_id, false)
 		assert_eq(AudioManager.get_music_track(), "dynamic")
+		if i % 5 == 0:
+			AudioManager.restart_music()
 		CameraShake.shake(_rng.randf_range(-2.0, 5.0), _rng.randf_range(-1.0, 2.0), _rng.randf_range(-5.0, 20.0))
 		CameraShake.rumble(_rng.randf_range(-1.0, 2.0), _rng.randf_range(-1.0, 2.0))
 		ScoreManager.register_kill(["bunny", "rotor", "scav", "drone", "sasquatch", "unknown"][i % 6], Vector2(_rng.randf_range(-500, 500), _rng.randf_range(-500, 500)))
