@@ -6,7 +6,7 @@ This roadmap supersedes the previous technical roadmap. It is derived from a dee
 
 - **Engine & Builds**: Godot 4.7.2-stable with automated Web (COI service worker + SHA-256), Linux x86_64, Windows x86_64, macOS Universal, Android, and iOS export targets.
 - **Verification & Tooling**: 64 GUT test scripts across unit, integration, fuzz, and regression suites plus Python `unittest` (`tests/python/test_scripts.py`), `scripts/check_coverage.py` (100% unit + 100% fuzz + 100% Python script coverage), `scripts/check_deadcode.py` (`make deadcode`), `.gdlintrc`, `.markdownlint.json`, and `.githooks/pre-commit`.
-- **Gameplay**: Procedural 8-lane highway (5 chunk types), 4 bosses + Sasquatch mini-boss, 6 weapon types, weather system, meta-progression, daily runs, local leaderboard, achievements, remappable input, touch overlay, F12 screenshots, 10 Interceptor skins, 11 procedural music tracks, `PostProcessing` autoload (scanlines, vignette, chromatic aberration, bloom, film grain).
+- **Gameplay**: Procedural 4-lane highway (5 chunk types), 4 bosses + Sasquatch mini-boss, 6 weapon types, weather system, meta-progression, daily runs, local leaderboard, achievements, remappable input, touch overlay, F12 screenshots, 10 Interceptor skins, 11 procedural music tracks, `PostProcessing` autoload (scanlines, vignette, chromatic aberration, bloom, film grain).
 - **Roadmap state**: All 15 points have partial foundations in the codebase, but none are complete. See the gap analysis below.
 
 ---

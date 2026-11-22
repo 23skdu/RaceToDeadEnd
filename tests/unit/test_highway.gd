@@ -14,9 +14,9 @@ func test_chunk_constants():
 	assert_eq(h.CHUNK_PIXEL_HEIGHT, 336, "Chunk pixel height should be 336")
 	assert_eq(h.PREWARM_CHUNKS, 10, "Prewarm chunks should be 10")
 	assert_eq(h.DESPAWN_CHUNKS_BEHIND, 4, "Despawn chunks behind should be 4")
-	assert_eq(h.SHOULDER_COLUMNS, 3, "Shoulder columns should be 3")
-	assert_eq(h.LANE_START_COL, 3, "Lane start col should be 3")
-	assert_eq(h.LANE_END_COL, 10, "Lane end col should be 10")
+	assert_eq(h.SHOULDER_COLUMNS, 5, "Shoulder columns should be 5")
+	assert_eq(h.LANE_START_COL, 5, "Lane start col should be 5")
+	assert_eq(h.LANE_END_COL, 8, "Lane end col should be 8")
 	assert_eq(h.HALF_CHUNK, 6.5, "Half chunk should be 6.5")
 
 func test_chunk_type_enum():
@@ -156,7 +156,7 @@ func test_get_tile_variant_standard():
 func test_get_tile_variant_debris():
 	var h = Highway.new()
 	autofree(h)
-	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 3), 1, "Debris at row 0 col 3 (first lane col)")
+	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 5), 3, "Debris at row 0 col 5 (first lane col)")
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 0, 0), 0, "No Debris at row 0 col 0 (shoulder)")
 	assert_eq(h._get_tile_variant(h.ChunkType.DEBRIS, 1, 4), 0, "No Debris at row 1 col 4")
 
@@ -168,8 +168,8 @@ func test_get_tile_variant_ice():
 func test_get_tile_variant_construction():
 	var h = Highway.new()
 	autofree(h)
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 2), 3, "Construction at col 2 (left of lane)")
-	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 11), 3, "Construction at col 11 (right of lane)")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 4), 3, "Construction at col 4 (left of lane)")
+	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 9), 3, "Construction at col 9 (right of lane)")
 	assert_eq(h._get_tile_variant(h.ChunkType.CONSTRUCTION, 0, 5), 0, "No Construction at col 5 (mid lane)")
 
 func test_get_tile_variant_bridge():
@@ -442,10 +442,19 @@ func test_guardrail_color_varies_by_chunk_type():
 func test_create_desert_decoration_creates_child_nodes():
 	var h = Highway.new()
 	autofree(h)
-	for decor_type in range(4):
+	for decor_type in range(8):
 		var decor = h._create_desert_decoration(decor_type)
 		add_child_autofree(decor)
 		assert_gt(decor.get_child_count(), 0, "Decoration type " + str(decor_type) + " should have child Polygon2D nodes")
+
+func test_side_decoration_helpers():
+	var h = Highway.new()
+	autofree(h)
+	var palette = h.get_side_decoration_palette(0)
+	assert_gt(palette.size(), 0, "Side decoration palette should not be empty")
+	var decor = h._create_side_decoration(palette[0])
+	add_child_autofree(decor)
+	assert_gt(decor.get_child_count(), 0, "Side decoration should create child nodes")
 
 func test_ice_chunk_area_signals_connected():
 	var h = Highway.new()

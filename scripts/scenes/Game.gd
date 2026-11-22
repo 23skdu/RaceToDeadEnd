@@ -56,9 +56,8 @@ func _ready() -> void:
 		we.environment = env_res
 		var cam_attrs = CameraAttributesPhysical.new()
 		cam_attrs.exposure_multiplier = 1.1
-		cam_attrs.auto_exposure_enabled = true
-		cam_attrs.auto_exposure_min_exposure_value = -2.0
-		cam_attrs.auto_exposure_max_exposure_value = 2.0
+		cam_attrs.auto_exposure_enabled = false
+		cam_attrs.exposure_multiplier = 1.0
 		we.camera_attributes = cam_attrs
 		add_child(we)
 		move_child(we, get_child_count() - 1)
@@ -140,8 +139,8 @@ func _ready() -> void:
 		player.boost_depleted.connect(func(): hud.set_boost_active(false))
 		player.damage_taken.connect(func(amount): _show_floating_text(player.global_position, "-" + str(amount), Color.RED, 18))
 
-		highway.ice_entered.connect(player.set_slippery.bind(true))
-		highway.ice_exited.connect(player.set_slippery.bind(false))
+		highway.ice_entered.connect(func(_body): player.set_slippery(true))
+		highway.ice_exited.connect(func(_body): player.set_slippery(false))
 		highway.bridge_fall.connect(player.on_bridge_fall)
 
 		# Initial UI sync

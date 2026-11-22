@@ -2,11 +2,11 @@
 
 # Race to Dead End
 
-Isometric (2.5D) vehicular combat racing game built with **Godot 4.7.2**. Drive a heavily armed Interceptor MK-VI down an endless 8-lane highway, fighting off infected zombie bunnies, biker gangs, armored scav trucks, wandering sasquatches, and alien void drones. Inspired by *Spy Hunter* (1983).
+Isometric (2.5D) vehicular combat racing game built with **Godot 4.7.2**. Drive a heavily armed Interceptor MK-VI down an endless 4-lane highway, fighting off infected zombie bunnies, biker gangs, armored scav trucks, wandering sasquatches, and alien void drones. Inspired by *Spy Hunter* (1983).
 
 ## Key Features
 
-- **8-Lane Isometric Combat:** Procedural endless highway with 5 chunk types (Standard, Debris, Ice, Construction, Bridge), dynamic weather (Clear, Light Rain, Acid Rain, Storm), and 4-layer synthwave parallax horizon.
+- **4-Lane Isometric Combat:** Procedural endless highway with 5 chunk types (Standard, Debris, Ice, Construction, Bridge), dynamic weather (Clear, Light Rain, Acid Rain, Storm), and 4-layer synthwave parallax horizon.
 - **Boss Progression:** Milestone boss encounters every 3,000 points — **Cyber Bunny** → **Giant Biker** → **War Rig** → **Void Drone**, plus the wandering **Sasquatch** mini-boss. See [Boss Guide](docs/bosses.md) for stats and screenshots.
 - **Interceptor Car Skins:** 5 built-in Interceptor skins in the Garage (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, plus *Urban Camo* unlocked by defeating the 1st boss) and external `user://packs/` custom skin support.
 - **Procedural 16-Bit Audio & Music Selector:** Zero external audio assets — all SFX and 9 selectable synth/stage music options (*Dynamic Stage-Adaptive*, *Outrun Synthwave*, *Cyber Industrial*, *Neon Drift*, *Classic Arcade*, and stage themes) are synthesized at runtime.

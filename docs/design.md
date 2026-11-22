@@ -52,7 +52,7 @@ The highway is divided into **segments** (each ~10 seconds of driving). Every 5 
 **Interceptor MK-VI** stats:
 - **Speed**: Fixed base speed + boost meter (3 charges, refills slowly)
 - **Health**: 5 hit points (repair pickups restore 1 HP)
-- **Lane switching**: Left/right across 8 lanes + weave (quick dodge)
+- **Lane switching**: Left/right across 4 lanes + weave (quick dodge)
 - **Boost**: Temporary 2× speed, grants collision immunity during activation
 - **Skins**: 10 built-in Interceptor styles (*Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, *Urban Camo*, *Nitro Phantom*, *Ghost Protocol*, *Solar Flare*, *Neon Drifter*, *Apex Predator*) with real boss/achievement/score unlocks + custom skin packs
 
@@ -134,7 +134,7 @@ The highway is divided into **segments** (each ~10 seconds of driving). Every 5 
 The highway is procedurally generated in real-time from tile chunks:
 
 **Road types** (rotated per segment):
-- **Standard** - 8 lanes, clear driving
+- **Standard** - 4 lanes, clear driving
 - **Debris-strewn** - obstacles in random lanes, must dodge
 - **Icy** - reduced traction, lane changes slide
 - **Construction** - narrower lanes, barriers

@@ -123,7 +123,7 @@ func test_interceptor_bridge_fall_right_half_snaps_to_right_lane():
 	player.position.x = 500.0
 	player.on_bridge_fall(player)
 	assert_gt(player.position.x, 0.0, "Bridge fall from right side must recover to right-half lane")
-	assert_eq(player.current_lane, 6, "Right-side bridge fall should snap to lane 6")
+	assert_eq(player.current_lane, 3, "Right-side bridge fall should snap to lane 3")
 
 # --- Regression 3: TopWeatherBorder redraw throttling ---
 
@@ -229,7 +229,7 @@ func test_input_remap_rejects_out_of_bounds_and_builds_reset():
 	add_child_autofree(remap)
 	assert_not_null(list.get_node_or_null("ResetDefaultsButton"), "ResetDefaultsButton should be created")
 
-# --- Regression 8 & 9: Version label, Scav 8-lane flank, BossWarRig spread, PoopWeapon group, Game pause, HUD pulse ---
+# --- Regression 8 & 9: Version label, Scav 4-lane flank, BossWarRig spread, PoopWeapon group, Game pause, HUD pulse ---
 
 func test_main_reads_project_version():
 	var MainScript = load("res://scripts/scenes/Main.gd")
@@ -264,7 +264,7 @@ func test_cyberpunk_theme_and_about_button():
 	assert_eq(menu_row.get_child_count(), 7, "All 7 main menu buttons should fit in one row")
 	assert_gt((main.get_node("CanvasLayer") as CanvasLayer).layer, 5, "Main menu must render above the CRT pass")
 	for button in menu_row.get_children():
-		assert_eq(button.get_theme_font_size(&"font_size"), 18, "Menu buttons need a crisp, legible font size")
+		assert_eq(button.get_theme_font_size(&"font_size"), 20, "Menu buttons need a crisp, legible font size")
 	main._on_about_pressed()
 	var found_about := false
 	for c in main.get_children():
@@ -329,12 +329,12 @@ func test_scav_eight_lane_flank_direction():
 	player.global_position = Vector2(0, -500)
 	scav_left.position = Vector2(0, 0)
 	scav_right.position = Vector2(0, -120)
-	scav_left.init(scav_left.EnemyType.SCAV, 2, player, 200.0)
-	scav_right.init(scav_right.EnemyType.SCAV, 5, player, 200.0)
+	scav_left.init(scav_left.EnemyType.SCAV, 1, player, 200.0)
+	scav_right.init(scav_right.EnemyType.SCAV, 2, player, 200.0)
 	scav_left._physics_process(0.1)
 	scav_right._physics_process(0.1)
-	assert_lt(scav_left.velocity.x, 0.0, "Lane 2 (left half of 8-lane highway) should flank left")
-	assert_gt(scav_right.velocity.x, 0.0, "Lane 5 (right half of 8-lane highway) should flank right")
+	assert_lt(scav_left.velocity.x, 0.0, "Lane 1 (left half of 4-lane highway) should flank left")
+	assert_gt(scav_right.velocity.x, 0.0, "Lane 2 (right half of 4-lane highway) should flank right")
 
 func test_boss_war_rig_spread_fires_without_spawner():
 	var container = Node2D.new()

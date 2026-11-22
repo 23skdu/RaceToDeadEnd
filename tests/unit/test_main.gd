@@ -60,7 +60,7 @@ func test_main_button_lettering_is_crisp():
 	var main = _create_main()
 	var menu_row: HBoxContainer = main.get_node("CanvasLayer/MenuRow")
 	for button in menu_row.get_children():
-		assert_eq(button.get_theme_font_size(&"font_size"), 18, "Menu buttons should use a legible font size")
+		assert_eq(button.get_theme_font_size(&"font_size"), 20, "Menu buttons should use a legible font size")
 
 func test_main_ready_connects_buttons():
 	var main = _create_main()

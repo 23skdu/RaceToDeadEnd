@@ -651,6 +651,6 @@ func on_bridge_fall(_body: Node) -> void:
 		current_lane = 1
 		target_x = _lane_to_x(current_lane)
 	else:
-		position.x = Constants.LANE_POSITIONS[6]
-		current_lane = 6
+		position.x = Constants.LANE_POSITIONS[3]
+		current_lane = 3
 		target_x = _lane_to_x(current_lane)

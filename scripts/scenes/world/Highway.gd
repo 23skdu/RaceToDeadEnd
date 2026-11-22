@@ -14,10 +14,10 @@ const CHUNK_PIXEL_HEIGHT: int = int(CHUNK_HEIGHT * TILE_SIZE.y)
 const PREWARM_CHUNKS: int = 10
 const DESPAWN_CHUNKS_BEHIND: int = 4
 
-const LANE_COUNT: int = 8
-const SHOULDER_COLUMNS: int = 3
-const LANE_START_COL: int = 3
-const LANE_END_COL: int = 10
+const LANE_COUNT: int = 4
+const SHOULDER_COLUMNS: int = 5
+const LANE_START_COL: int = 5
+const LANE_END_COL: int = 8
 const HALF_CHUNK: float = (CHUNK_WIDTH - 1) / 2.0
 
 # Tile atlas entries (single row, four columns).
@@ -128,10 +128,10 @@ func _populate_chunk_tiles(chunk: Node2D, chunk_type: int) -> void:
 		var y_cell := int((origin_y + row * TILE_SIZE.y) / TILE_SIZE.y)
 		# Lane separator markings.
 		for boundary in range(1, LANE_COUNT):
-			_place_tile(-480.0 + float(boundary) * 120.0, y_cell, TILE_LANE, cells)
+			_place_tile(-240.0 + float(boundary) * 120.0, y_cell, TILE_LANE, cells)
 		# Guardrails on both shoulders.
-		_place_tile(-480.0, y_cell, TILE_GUARDRAIL, cells)
-		_place_tile(480.0, y_cell, TILE_GUARDRAIL, cells)
+		_place_tile(-240.0, y_cell, TILE_GUARDRAIL, cells)
+		_place_tile(240.0, y_cell, TILE_GUARDRAIL, cells)
 		if chunk_type == ChunkType.ICE:
 			for lane in LANE_COUNT:
 				_place_tile(Constants.LANE_POSITIONS[lane], y_cell, TILE_ICE, cells)
@@ -409,28 +409,28 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 
 			var x_pos: float = 0.0
 			if col < LANE_START_COL:
-				var sh_col_w = 160.0 / 3.0
+				var sh_col_w = 400.0 / 5.0
 				x_pos = -640.0 + col * sh_col_w + sh_col_w / 2.0
 				if row % 2 == 1:
 					x_pos += sh_col_w / 2.0
-					if x_pos >= -480.0:
-						x_pos -= 160.0
+					if x_pos >= -240.0:
+						x_pos -= 400.0
 			elif col > LANE_END_COL:
-				var sh_col_w = 160.0 / 3.0
-				var right_col_idx = col - 11
-				x_pos = 480.0 + right_col_idx * sh_col_w + sh_col_w / 2.0
+				var sh_col_w = 400.0 / 5.0
+				var right_col_idx = col - (LANE_END_COL + 1)
+				x_pos = 240.0 + right_col_idx * sh_col_w + sh_col_w / 2.0
 				if row % 2 == 1:
 					x_pos += sh_col_w / 2.0
 					if x_pos >= 640.0:
-						x_pos -= 160.0
+						x_pos -= 400.0
 			else:
-				var lane_idx = col - 3
+				var lane_idx = col - LANE_START_COL
 				var lane_w = 120.0
-				x_pos = -480.0 + lane_idx * lane_w + lane_w / 2.0
+				x_pos = -240.0 + lane_idx * lane_w + lane_w / 2.0
 				if row % 2 == 1:
 					x_pos += lane_w / 2.0
-					if x_pos >= 480.0:
-						x_pos -= 960.0
+					if x_pos >= 240.0:
+						x_pos -= 480.0
 
 			var y_pos = row * TILE_SIZE.y
 
@@ -448,8 +448,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 					var tile_color: Color = _theme_colors.get("shoulder_color", Color(0.76, 0.64, 0.42))
 					shoulder_polygons.append({"pos": Vector2(x_pos, y_pos), "color": tile_color})
 
-					if _rng.randf() < 0.03:
-						var decor_type = _rng.randi() % 4
+					if _rng.randf() < 0.12:
+						var decor_type = _pick_side_decoration_type()
 						desert_decorations.append({"pos": Vector2(x_pos, y_pos), "type": decor_type})
 			else:
 				if chunk_type == ChunkType.ICE:
@@ -466,7 +466,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 
 					if col > LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 2 == 0:
 						if row % 2 == 0:
-							var stripe_x = -480.0 + (col - LANE_START_COL) * 120.0
+							var stripe_x = -240.0 + (col - LANE_START_COL) * 120.0
 							stripe_positions.append({"pos": Vector2(stripe_x, y_pos)})
 
 			if tile_variant == 1 or tile_variant == 3:
@@ -500,8 +500,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		var edge_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
 			var y_pos = row * TILE_SIZE.y + half_h
-			edge_positions.append(Vector2(-480.0, y_pos))
-			edge_positions.append(Vector2(480.0, y_pos))
+			edge_positions.append(Vector2(-240.0, y_pos))
+			edge_positions.append(Vector2(240.0, y_pos))
 		emesh.instance_count = edge_positions.size()
 		for i in edge_positions.size():
 			emesh.set_instance_transform_2d(i, Transform2D(0.0, edge_positions[i]))
@@ -616,7 +616,7 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 		var crack_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
 			for col in range(LANE_START_COL + 1, LANE_END_COL):
-				var lane_cx = -480.0 + (col - 3) * 120.0 + 60.0
+				var lane_cx = -240.0 + (col - LANE_START_COL) * 120.0 + 60.0
 				var y_pos = row * TILE_SIZE.y + half_h * 0.5
 				if _rng.randf() < 0.12:
 					var x_offset = _rng.randf_range(-120.0 * 0.35, 120.0 * 0.35)
@@ -629,8 +629,8 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			crack_mmi.modulate = Color(0.0, 0.0, 0.0, 0.15)
 			chunk_local.add_child(crack_mmi)
 
-	var left_rail_x = -480.0
-	var right_rail_x = 480.0
+	var left_rail_x = -240.0
+	var right_rail_x = 240.0
 
 	var rail_color: Color = _theme_colors.get("guardrail_color", Constants.GUARDRAIL_COLOR) if chunk_type != ChunkType.BRIDGE else Constants.BRIDGE_GUARDRAIL_COLOR
 	var left_rail = Line2D.new()
@@ -840,6 +840,32 @@ func _create_diamond_mesh_shoulder() -> ArrayMesh:
 	_diamond_mesh_shoulder_cache = mesh
 	return mesh
 
+func _pick_side_decoration_type() -> int:
+	var boss_level := 0
+	if GameManager != null and GameManager.has_method("get"):
+		boss_level = int(GameManager.get("bosses_killed"))
+	var palette := _side_decoration_palette(boss_level)
+	return palette[_rng.randi() % palette.size()]
+
+func _side_decoration_palette(boss_level: int) -> Array[int]:
+	match boss_level:
+		0:
+			return [0, 4, 6]
+		1:
+			return [1, 4, 5, 6]
+		2:
+			return [2, 3, 7, 6]
+		3:
+			return [3, 7, 2, 5]
+		_:
+			return [4, 5, 6, 7]
+
+func get_side_decoration_palette(boss_level: int) -> Array[int]:
+	return _side_decoration_palette(boss_level)
+
+func _create_side_decoration(type: int) -> Node2D:
+	return _create_desert_decoration(type)
+
 func _create_desert_decoration(type: int) -> Node2D:
 	var decor = Node2D.new()
 	match type:
@@ -928,6 +954,41 @@ func _create_desert_decoration(type: int) -> Node2D:
 			])
 			window.color = Color(0.3, 0.3, 0.4)
 			decor.add_child(window)
+		4:
+			var bush = Polygon2D.new()
+			bush.polygon = PackedVector2Array([
+				Vector2(-7, 2), Vector2(-4, -6), Vector2(0, -8),
+				Vector2(4, -6), Vector2(7, 2), Vector2(4, 6), Vector2(-4, 6)
+			])
+			bush.color = Color(0.18, 0.45, 0.18)
+			decor.add_child(bush)
+		5:
+			var tree_trunk = Polygon2D.new()
+			tree_trunk.polygon = PackedVector2Array([Vector2(-2, -2), Vector2(2, -2), Vector2(2, 8), Vector2(-2, 8)])
+			tree_trunk.color = Color(0.35, 0.22, 0.12)
+			decor.add_child(tree_trunk)
+			var tree_top = Polygon2D.new()
+			tree_top.polygon = PackedVector2Array([Vector2(0, -14), Vector2(8, -4), Vector2(4, 4), Vector2(-4, 4), Vector2(-8, -4)])
+			tree_top.color = Color(0.12, 0.38, 0.12)
+			decor.add_child(tree_top)
+		6:
+			var animal = Polygon2D.new()
+			animal.polygon = PackedVector2Array([Vector2(-6, 0), Vector2(-2, -4), Vector2(4, -3), Vector2(6, 1), Vector2(3, 5), Vector2(-4, 4)])
+			animal.color = Color(0.55, 0.4, 0.3)
+			decor.add_child(animal)
+			var eye = Polygon2D.new()
+			eye.polygon = PackedVector2Array([Vector2(3, -2), Vector2(5, -2), Vector2(5, 0), Vector2(3, 0)])
+			eye.color = Color(0.95, 0.2, 0.2)
+			decor.add_child(eye)
+		7:
+			var barrel = Polygon2D.new()
+			barrel.polygon = PackedVector2Array([Vector2(-5, -8), Vector2(5, -8), Vector2(6, 8), Vector2(-6, 8)])
+			barrel.color = Color(0.9, 0.45, 0.1)
+			decor.add_child(barrel)
+			var stripe = Polygon2D.new()
+			stripe.polygon = PackedVector2Array([Vector2(-5.2, -2), Vector2(5.2, -2), Vector2(5.4, 2), Vector2(-5.4, 2)])
+			stripe.color = Color(0.95, 0.95, 0.98)
+			decor.add_child(stripe)
 	return decor
 
 func _on_ice_entered(body: Node) -> void:
@@ -944,7 +1005,7 @@ func _get_tile_variant(chunk_type: ChunkType, row: int, col: int) -> int:
 		ChunkType.STANDARD:
 			return 0
 		ChunkType.DEBRIS:
-			return 1 if row % 4 == 0 and col >= LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 3 == 0 else 0
+			return 3 if row % 4 == 0 and col >= LANE_START_COL and col <= LANE_END_COL and (col - LANE_START_COL) % 3 == 0 else 0
 		ChunkType.ICE:
 			return 2
 		ChunkType.CONSTRUCTION:
@@ -1146,8 +1207,8 @@ static func _get_bridge_structure_mesh() -> ArrayMesh:
 	if _bridge_structure_mesh_cache:
 		return _bridge_structure_mesh_cache
 	var temp := Node2D.new()
-	var left_rail_x: float = -480.0
-	var right_rail_x: float = 480.0
+	var left_rail_x: float = -240.0
+	var right_rail_x: float = 240.0
 	for row in range(0, CHUNK_HEIGHT + 1, 2):
 		var joint_y = row * TILE_SIZE.y
 		var joint = Line2D.new()

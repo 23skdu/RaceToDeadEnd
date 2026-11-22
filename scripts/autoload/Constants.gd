@@ -13,9 +13,9 @@ const ROADMAP_FEATURE_KEYS: Array[String] = [
 ]
 
 # Highway / Lane
-const LANE_POSITIONS: Array[float] = [-420.0, -300.0, -180.0, -60.0, 60.0, 180.0, 300.0, 420.0]
+const LANE_POSITIONS: Array[float] = [-180.0, -60.0, 60.0, 180.0]
 const LANE_WIDTH: float = 120.0
-const LANE_COUNT: int = 8
+const LANE_COUNT: int = 4
 const SPAWN_DISTANCE: float = 450.0
 const CLEANUP_DISTANCE: float = 450.0
 const BASE_SPEED: float = 200.0

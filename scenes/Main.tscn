@@ -49,43 +49,57 @@ alignment = 1
 [node name="StartButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "START"
 
 [node name="DailyRunButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "DAILY RUN"
 
 [node name="GarageButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "GARAGE"
 
 [node name="InfoButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "INFO"
 
 [node name="OptionsButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "OPTIONS"
 
 [node name="AboutButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "ABOUT"
 
 [node name="QuitButton" type="Button" parent="CanvasLayer/MenuRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "QUIT"
 
 [node name="VersionLabel" type="Label" parent="CanvasLayer"]
@@ -95,4 +109,4 @@ offset_right = 420.0
 offset_bottom = 720.0
 theme_override_colors/font_color = Color(0.0, 0.85, 1.0, 0.85)
 theme_override_font_sizes/font_size = 14
-text = "v0.2.4"
+text = "v0.2.5"

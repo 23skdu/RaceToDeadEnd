@@ -6,9 +6,9 @@ This document captures a genre-level analysis of top-down / isometric vehicular 
 
 | Title / Project | Engine | Notable Techniques |
 |---|---|---|
-| **Spy Hunter** (Bally Midway, 1983) | Arcade hardware | 8-lane vertical scroller, weapon van upgrades, civilian penalty, boat transformation |
+| **Spy Hunter** (Bally Midway, 1983) | Arcade hardware | 4-lane vertical scroller, weapon van upgrades, civilian penalty, boat transformation |
 | **Spy Hunter (2001/2012 reboots)** | Custom | 3D camera, weapon loadouts, boss vehicles, destructible environments |
-| **Race to Dead End** (this project) | Godot 4.7.2 | Procedural 8-lane highway, 4 bosses, 10 car skins, 11 music tracks, 9 autoloads, themed/localized UI |
+| **Race to Dead End** (this project) | Godot 4.7.2 | Procedural 4-lane highway, 4 bosses, 10 car skins, 11 music tracks, 9 autoloads, themed/localized UI |
 | Godot "Top-Down Racer" demos | Godot 4.x | CharacterBody2D + Camera2D smoothing, GPUParticles2D exhaust |
 | Godot "Space Shooter" / "Dodge" templates | Godot 4.x | Object pooling, MultiMeshInstance2D batching, signal-based spawners |
 | Community "Retro Highway" clones | Godot 4.x | TileMapLayer road, ParallaxBackground sky, AudioStreamInteractive adaptive music |

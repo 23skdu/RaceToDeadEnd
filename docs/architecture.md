@@ -21,7 +21,7 @@ res://
 │   │   ├── ScoreManager.gd  # Score event routing, kill/pickup registration
 │   │   ├── AudioManager.gd  # Procedural audio synthesis, playback & 9 music track options
 │   │   ├── ObjectPool.gd    # Generic object pool (enemies, bullets, pickups)
-│   │   ├── Constants.gd     # Game constants (8 lanes, lane positions, bullet speeds, PLAYER_SKINS)
+│   │   ├── Constants.gd     # Game constants (4 lanes, lane positions, bullet speeds, PLAYER_SKINS)
 │   │   ├── CameraShake.gd   # Screen shake + gamepad rumble
 │   │   ├── TransitionLayer.gd # Fade-to-black scene transitions
 │   │   ├── PackManager.gd   # Asset pack management
@@ -73,7 +73,7 @@ res://
 - Pickups use a dedicated pool (`create_pickup_pool`) with `Area2D` collision + `body_entered` collection
 
 ### Highway
-- Infinite scrolling highway in isometric diamond-tile style, **8 lanes wide** (LANE_POSITIONS from -168 to 168)
+- Infinite scrolling highway in isometric diamond-tile style, **4 lanes wide** (LANE_POSITIONS from -180 to 180)
 - 5 chunk types: Standard, Debris, Ice, Construction, Bridge
 - Ice chunks: icy-blue diamond tiles with 15% random reflective white highlights, frosty shoulder tiles, semi-transparent blue background
 - Bridge chunks: concrete-gray lane tiles, darker curb shoulders, cyan guardrails, **structural cross-beams** (Line2D) every 3 tile rows
@@ -109,7 +109,7 @@ res://
 
 ### Player (Interceptor)
 - Sprite scaled to 108px design height (via `Helpers.scale_sprite_to_viewport`)
-- `_lane_to_x()` maps lane index to world X position via `Constants.LANE_POSITIONS` (clamped 0–7)
+- `_lane_to_x()` maps lane index to world X position via `Constants.LANE_POSITIONS` (clamped 0–3)
 - 6 upgradeable stats: max health, boost capacity, fire rate, missile ammo, mine ammo, EMP ammo
 - 10 built-in Interceptor skins (`Constants.PLAYER_SKINS`): *Interceptor Classic*, *Crimson Viper*, *Toxic Volt*, *Solar Chrome*, *Urban Camo* (boss `boss_bunny`), *Nitro Phantom* (`boss_void_drone`), *Ghost Protocol* (`protector` achievement), *Solar Flare* (10,000 high score), *Neon Drifter* (`speed_demon` achievement) and *Apex Predator* (`boss`); unlock progress is persisted in `GameManager.bosses_defeated_keys` / `unlocked_achievements` / `high_score`, plus `PackManager` custom skins
 - Boost: 2× speed multiplier, 3 charges, 8s recharge per charge
