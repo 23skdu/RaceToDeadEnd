@@ -42,7 +42,7 @@ GUT_ORPHAN_GUARD := res://tests/gut_orphan_guard.gd
 
 .PHONY: all help ci check check-godot deps deps-python install-gut templates install-templates build-info prep-build import run editor \
 	test test-unit test-integration test-fuzz test-regression test-runner test-scripts test-python \
-	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage check-orphans deadcode install-hooks \
+	lint lint-gd lint-python lint-docs fmt fmt-check check-assets check-coverage check-orphans check-leaks check-memory-leaks deadcode install-hooks \
 	build build-web build-linux build-windows build-macos build-android build-ios build-all serve-web \
 	clean clean-all
 
@@ -76,6 +76,8 @@ help:
 	@echo "  test-scripts      Run unified test script (scripts/run_tests.sh)"
 	@echo "  test-python       Run Python utility unit and fuzz tests (tests/python)"
 	@echo "  check-orphans     Run the GUT suite with the post-run orphan guard (fails on any orphan)"
+	@echo "  check-leaks       Run the GUT suite in verbose mode and fail on any orphan, ObjectDB, RID, or StringName leak"
+	@echo "  check-memory-leaks Alias for check-leaks"
 	@echo ""
 	@echo "Linting & Verification:"
 	@echo "  check             Run check-godot, lint, deadcode, check-coverage, check-assets, test-python, and orphan-guarded test suite"
@@ -265,6 +267,25 @@ check-coverage:
 check-orphans: test
 	@echo "Orphan check passed: GUT post-run guard found 0 orphans."
 
+check-leaks: check-godot deps import
+	@echo "Running memory leak and orphan verification..."
+	@LOG_FILE=$$(mktemp); \
+	trap 'rm -f "$$LOG_FILE"' EXIT; \
+	"$(GODOT)" --headless --verbose -s addons/gut/gut_cmdln.gd \
+		-gdir=res://tests/unit,res://tests/integration,res://tests/fuzz,res://tests/regression \
+		-ginclude_subdirs -gexit -glog=1 -gpost_run_script=$(GUT_ORPHAN_GUARD) > "$$LOG_FILE" 2>&1 || { \
+		tail -n 80 "$$LOG_FILE"; \
+		echo "Error: GUT test run failed during memory leak check."; \
+		exit 1; \
+	}; \
+	if grep -E "ObjectDB instances were leaked at exit|Leaked instance:|Orphan StringName:|were leaked at exit|Orphan guard failed|Lambda capture at index .* was freed" "$$LOG_FILE"; then \
+		echo "Error: Memory leak or freed reference detected!"; \
+		exit 1; \
+	fi; \
+	echo "Memory leak check passed: 0 orphan nodes, 0 ObjectDB leaks, 0 RID/resource leaks."
+
+check-memory-leaks: check-leaks
+
 deadcode:
 	$(PYTHON) scripts/check_deadcode.py
 
@@ -275,7 +296,7 @@ install-hooks:
 	@chmod +x .git/hooks/pre-commit
 	@echo "Installed git pre-commit hook to .git/hooks/pre-commit"
 
-check: check-godot lint lint-docs deadcode check-coverage check-assets test-python check-orphans
+check: check-godot lint lint-docs deadcode check-coverage check-assets test-python check-leaks
 	@echo "=========================================================="
 	@echo "  Race to Dead End local verification passed!"
 	@echo "=========================================================="

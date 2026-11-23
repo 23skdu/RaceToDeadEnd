@@ -11,6 +11,10 @@ const PARTICLE_SCALE_SETTING: String = "particle_scale"
 const MAX_PARTICLE_AMOUNT: int = 16384
 const LUT_SIZE: int = 16
 
+static var _glow_texture_cache: Dictionary = {}
+static var _ring_texture_cache: Dictionary = {}
+static var _weather_lut_cache: Dictionary = {}
+
 
 static func gpu_effects_enabled() -> bool:
 	if not SettingsManager:
@@ -53,6 +57,9 @@ static func scaled_particle_amount(base_amount: int, scale_override: float = -1.
 
 static func make_glow_texture(size: int, tint: Color) -> Texture2D:
 	var side: int = clampi(size, 2, 256)
+	var cache_key: String = "%d:%s" % [side, tint.to_html(true)]
+	if _glow_texture_cache.has(cache_key) and is_instance_valid(_glow_texture_cache[cache_key]):
+		return _glow_texture_cache[cache_key]
 	var img := Image.create(side, side, false, Image.FORMAT_RGBA8)
 	var center := Vector2(side * 0.5, side * 0.5)
 	var radius: float = maxf(side * 0.5, 1.0)
@@ -61,21 +68,30 @@ static func make_glow_texture(size: int, tint: Color) -> Texture2D:
 			var dist: float = Vector2(float(x), float(y)).distance_to(center) / radius
 			var alpha: float = pow(clampf(1.0 - dist, 0.0, 1.0), 2.0)
 			img.set_pixel(x, y, Color(tint.r, tint.g, tint.b, alpha * tint.a))
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	if _glow_texture_cache.size() < 32:
+		_glow_texture_cache[cache_key] = tex
+	return tex
 
 
 static func make_ring_texture(size: int = 64, thickness: float = 0.16, tint: Color = Color(1.0, 0.55, 0.2, 1.0)) -> Texture2D:
 	var side: int = clampi(size, 8, 256)
+	var band: float = maxf(thickness, 0.02)
+	var cache_key: String = "%d:%.3f:%s" % [side, band, tint.to_html(true)]
+	if _ring_texture_cache.has(cache_key) and is_instance_valid(_ring_texture_cache[cache_key]):
+		return _ring_texture_cache[cache_key]
 	var img := Image.create(side, side, false, Image.FORMAT_RGBA8)
 	var center := Vector2(side * 0.5, side * 0.5)
 	var radius: float = maxf(side * 0.5, 1.0)
-	var band: float = maxf(thickness, 0.02)
 	for x in side:
 		for y in side:
 			var dist: float = Vector2(float(x), float(y)).distance_to(center) / radius
 			var alpha: float = clampf(1.0 - absf(dist - 0.42) / band, 0.0, 1.0)
 			img.set_pixel(x, y, Color(tint.r, tint.g, tint.b, alpha * tint.a))
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	if _ring_texture_cache.size() < 32:
+		_ring_texture_cache[cache_key] = tex
+	return tex
 
 
 static func make_explosion_emitter() -> GPUParticles2D:
@@ -106,7 +122,7 @@ static func spawn_explosion_flash(parent: Node, world_position: Vector2, tint: C
 		return null
 	var light := PointLight2D.new()
 	light.name = "ExplosionFlash"
-	light.texture = make_glow_texture(64, tint)
+	light.texture = make_glow_texture(64, Color.WHITE)
 	light.texture_scale = 3.0
 	light.color = tint
 	light.energy = maxf(energy, 0.0)
@@ -158,13 +174,23 @@ static func interpolate_transform(from: Transform2D, to: Transform2D, alpha: flo
 
 static func make_weather_lut(weather: String) -> Texture2D:
 	var key: String = weather.strip_edges().to_lower()
+	var canonical_key: String = "clear"
+	match key:
+		"rain", "light_rain":
+			canonical_key = "light_rain"
+		"acid_rain":
+			canonical_key = "acid_rain"
+		"storm":
+			canonical_key = "storm"
+	if _weather_lut_cache.has(canonical_key) and is_instance_valid(_weather_lut_cache[canonical_key]):
+		return _weather_lut_cache[canonical_key]
 	var stops := PackedColorArray([
 		Color(1.0, 1.0, 1.0, 1.0),
 		Color(1.0, 1.0, 1.0, 1.0),
 		Color(1.0, 1.0, 1.0, 1.0),
 	])
-	match key:
-		"rain", "light_rain":
+	match canonical_key:
+		"light_rain":
 			stops = PackedColorArray([
 				Color(0.78, 0.88, 1.0, 1.0),
 				Color(0.9, 0.95, 1.0, 1.0),
@@ -188,6 +214,7 @@ static func make_weather_lut(weather: String) -> Texture2D:
 	var lut := GradientTexture1D.new()
 	lut.gradient = gradient
 	lut.width = LUT_SIZE
+	_weather_lut_cache[canonical_key] = lut
 	return lut
 
 

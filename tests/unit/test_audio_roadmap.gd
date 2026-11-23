@@ -172,8 +172,7 @@ func test_polyphonic_player_setup_and_feature_gate() -> void:
 	assert_eq(AudioManager._polyphonic_stream.polyphony, _am.POLYPHONIC_VOICES)
 	assert_false(AudioManager.is_polyphonic_sfx_active())
 	_enable_feature(_am.FEATURE_POLYPHONIC_SFX, true)
-	var expected := AudioManager._polyphonic_playback != null
-	assert_eq(AudioManager.is_polyphonic_sfx_active(), expected)
+	assert_true(AudioManager.is_polyphonic_sfx_active())
 
 func test_play_sfx_polyphonic_and_pool_fallback() -> void:
 	var stream := AudioStreamWAV.new()

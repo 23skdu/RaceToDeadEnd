@@ -265,12 +265,30 @@ func _process(_delta: float) -> void:
 			_pools[pool_name].append(node)
 			_pool_max_sizes[pool_name] = _pool_max_sizes.get(pool_name, 0) + 1
 
+func clear_all_pools() -> void:
+	for pool_name in _pools:
+		for node in _pools[pool_name]:
+			if is_instance_valid(node) and node.get_parent() != self:
+				node.queue_free()
+	for child in get_children():
+		if is_instance_valid(child):
+			child.queue_free()
+	_pools.clear()
+	_pool_max_sizes.clear()
+	_scene_paths.clear()
+	_scene_cache.clear()
+	_pickup_pool_data.clear()
+	_pending_allocations.clear()
+
 func _exit_tree() -> void:
 	for pool_name in _pools:
 		for node in _pools[pool_name]:
 			if is_instance_valid(node) and node.get_parent() != self:
 				node.queue_free()
 	_pools.clear()
+	_pool_max_sizes.clear()
+	_scene_paths.clear()
+	_scene_cache.clear()
 	_pickup_pool_data.clear()
 	_pending_allocations.clear()
 

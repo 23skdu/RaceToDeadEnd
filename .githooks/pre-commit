@@ -10,6 +10,6 @@ make deadcode
 make check-coverage
 make check-assets
 make test-python
-make check-orphans
+make check-leaks
 
 echo "=== Pre-Commit Verification Passed (100%) ==="

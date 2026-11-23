@@ -33,6 +33,10 @@ var slippery: bool = false
 var speed_input: float = 0.0
 var wheel_tread_offset: float = 0.0
 var _camera_y: float = 0.0
+var _prev_camera_y: float = 0.0
+var _prev_global_pos: Vector2 = Vector2.ZERO
+var _target_global_pos: Vector2 = Vector2.ZERO
+var _pos_interpolation_ready: bool = false
 
 var last_left_tap_time: float = 0.0
 var last_right_tap_time: float = 0.0
@@ -115,6 +119,9 @@ func _ready() -> void:
 	target_x = _lane_to_x(current_lane)
 	position.x = target_x
 	_camera_y = position.y
+	_prev_camera_y = position.y
+	_prev_global_pos = global_position
+	_target_global_pos = global_position
 	_update_boost_ui()
 	if not get_viewport().size_changed.is_connected(_scale_sprite):
 		get_viewport().size_changed.connect(_scale_sprite)
@@ -126,6 +133,20 @@ func _process(delta: float) -> void:
 	_update_timers(delta)
 	_apply_feature_gates()
 	_apply_sprite_interpolation()
+	_sync_camera_interpolated()
+
+func _sync_camera_interpolated() -> void:
+	if not has_node("Camera2D") or not is_inside_tree():
+		return
+	var alpha: float = clampf(Engine.get_physics_interpolation_fraction(), 0.0, 1.0)
+	var interp_cam_y: float = lerpf(_prev_camera_y, _camera_y, alpha)
+	$Camera2D.global_position = Vector2(0.0, interp_cam_y + Constants.CAMERA_Y_OFFSET)
+
+func get_interpolated_global_position() -> Vector2:
+	if not _pos_interpolation_ready or not RoadmapFx.motion_interpolation_enabled():
+		return global_position
+	var alpha: float = clampf(Engine.get_physics_interpolation_fraction(), 0.0, 1.0)
+	return _prev_global_pos.lerp(_target_global_pos, alpha)
 
 func _physics_process(delta: float) -> void:
 	_handle_input(delta)
@@ -139,6 +160,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		effective_speed = speed
 		
+	_prev_camera_y = _camera_y
 	_camera_y -= speed * delta
 	
 	velocity.y = -effective_speed
@@ -464,6 +486,9 @@ func _apply_feature_gates() -> void:
 		_underglow.visible = lights_on
 
 func _capture_sprite_interpolation() -> void:
+	_prev_global_pos = _target_global_pos if _pos_interpolation_ready else global_position
+	_target_global_pos = global_position
+	_pos_interpolation_ready = true
 	if not is_instance_valid(sprite):
 		return
 	_prev_sprite_transform = _target_sprite_transform if _sprite_interpolation_ready else sprite.transform

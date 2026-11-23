@@ -29,6 +29,13 @@ func _ready() -> void:
 	warning_visual.color = Color(1.0, 0.1, 0.1, 0.25)
 	add_child(warning_visual)
 
+	# Pre-allocate reusable explosion visual circle
+	explosion_visual = Polygon2D.new()
+	explosion_visual.polygon = PackedVector2Array(pts)
+	explosion_visual.color = Color(1.0, 0.8, 0.2, 0.8)
+	explosion_visual.visible = false
+	add_child(explosion_visual)
+
 func _process(delta: float) -> void:
 	age += delta
 	
@@ -54,8 +61,9 @@ func on_pool_acquire() -> void:
 	exploded = false
 	hit_by_bullet = false
 	if explosion_visual and is_instance_valid(explosion_visual):
-		explosion_visual.queue_free()
-		explosion_visual = null
+		explosion_visual.visible = false
+		explosion_visual.scale = Vector2.ONE
+		explosion_visual.color = Color(1.0, 0.8, 0.2, 0.8)
 	if warning_visual and is_instance_valid(warning_visual):
 		warning_visual.visible = true
 
@@ -70,16 +78,19 @@ func _detonate() -> void:
 	CameraShake.shake(0.8, 0.4, 10.0)
 	CameraShake.rumble(1.0, 0.5)
 	
-	# Explosion visual circle
-	explosion_visual = Polygon2D.new()
-	var pts = []
-	var segments = 16
-	for i in segments:
-		var angle = i * TAU / segments
-		pts.append(Vector2(cos(angle) * Constants.BLAST_RADIUS, sin(angle) * Constants.BLAST_RADIUS * 0.5))
-	explosion_visual.polygon = PackedVector2Array(pts)
+	# Show reusable explosion visual circle
+	if not explosion_visual or not is_instance_valid(explosion_visual):
+		explosion_visual = Polygon2D.new()
+		var pts = []
+		var segments = 16
+		for i in segments:
+			var angle = i * TAU / segments
+			pts.append(Vector2(cos(angle) * Constants.BLAST_RADIUS, sin(angle) * Constants.BLAST_RADIUS * 0.5))
+		explosion_visual.polygon = PackedVector2Array(pts)
+		add_child(explosion_visual)
+	explosion_visual.scale = Vector2.ONE
 	explosion_visual.color = Color(1.0, 0.8, 0.2, 0.8)
-	add_child(explosion_visual)
+	explosion_visual.visible = true
 	
 	# Check collision with player
 	for body in get_overlapping_bodies():

@@ -185,10 +185,10 @@ func _setup_parallax() -> void:
 		vs = Vector2i(1280, 720)
 
 	var layers = [
-		{ "scale": Vector2(0.02, 0.0), "color_top": Color(0.02, 0.01, 0.05), "color_bot": Color(0.06, 0.04, 0.12), "label": "deep", "height": 1.5 },
-		{ "scale": Vector2(0.05, 0.0), "color_top": Color(0.05, 0.03, 0.10), "color_bot": Color(0.10, 0.07, 0.18), "label": "far", "height": 1.2 },
-		{ "scale": Vector2(0.1, 0.0), "color_top": Color(0.10, 0.06, 0.18), "color_bot": Color(0.25, 0.18, 0.30), "label": "mid", "height": 1.0 },
-		{ "scale": Vector2(0.3, 0.0), "color_top": Color(0.18, 0.12, 0.28), "color_bot": Color(0.40, 0.30, 0.42), "label": "near", "height": 0.7 },
+		{"scale": Vector2(0.02, 0.0), "color_top": Color(0.02, 0.01, 0.05), "color_bot": Color(0.06, 0.04, 0.12), "label": "deep", "height": 1.5},
+		{"scale": Vector2(0.05, 0.0), "color_top": Color(0.05, 0.03, 0.10), "color_bot": Color(0.10, 0.07, 0.18), "label": "far", "height": 1.2},
+		{"scale": Vector2(0.1, 0.0), "color_top": Color(0.10, 0.06, 0.18), "color_bot": Color(0.25, 0.18, 0.30), "label": "mid", "height": 1.0},
+		{"scale": Vector2(0.3, 0.0), "color_top": Color(0.18, 0.12, 0.28), "color_bot": Color(0.40, 0.30, 0.42), "label": "near", "height": 0.7},
 	]
 
 	var textures: Array[Texture2D] = []
@@ -219,7 +219,7 @@ func _setup_parallax() -> void:
 					for y in tex_height:
 						var dx = x - cx
 						var dy = y - cy
-						var dist = sqrt(dx*dx + dy*dy)
+						var dist = sqrt(dx * dx + dy * dy)
 						if dist <= r + 24.0:
 							var t = (dist - r) / 24.0
 							if dist <= r:
@@ -234,7 +234,7 @@ func _setup_parallax() -> void:
 					for y in tex_height:
 						var dx = x - cx
 						var dy = y - cy
-						var dist = sqrt(dx*dx + dy*dy)
+						var dist = sqrt(dx * dx + dy * dy)
 						if dist <= r:
 							# Scanline cutout calculations (lines get thicker at bottom)
 							var relative_y = y - (cy - r)
@@ -525,7 +525,8 @@ func configure_camera_smoothing() -> void:
 	if is_instance_valid(player):
 		camera = player.get_node_or_null("Camera2D") as Camera2D
 	if is_instance_valid(camera) and _has_property(camera, "position_smoothing_enabled"):
-		camera.set("position_smoothing_enabled", true)
+		var use_smoothing: bool = not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false))
+		camera.set("position_smoothing_enabled", use_smoothing)
 		if _has_property(camera, "position_smoothing_speed"):
 			camera.set("position_smoothing_speed", 12.0)
 
@@ -572,7 +573,10 @@ func _apply_weather_lut() -> void:
 		return
 	var weather_type := int(weather.current_weather) if weather else 0
 	_weather_lut = RoadmapWorld.make_weather_lut(RoadmapWorld.weather_name(weather_type))
-	_grade_overlay.material = RoadmapWorld.make_lut_material(_weather_lut)
+	if _grade_overlay.material is ShaderMaterial:
+		(_grade_overlay.material as ShaderMaterial).set_shader_parameter("lut", _weather_lut)
+	else:
+		_grade_overlay.material = RoadmapWorld.make_lut_material(_weather_lut)
 	_grade_overlay.visible = true
 
 # --- Roadmap item 12: pooled BBCode combat text --------------------------------
@@ -876,12 +880,14 @@ func _on_demo_finished() -> void:
 func _sync_minimap() -> void:
 	if not is_instance_valid(_minimap_camera) or not is_instance_valid(player):
 		return
-	_minimap_camera.position = player.global_position
+	var player_pos: Vector2 = player.get_interpolated_global_position() if player.has_method("get_interpolated_global_position") else player.global_position
+	_minimap_camera.position = player_pos
 
 func _sync_rear_view() -> void:
 	if not is_instance_valid(_rear_view_camera) or not is_instance_valid(player):
 		return
-	_rear_view_camera.position = player.global_position + Vector2(0, 200)
+	var player_pos: Vector2 = player.get_interpolated_global_position() if player.has_method("get_interpolated_global_position") else player.global_position
+	_rear_view_camera.position = player_pos + Vector2(0, 200)
 	_rear_view_camera.rotation = PI
 
 func _on_viewport_size_changed() -> void:

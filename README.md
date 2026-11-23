@@ -54,9 +54,10 @@ All bindings can be customized in **Options → Input**.
 Run `make help` for all Makefile targets. Common workflows:
 
 ```bash
-make check          # Run godot check, lint, docs, deadcode, coverage, assets, Python tests, and orphan-guarded GUT suite
+make check          # Run godot check, lint, docs, deadcode, coverage, assets, Python tests, and leak-checked GUT suite
 make test           # Run full GUT test suite with the post-run orphan guard
 make check-orphans  # Fail if any GUT test leaves an orphaned node
+make check-leaks    # Run GUT suite in verbose mode and fail on any orphan, ObjectDB, RID, or StringName leak
 make test-python    # Run Python utility script unit and fuzz tests
 make check-coverage # Verify 100% unit, fuzz, and Python script test coverage
 make check-assets   # Verify enemy sprite PNG alpha channels

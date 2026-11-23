@@ -2,12 +2,12 @@
 
 This roadmap supersedes the previous technical roadmap. It is derived from a deep analysis of Spy Hunter-style vehicular combat games and the full Godot 4.7.2 feature set (see [genre-analysis.md](genre-analysis.md)). The goal is to push **performance, graphic resolution, and sound fidelity** to the ceiling of what Godot 4.7.2 can deliver, while adding **more soundtracks and skins**.
 
-## Current Baseline (`v0.2.4`)
+## Current Baseline (`v0.2.6`)
 
 - **Engine & Builds**: Godot 4.7.2-stable with automated Web (COI service worker + SHA-256), Linux x86_64, Windows x86_64, macOS Universal, Android, and iOS export targets.
-- **Verification & Tooling**: 64 GUT test scripts across unit, integration, fuzz, and regression suites plus Python `unittest` (`tests/python/test_scripts.py`), `scripts/check_coverage.py` (100% unit + 100% fuzz + 100% Python script coverage), `scripts/check_deadcode.py` (`make deadcode`), `.gdlintrc`, `.markdownlint.json`, and `.githooks/pre-commit`.
-- **Gameplay**: Procedural 4-lane highway (5 chunk types), 4 bosses + Sasquatch mini-boss, 6 weapon types, weather system, meta-progression, daily runs, local leaderboard, achievements, remappable input, touch overlay, F12 screenshots, 10 Interceptor skins, 11 procedural music tracks, `PostProcessing` autoload (scanlines, vignette, chromatic aberration, bloom, film grain).
-- **Roadmap state**: All 15 points have partial foundations in the codebase, but none are complete. See the gap analysis below.
+- **Verification & Tooling**: 64 GUT test scripts (1,306 tests / 9,612 assertions) across unit, integration, fuzz, and regression suites plus Python `unittest` (`tests/python/test_scripts.py`), `scripts/check_coverage.py` (100% unit + 100% fuzz + 100% Python script coverage), `scripts/check_deadcode.py` (`make deadcode`), `make check-leaks` / `make check-memory-leaks` (verbose exit ObjectDB, RID, resource, StringName, and orphan node leak verification), `.gdlintrc`, `.markdownlint.json`, and `.githooks/pre-commit`.
+- **Gameplay**: Procedural 4-lane highway (5 chunk types), 4 bosses + Sasquatch mini-boss, 6 weapon types, weather system, meta-progression, daily runs, local and online leaderboards, achievements, remappable input, touch overlay, F12 screenshots, 10 Interceptor skins, 13 procedural music options (including adaptive 4-stem `AudioStreamInteractive` mix), `PostProcessing` autoload (scanlines, vignette, chromatic aberration, bloom, film grain).
+- **Roadmap state**: All 15 points and their subtasks are implemented, feature-gated via `SettingsManager`, and verified by unit, integration, fuzz, regression, deadcode, and zero-leak checks. See the historical baseline gap analysis and the post-`v0.2.6` further gap analysis below.
 
 ---
 
@@ -149,11 +149,48 @@ Each point ships with:
 
 All 15 roadmap points and their subtasks are implemented and verified.
 
-- `make check` passed: 64 script suites / 1,291 GUT tests / 9,400 assertions, 100% (53/53 GDScript files; 100% unit + 100% fuzz coverage; 4/4 Python scripts).
+- `make check` and `make check-leaks` passed: 64 script suites / 1,306 GUT tests / 9,612 assertions, 100% coverage (53/53 GDScript files; 100% unit + 100% fuzz coverage; 4/4 Python scripts), 0 orphan nodes, 0 ObjectDB leaks, 0 RID leaks, and 0 unclaimed StringNames.
 - `make deadcode`, `make lint-docs`, `make check-assets`, and `scripts/check_bg.py` passed.
 - Realistic rabbit art is shared by the bunny and boss bunny via `Enemy.gd::_create_rabbit_texture()`; the boss biker uses a top-down motorcycle-and-rider texture in `BossGiantBiker.gd`.
 - Each roadmap point is gated by a `SettingsManager` feature toggle; settings APIs are covered by unit and fuzz tests.
 - Godot 4.7.2 API constraints are recorded below. Items 6/8 have documented engine-level limits (16-bit WAV export, screen-space FSR/LUT/SSAO overlays), but all requested functionality is present behind toggles.
+
+---
+
+## Memory Leak & Frame-Pacing Hardening (`v0.2.6`)
+
+During the `v0.2.6` audit, memory leaks and frame-pacing/jitter bottlenecks were tracked down, resolved, and locked behind automated verification:
+
+1. **Automated Memory Leak Gate (`make check-leaks` / `make check-memory-leaks`)**:
+   - Added `check-leaks` (and alias `check-memory-leaks`) to `Makefile` and wired it into `make check` and `.githooks/pre-commit`.
+   - Runs the full GUT suite under `godot --headless --verbose` with `-gpost_run_script=res://tests/gut_orphan_guard.gd` and fails on any orphan node, leaked `ObjectDB` instance, leaked `RID` allocation, unclaimed `StringName`, or freed lambda capture.
+2. **Resolved Memory & Resource Leaks**:
+   - **Freed Lambda Capture in `PoopWeapon.gd`**: Replaced direct `body: Node` capture in the 2.0-second slippery-debuff `SceneTreeTimer` lambda with `weakref(body)` so freeing an entity before the timer expires never triggers a freed lambda capture error.
+   - **Conditional `MultiMeshInstance2D` Allocation in `Highway.gd`**: Moved `crack_mmi = MultiMeshInstance2D.new()` inside `if crack_positions.size() > 0:` in `_build_tiles_into()` so chunks with zero random cracks never leak an unparented `MultiMeshInstance2D` node and its `CanvasItem` RID.
+   - **Pooled Obstacle Reuse in `Enemy.gd` & `Highway.gd`**: When bosses collide with obstacles inside pooled `Highway` `Tiles` buffers, `Enemy.handle_obstacle_collisions()` hides and disables the obstacle collider instead of calling `queue_free()`, and `Highway._reconnect_chunk_signals()` restores visibility and collision layers when the chunk buffer is recycled.
+   - **Reusable Explosion Visual in `DroneBomb.gd`**: Pre-allocated `explosion_visual` in `_ready()` and toggled visibility on detonation/pool acquisition instead of allocating and freeing a new `Polygon2D` on every detonation.
+   - **Audio & Static Cache Teardown (`AudioManager.gd`, `ObjectPool.gd`, `tests/gut_orphan_guard.gd`)**: Added `AudioManager.stop_all_audio()` (stopping players, clearing `_stream_car_engine` and all cached streams/randomizers/interactive stems, and lazy-starting polyphonic playback only when enabled), `ObjectPool.clear_all_pools()`, and `gut_orphan_guard.gd::release_static_caches()` with mixer frame draining so headless runs exit with 0 leaked `ObjectDB` instances.
+3. **Resolved Gameplay Stutters & Frame Jitter**:
+   - **Restored VSync (`project.godot`)**: Restored `window/vsync/vsync_mode=1` under `[display]` for consistent desktop frame pacing.
+   - **Eliminated Main/Secondary Camera Interpolation Jitter (`Interceptor.gd`, `Interceptor.tscn`, `Game.gd`)**: Disabled conflicting `Camera2D.position_smoothing_enabled` when `physics_interpolation` is active, interpolated `$Camera2D` Y tracking across render frames using `Engine.get_physics_interpolation_fraction()`, and synced `_minimap_camera` and `_rear_view_camera` in `Game.gd` to `player.get_interpolated_global_position()`.
+   - **Eliminated Per-Frame Adaptive Music Transition Spam (`AudioManager.gd`)**: Guarded `AudioStreamPlaybackInteractive.switch_to_clip(target)` in `AudioManager.set_music_intensity()` so it is only invoked when the target clip index changes or playback starts, rather than re-triggering transition scheduling on every `_process()` frame.
+   - **Eliminated Per-Segment Shader Recompilation & Per-Kill Texture Synthesis (`RoadmapWorld.gd`, `RoadmapFx.gd`, `Game.gd`)**: Cached compiled `Shader` instances (`_lut_shader`, `_fsr_shader`, `_ssao_shader`) in `RoadmapWorld.gd`, reused the `_grade_overlay` `ShaderMaterial` in `Game.gd::_apply_weather_lut()`, and cached procedural glow, ring, and weather LUT textures in `RoadmapFx.gd`.
+
+---
+
+## Further Gap Analysis (Post-`v0.2.6` Audit)
+
+A comprehensive audit of the `v0.2.6` codebase after completing the 15-point roadmap and frame-jitter fixes identified the following next-horizon gaps across options UI exposure, rendering pipeline consolidation, procedural world/combat pooling, and gameplay fidelity:
+
+| # | Area | Current state (`v0.2.6`) | Remaining gap / opportunity |
+|---|---|---|---|
+| G1 | **Options UI Coverage for All Roadmap Feature Toggles & Ultrawide Modes** | `Options.gd` generates checkboxes for the 4 keys in `Constants.ROADMAP_FEATURE_KEYS` (`boss_animations`, `themed_ui`, `localization`, `online_leaderboard`) and lists 4 16:9 resolutions in `RESOLUTION_OPTIONS`. | The other 11 feature toggles (`tilemap_highway`, `rear_view`, `fsr_upscaling`, `rich_hud`, `lighting_enabled`, `hdr_tonemapping`, `weather_luts`, `ssao_approximation`, `motion_interpolation_enabled`, `polyphonic_sfx`, `randomized_sfx`, `adaptive_music`) plus `hud_text_scale` and `particle_scale` sliders and ultrawide presets (`2560x1080`, `3440x1440`, `3840x1080`) exist in `RoadmapWorld` / `RoadmapFx` / `AudioManager` APIs but are not exposed as interactive controls in `Options.tscn` / `Options.gd`. |
+| G2 | **Options Resolution Selector Integration with `Game.apply_resolution()`** | `Options.gd::_on_resolution_selected()` calls `DisplayServer.window_set_size(sz)` directly without persisting `"resolution"` in `SettingsManager` or updating `Game.active_resolution` / letterbox bars. | Route `Options.gd` resolution selection through `RoadmapWorld.sanitize_resolution()` and persist `RoadmapWorld.KEY_RESOLUTION` so in-game pause-menu resolution changes immediately update ultrawide pillarbox/letterbox framing. |
+| G3 | **Multi-Pass Fullscreen Canvas Shader Consolidation** | When `PostProcessing` (CRT/scanlines/chromatic aberration/vignette/film grain), `WeatherSystem` (`WetRoadReflection`), and `Game.gd` (`FsrUpscaler`, `SsaoApproximation`, `WeatherLutGrade`) are all enabled, multiple full-viewport `ColorRect` passes sample `hint_screen_texture` sequentially each frame. | Consolidate `FsrUpscaler`, `SsaoApproximation`, and `WeatherLutGrade` into a single combined post-process `ShaderMaterial` pass (with uniform toggles) to eliminate redundant fullscreen backbuffer copies on 4K/integrated GPUs. |
+| G4 | **Pooled Explosion Flash Lights & Mine/Lightning Visuals** | `Game.spawn_explosion_flash()` and `RoadmapFx.spawn_explosion_flash()` reuse cached `Texture2D` assets, but still instantiate and `queue_free()` a `PointLight2D` node + `Tween` per explosion; `Mine.gd::_explode()` allocates a temporary `Polygon2D` flash, and `WeatherSystem.gd` allocates `Line2D` / `ColorRect` nodes per lightning strike and cloud. | Add a fixed pre-warmed `PointLight2D` flash ring buffer in `Game.gd` / `RoadmapFx.gd`, pre-allocate reusable lightning/cloud nodes in `WeatherSystem.gd`, and replace `Mine.gd`'s ephemeral `Polygon2D` with a pooled flash effect. |
+| G5 | **Async / Pre-Warmed Adaptive Music Stems & Core SFX** | `AudioManager._generate_all_async()` pre-generates the 12 stage/synthwave music tracks and 5 demo tracks on `WorkerThreadPool`, while `_adaptive_music` (4 × 4.0s stems) and core SFX (`_stream_laser`, `_stream_explosion`, etc.) synthesize lazily on first play. | Offload `_build_adaptive_music()` stem generation to `WorkerThreadPool` at startup so the first transition into gameplay never synthesizes 16s of PCM audio on the main thread, while preserving lazy unit-test contracts on individual SFX fields. |
+| G6 | **2D Physics Interpolation Extension to Enemies, Projectiles & Pickups** | `Interceptor.gd` interpolates its `Sprite2D` transform and camera position between physics ticks using `Engine.get_physics_interpolation_fraction()`. | Extend visual sub-tick transform interpolation (`RoadmapFx.interpolate_transform`) or native Godot 2D physics interpolation to fast-moving `Bullet.gd`, `Enemy.gd`, and `PoopWeapon.gd` sprites on 120 Hz / 144 Hz / 240 Hz monitors. |
+| G7 | **Documentation & Architecture Sync** | `docs/roadmap.md` reflects `v0.2.6`, while parts of `docs/architecture.md` and `README.md` still mention older counts (e.g., "9 selectable music options", "10 singletons", or "22050 Hz" in legacy sections). | Synchronize `docs/architecture.md`, `docs/development.md`, and `README.md` with the current 11 autoloads, 13 music options, 10 skins, 44.1 kHz synthesis pipeline, and `make check-leaks` workflow. |
 
 ## Engine Constraints (verified on Godot 4.7.2)
 

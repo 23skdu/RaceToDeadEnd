@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Race to Dead End"
 config/description="Drive, fight, survive."
-config/version="0.2.5"
+config/version="0.2.6"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
@@ -49,14 +49,13 @@ PostProcessing="*res://scripts/autoload/PostProcessing.gd"
 
 [display]
 
-window/vsync/vsync_mode=1
-
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/window_width_override=1600
 window/size/window_height_override=900
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_width"
+window/vsync/vsync_mode=1
 
 [filesystem]
 
@@ -124,14 +123,15 @@ screenshot={
 ]
 }
 
+[physics]
+
+common/physics_interpolation=true
+
 [plugins]
 
 gut={
 "enable": true
 }
-
-[physics]
-common/physics_interpolation=true
 
 [rendering]
 

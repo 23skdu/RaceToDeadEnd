@@ -33,6 +33,9 @@ const LUT_SHADER_CODE: String = "shader_type canvas_item;\nrender_mode unshaded;
 const SSAO_SHADER_CODE: String = "shader_type canvas_item;\nrender_mode unshaded;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\nuniform float strength : hint_range(0.0, 1.0) = 0.25;\nvoid fragment() {\n\tvec2 px = SCREEN_PIXEL_SIZE * 2.0;\n\tvec3 c = texture(screen_texture, SCREEN_UV).rgb;\n\tfloat lc = dot(c, vec3(0.299, 0.587, 0.114));\n\tfloat ln = dot(texture(screen_texture, SCREEN_UV + vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat ls = dot(texture(screen_texture, SCREEN_UV - vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat le = dot(texture(screen_texture, SCREEN_UV + vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat lw = dot(texture(screen_texture, SCREEN_UV - vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat neighbors = min(min(ln, ls), min(le, lw));\n\tfloat occlusion = clamp(lc - neighbors, 0.0, 1.0);\n\tCOLOR = vec4(c * (1.0 - occlusion * strength), 1.0);\n}"
 
 static var _light_texture: Texture2D = null
+static var _lut_shader: Shader = null
+static var _fsr_shader: Shader = null
+static var _ssao_shader: Shader = null
 
 # --- Aspect / resolution maths -------------------------------------------------
 
@@ -225,27 +228,30 @@ static func _make_gradient_lut(weather: String) -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 static func make_lut_material(lut: Texture2D) -> ShaderMaterial:
-	var shader := Shader.new()
-	shader.code = LUT_SHADER_CODE
+	if _lut_shader == null:
+		_lut_shader = Shader.new()
+		_lut_shader.code = LUT_SHADER_CODE
 	var material := ShaderMaterial.new()
-	material.shader = shader
+	material.shader = _lut_shader
 	if lut != null:
 		material.set_shader_parameter("lut", lut)
 	return material
 
 static func make_fsr_material(sharpness: float = 0.35) -> ShaderMaterial:
-	var shader := Shader.new()
-	shader.code = FSR_SHADER_CODE
+	if _fsr_shader == null:
+		_fsr_shader = Shader.new()
+		_fsr_shader.code = FSR_SHADER_CODE
 	var material := ShaderMaterial.new()
-	material.shader = shader
+	material.shader = _fsr_shader
 	material.set_shader_parameter("sharpness", clampf(sharpness, 0.0, 1.0))
 	return material
 
 static func make_ssao_material(strength: float = 0.25) -> ShaderMaterial:
-	var shader := Shader.new()
-	shader.code = SSAO_SHADER_CODE
+	if _ssao_shader == null:
+		_ssao_shader = Shader.new()
+		_ssao_shader.code = SSAO_SHADER_CODE
 	var material := ShaderMaterial.new()
-	material.shader = shader
+	material.shader = _ssao_shader
 	material.set_shader_parameter("strength", clampf(strength, 0.0, 1.0))
 	return material
 

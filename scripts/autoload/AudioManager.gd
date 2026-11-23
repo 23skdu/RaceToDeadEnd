@@ -241,11 +241,21 @@ func _setup_polyphonic_sfx() -> void:
 	polyphonic_player.name = "PolyphonicSFXPlayer"
 	polyphonic_player.stream = _polyphonic_stream
 	add_child(polyphonic_player)
-	polyphonic_player.play()
+
+func _ensure_polyphonic_playback() -> AudioStreamPlaybackPolyphonic:
+	if _polyphonic_playback != null:
+		return _polyphonic_playback
+	if not is_instance_valid(polyphonic_player):
+		return null
+	if polyphonic_player.stream != _polyphonic_stream:
+		polyphonic_player.stream = _polyphonic_stream
+	if not polyphonic_player.playing:
+		polyphonic_player.play()
 	_polyphonic_playback = polyphonic_player.get_stream_playback() as AudioStreamPlaybackPolyphonic
+	return _polyphonic_playback
 
 func is_polyphonic_sfx_active() -> bool:
-	return _feature_enabled(FEATURE_POLYPHONIC_SFX, false) and _polyphonic_playback != null
+	return _feature_enabled(FEATURE_POLYPHONIC_SFX, false) and is_instance_valid(polyphonic_player) and _polyphonic_stream != null
 
 func _bus_effect_of_class(bus_idx: int, effect_class: StringName) -> AudioEffect:
 	if bus_idx < 0 or bus_idx >= AudioServer.bus_count:
@@ -351,7 +361,7 @@ func _build_stream(duration: float, generator: Callable) -> AudioStreamWAV:
 			data[i] = clampi(decode_s24(s24_data, i * S24_BYTES_PER_SAMPLE) >> 16, -128, 127) & 0xFF
 
 	var stream := AudioStreamWAV.new()
-	stream.format = format
+	stream.format = format as AudioStreamWAV.Format
 	stream.mix_rate = int(SAMPLE_RATE)
 	stream.data = data
 	return stream
@@ -555,13 +565,17 @@ func set_music_intensity(boss_active: bool, difficulty_tier: int, enemy_density:
 	if selected_music_track != DEFAULT_MUSIC_TRACK:
 		return
 	var target := _select_adaptive_clip(boss_active, tier, density)
+	var prev_clip := _adaptive_clip_index
 	_adaptive_clip_index = target
 	var stream := get_adaptive_music_stream()
+	var started_now := false
 	if music_player.stream != stream or not music_player.playing:
 		play_music(stream)
-	var playback := music_player.get_stream_playback()
-	if playback is AudioStreamPlaybackInteractive:
-		playback.switch_to_clip(target)
+		started_now = true
+	if started_now or target != prev_clip:
+		var playback := music_player.get_stream_playback()
+		if playback is AudioStreamPlaybackInteractive:
+			playback.switch_to_clip(target)
 
 func set_playlist(tracks: Array[AudioStream], shuffle: bool = true) -> void:
 	_custom_playlist.clear()
@@ -633,17 +647,19 @@ func play_sfx(stream: AudioStream, pos: Vector2 = Vector2.ZERO, priority: int = 
 	if not stream:
 		return
 	if is_polyphonic_sfx_active():
-		polyphonic_player.global_position = pos
-		var voice_id := _polyphonic_playback.play_stream(
-			stream,
-			0.0,
-			0.0,
-			_rng.randf_range(0.92, 1.08),
-			AudioServer.PLAYBACK_TYPE_DEFAULT,
-			&"SFX"
-		)
-		if voice_id != AudioStreamPlaybackPolyphonic.INVALID_ID:
-			return
+		var pb := _ensure_polyphonic_playback()
+		if pb != null:
+			polyphonic_player.global_position = pos
+			var voice_id := pb.play_stream(
+				stream,
+				0.0,
+				0.0,
+				_rng.randf_range(0.92, 1.08),
+				AudioServer.PLAYBACK_TYPE_DEFAULT,
+				&"SFX"
+			)
+			if voice_id != AudioStreamPlaybackPolyphonic.INVALID_ID:
+				return
 		# Polyphony exhausted: fall through to the original 16-player pool.
 	var best_idx = -1
 	var lowest_priority = 999
@@ -1446,7 +1462,7 @@ func _generate_game_music_industrial() -> AudioStreamWAV:
 	var stream = _build_stream(16.0, func(t: float, _i: int) -> float:
 		var step_idx := int(t / step_duration)
 		var step_t := fmod(t, step_duration)
-		var bass_freq: float = bass_pattern[(step_idx / 4) % bass_pattern.size()]
+		var bass_freq: float = bass_pattern[int(float(step_idx) / 4.0) % bass_pattern.size()]
 		var val: float = 0.0
 
 		# Aggressive FM-distorted cyber bass
@@ -1510,7 +1526,7 @@ func _generate_game_music_neon_drift() -> AudioStreamWAV:
 			val += sin(TAU * bass_freq * t) * 3400.0 * bass_env
 
 		# Melodic pentatonic arcade lead
-		var lead_freq: float = bass_freq * 4.0 * lead_ratios[(step_idx / 2) % lead_ratios.size()]
+		var lead_freq: float = bass_freq * 4.0 * lead_ratios[int(float(step_idx) / 2.0) % lead_ratios.size()]
 		var lead_env: float = maxf(0.0, 1.0 - (step_t / (step_duration * 1.4)))
 		var lead_wave: float = (fmod(t * lead_freq, 1.0) * 2.0 - 1.0) * 0.5 + (1.0 if sin(TAU * lead_freq * t) > 0.0 else -1.0) * 0.5
 		val += lead_wave * 2400.0 * lead_env
@@ -1662,7 +1678,7 @@ func _generate_game_music_cyberpunk_boss() -> AudioStreamWAV:
 
 		# Dissonant stab hits.
 		if step_idx % 8 == 0 or step_idx % 8 == 6:
-			var stab_freq: float = root * 4.0 * stab_ratios[(step_idx / 8) % stab_ratios.size()]
+			var stab_freq: float = root * 4.0 * stab_ratios[int(float(step_idx) / 8.0) % stab_ratios.size()]
 			var stab_env: float = maxf(0.0, 1.0 - step_t / (step_duration * 2.0))
 			val += (sin(TAU * stab_freq * t) + sin(TAU * stab_freq * 1.0595 * t)) * 1700.0 * stab_env
 
@@ -1839,7 +1855,7 @@ func _wait_for_task(key: String) -> void:
 		WorkerThreadPool.wait_for_task_completion(task_id)
 		_async_tasks.erase(key)
 
-func _exit_tree() -> void:
+func stop_all_audio() -> void:
 	var keys = _async_tasks.keys()
 	for key in keys:
 		_wait_for_task(key)
@@ -1849,10 +1865,13 @@ func _exit_tree() -> void:
 	if is_instance_valid(car_engine_player):
 		car_engine_player.stop()
 		car_engine_player.stream = null
-	for p in sfx_players:
+	for i in sfx_players.size():
+		var p = sfx_players[i]
 		if is_instance_valid(p):
 			p.stop()
 			p.stream = null
+		if i < _player_priorities.size():
+			_player_priorities[i] = 0
 	if is_instance_valid(polyphonic_player):
 		polyphonic_player.stop()
 		polyphonic_player.stream = null
@@ -1871,6 +1890,7 @@ func _exit_tree() -> void:
 	_stream_boost = null
 	_stream_emp = null
 	_stream_menu_music = null
+	_stream_car_engine = null
 	_stream_game_music_bunny = null
 	_stream_game_music_biker = null
 	_stream_game_music_sasquatch = null
@@ -1899,4 +1919,8 @@ func _exit_tree() -> void:
 	_stream_demo_boss_giant_biker = null
 	_stream_demo_boss_void_drone = null
 	_stream_demo_boss_war_rig = null
+
+func _exit_tree() -> void:
+	stop_all_audio()
+
 

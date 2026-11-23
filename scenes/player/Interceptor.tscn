@@ -21,7 +21,7 @@ position = Vector2(0, -28)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 physics_interpolation_mode = 2
-position_smoothing_enabled = true
+position_smoothing_enabled = false
 position_smoothing_speed = 5.0
 
 [node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]

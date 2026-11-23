@@ -76,7 +76,12 @@ func _on_body_entered(body: Node) -> void:
 			body.take_damage(damage)
 		if body.has_method("set_slippery"):
 			body.set_slippery(true)
-			get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(body): body.set_slippery(false))
+			var body_ref: WeakRef = weakref(body)
+			get_tree().create_timer(2.0).timeout.connect(func():
+				var target = body_ref.get_ref()
+				if target and is_instance_valid(target):
+					target.set_slippery(false)
+			)
 	_die()
 
 func _die() -> void:

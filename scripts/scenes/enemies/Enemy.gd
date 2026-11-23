@@ -322,7 +322,14 @@ func handle_obstacle_collisions() -> void:
 		var collider = col.get_collider()
 		if collider and is_instance_valid(collider):
 			if collider.is_in_group("obstacles") or collider.is_in_group("deadly_obstacles"):
-				collider.queue_free()
+				var parent_node = collider.get_parent()
+				if parent_node and parent_node.name == "Tiles":
+					collider.visible = false
+					if collider is CollisionObject2D:
+						collider.collision_layer = 0
+						collider.collision_mask = 0
+				else:
+					collider.queue_free()
 
 func apply_stun(duration: float) -> void:
 	stunned = true

@@ -325,6 +325,11 @@ func _mark_buffer_free(tiles_node: Node2D) -> void:
 				return
 
 func _reconnect_chunk_signals(tiles_node: Node2D, chunk_type: ChunkType) -> void:
+	for child in tiles_node.get_children():
+		if child is StaticBody2D and (child.is_in_group("obstacles") or child.is_in_group("deadly_obstacles")):
+			child.visible = true
+			child.collision_layer = 1
+			child.collision_mask = 1
 	if chunk_type == ChunkType.ICE:
 		for child in tiles_node.get_children():
 			if child is Area2D:
@@ -609,10 +614,6 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 			chunk_local.add_child(obstacle)
 
 	if lane_polygons.size() > 0 and chunk_type != ChunkType.ICE and chunk_type != ChunkType.BRIDGE:
-		var crack_mmi = MultiMeshInstance2D.new()
-		crack_mmi.texture = white_texture
-		var cmesh = MultiMesh.new()
-		cmesh.mesh = _create_rect_mesh(Vector2(1, half_h * 0.3))
 		var crack_positions: Array[Vector2] = []
 		for row in CHUNK_HEIGHT:
 			for col in range(LANE_START_COL + 1, LANE_END_COL):
@@ -622,6 +623,10 @@ func _build_tiles_into(chunk_local: Node2D, chunk_type: ChunkType) -> void:
 					var x_offset = _rng.randf_range(-120.0 * 0.35, 120.0 * 0.35)
 					crack_positions.append(Vector2(lane_cx + x_offset, y_pos))
 		if crack_positions.size() > 0:
+			var crack_mmi = MultiMeshInstance2D.new()
+			crack_mmi.texture = white_texture
+			var cmesh = MultiMesh.new()
+			cmesh.mesh = _create_rect_mesh(Vector2(1, half_h * 0.3))
 			cmesh.instance_count = crack_positions.size()
 			for i in crack_positions.size():
 				cmesh.set_instance_transform_2d(i, Transform2D(0.0, crack_positions[i]))
