@@ -27,7 +27,7 @@ const TILE_ICE: int = 2
 const TILE_HAZARD: int = 3
 const TILE_ATLAS_WIDTH: int = 4
 
-enum ChunkType { STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE }
+enum ChunkType {STANDARD, DEBRIS, ICE, CONSTRUCTION, BRIDGE}
 
 var chunk_weights: Dictionary = {
 	ChunkType.STANDARD: Constants.CHUNK_WEIGHT_STANDARD_BASE,
@@ -227,6 +227,7 @@ func _rebuild_active_chunks() -> void:
 			if old_tiles:
 				chunk.remove_child(old_tiles)
 				old_tiles.queue_free()
+	_free_unparented_chunk_buffers()
 	for chunk_type in _chunk_buffers:
 		for tiles in _chunk_buffers[chunk_type]:
 			if is_instance_valid(tiles) and tiles.get_parent() == null:
@@ -240,6 +241,15 @@ func _rebuild_active_chunks() -> void:
 			chunk.add_child(_reserve_tiles(chunk_type))
 			_populate_chunk_tiles(chunk, int(chunk_type))
 			_refresh_chunk_visibility(chunk)
+
+func _free_unparented_chunk_buffers() -> void:
+	for chunk_type in _chunk_buffers:
+		var buffers: Array = _chunk_buffers[chunk_type]
+		for tiles in buffers:
+			if is_instance_valid(tiles) and tiles.get_parent() == null:
+				tiles.free()
+	_chunk_buffers.clear()
+	_buffer_in_use.clear()
 
 func _process(_delta: float) -> void:
 	if not player:
@@ -255,7 +265,7 @@ func _spawn_chunk(offset: int) -> void:
 	var chunk_type = _pick_chunk_type()
 	if offset < 2:
 		chunk_type = ChunkType.STANDARD
-	chunk.position.y = -offset * CHUNK_PIXEL_HEIGHT
+	chunk.position.y = - offset * CHUNK_PIXEL_HEIGHT
 	chunk.set_meta("chunk_type", chunk_type)
 	chunk.set_meta("segment", current_segment)
 
@@ -1062,7 +1072,7 @@ static func _gather_polygons(node: Node, parent_xform: Transform2D, vertices: Pa
 		var pts = node.points
 		for j in range(pts.size() - 1):
 			var p1 = pts[j]
-			var p2 = pts[j+1]
+			var p2 = pts[j + 1]
 			var dir = (p2 - p1).normalized()
 			var normal = Vector2(-dir.y, dir.x)
 

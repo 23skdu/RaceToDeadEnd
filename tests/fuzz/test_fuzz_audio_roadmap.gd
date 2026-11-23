@@ -111,7 +111,9 @@ func test_fuzz_set_music_intensity_with_arbitrary_inputs() -> void:
 
 func test_fuzz_play_sfx_positions_priorities_and_feature_toggles() -> void:
 	var stream := AudioStreamWAV.new()
-	stream.data.resize(32)
+	var buf := PackedByteArray()
+	buf.resize(32)
+	stream.data = buf
 	for i in range(60):
 		SettingsManager._config.set_value("features", _am.FEATURE_POLYPHONIC_SFX, _rng.randf() < 0.5)
 		SettingsManager._config.set_value("features", _am.FEATURE_RANDOMIZED_SFX, _rng.randf() < 0.5)

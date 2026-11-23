@@ -176,7 +176,9 @@ func test_polyphonic_player_setup_and_feature_gate() -> void:
 
 func test_play_sfx_polyphonic_and_pool_fallback() -> void:
 	var stream := AudioStreamWAV.new()
-	stream.data.resize(64)
+	var buf := PackedByteArray()
+	buf.resize(64)
+	stream.data = buf
 	_enable_feature(_am.FEATURE_POLYPHONIC_SFX, true)
 	var before := 0
 	for p in AudioManager.sfx_players:

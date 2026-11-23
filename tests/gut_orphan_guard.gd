@@ -10,8 +10,8 @@ extends GutHookScript
 const MAX_ORPHANS: int = 0
 
 
-static func orphan_counts(gut: Object) -> Dictionary:
-	var counter = gut.get_orphan_counter()
+static func orphan_counts(gut_instance: Object) -> Dictionary:
+	var counter = gut_instance.get_orphan_counter()
 	# GUT records orphan IDs at script end without pruning entries that were
 	# freed afterwards. Drop stale entries so only real orphans fail the gate.
 	if counter.orphanage != null:
@@ -75,9 +75,9 @@ static func release_static_caches() -> void:
 		boss_warrig_script._boss_war_rig_texture = null
 	var loc_script = load("res://scripts/utils/LocalizationUtil.gd")
 	if loc_script:
-		for tr in loc_script._translations.values():
-			if tr is Translation:
-				TranslationServer.remove_translation(tr)
+		for translation in loc_script._translations.values():
+			if translation is Translation:
+				TranslationServer.remove_translation(translation)
 		loc_script._translations.clear()
 	var rw_script = load("res://scripts/utils/RoadmapWorld.gd")
 	if rw_script:

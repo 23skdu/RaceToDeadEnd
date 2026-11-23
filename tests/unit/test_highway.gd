@@ -495,7 +495,7 @@ func test_mark_buffer_free_reuses_buffer():
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var first = h._reserve_tiles(h.ChunkType.STANDARD)
-	var second = h._reserve_tiles(h.ChunkType.STANDARD)
+	var _second = h._reserve_tiles(h.ChunkType.STANDARD)
 	assert_eq(h._chunk_buffers[h.ChunkType.STANDARD].size(), 2, "Pool should have 2 buffers after two calls")
 	
 	h._mark_buffer_free(first)
@@ -521,7 +521,7 @@ func test_mark_buffer_free_skips_other_types():
 	h._chunk_buffers = {}
 	h._buffer_in_use = {}
 	var standard = h._reserve_tiles(h.ChunkType.STANDARD)
-	var ice = h._reserve_tiles(h.ChunkType.ICE)
+	var _ice = h._reserve_tiles(h.ChunkType.ICE)
 	h._mark_buffer_free(standard)
 	assert_false(h._buffer_in_use[h.ChunkType.STANDARD][0], "STANDARD buffer should be freed")
 	assert_true(h._buffer_in_use[h.ChunkType.ICE][0], "ICE buffer should still be in use")
