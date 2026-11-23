@@ -125,7 +125,7 @@ func _populate_chunk_tiles(chunk: Node2D, chunk_type: int) -> void:
 	var cells: Array[Vector2i] = []
 	var origin_y := int(round(chunk.position.y))
 	for row in CHUNK_HEIGHT:
-		var y_cell := int((origin_y + row * TILE_SIZE.y) / TILE_SIZE.y)
+		var y_cell := int(float(origin_y + row * TILE_SIZE.y) / float(TILE_SIZE.y))
 		# Lane separator markings.
 		for boundary in range(1, LANE_COUNT):
 			_place_tile(-240.0 + float(boundary) * 120.0, y_cell, TILE_LANE, cells)
