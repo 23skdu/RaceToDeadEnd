@@ -40,7 +40,9 @@ static func release_static_caches() -> void:
 		highway_script._diamond_mesh_cache = null
 		highway_script._diamond_mesh_lane_cache = null
 		highway_script._diamond_mesh_shoulder_cache = null
-		highway_script._bridge_structure_mesh_cache = null
+	var mesh_factory_script = load("res://scripts/utils/HighwayMeshFactory.gd")
+	if mesh_factory_script:
+		mesh_factory_script.reset_caches()
 		highway_script._rect_mesh_cache.clear()
 		highway_script._decor_mesh_cache.clear()
 		highway_script._obstacle_mesh_cache.clear()

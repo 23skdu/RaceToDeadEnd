@@ -207,3 +207,16 @@ func test_fuzz_hud_rich_scaling_and_updates() -> void:
 		assert_true(hud.lives_rich_label.text.contains("[color="))
 		assert_true(hud.health_rich_label.text.contains("[color="))
 		assert_gt(hud.multiplier_rich_label.get_theme_font_size("normal_font_size"), 0)
+
+func test_fuzz_mesh_factory_polygon_inputs():
+	var factory = load("res://scripts/utils/HighwayMeshFactory.gd")
+	for i in 5:
+		var node := Line2D.new()
+		node.points = PackedVector2Array([
+			Vector2(_rng.randf_range(-50.0, 50.0), _rng.randf_range(-50.0, 50.0)),
+			Vector2(_rng.randf_range(-50.0, 50.0), _rng.randf_range(-50.0, 50.0)),
+		])
+		var mesh = factory._node_to_mesh(node)
+		node.free()
+		assert_true(mesh != null)
+	factory.reset_caches()

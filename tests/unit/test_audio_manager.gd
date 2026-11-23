@@ -608,3 +608,9 @@ func test_music_track_selection_and_playback():
 	assert_eq(AudioManager.music_player.stream, AudioManager._stream_game_music_neon_drift)
 
 	AudioManager.set_music_track(prev_track, false)
+
+func test_stream_synthesis_base_generates_wav():
+	var synth = load("res://scripts/autoload/AudioManagerStreams.gd").new()
+	var stream = synth._generate_laser_stream()
+	synth.free()
+	assert_not_null(stream, "Synthesis base should generate a stream")

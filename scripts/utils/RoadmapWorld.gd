@@ -28,9 +28,54 @@ const SUPPORTED_RESOLUTIONS: Array = [
 	Vector2i(3840, 2160),
 ]
 
-const FSR_SHADER_CODE: String = "shader_type canvas_item;\nrender_mode unshaded;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\nuniform float sharpness : hint_range(0.0, 1.0) = 0.35;\nvoid fragment() {\n\tvec2 px = SCREEN_PIXEL_SIZE;\n\tvec3 c = texture(screen_texture, SCREEN_UV).rgb;\n\tvec3 n = texture(screen_texture, SCREEN_UV + vec2(0.0, px.y)).rgb;\n\tvec3 s = texture(screen_texture, SCREEN_UV - vec2(0.0, px.y)).rgb;\n\tvec3 e = texture(screen_texture, SCREEN_UV + vec2(px.x, 0.0)).rgb;\n\tvec3 w = texture(screen_texture, SCREEN_UV - vec2(px.x, 0.0)).rgb;\n\tvec3 blurred = (c * 4.0 + n + s + e + w) / 8.0;\n\tvec3 sharpened = c + (c - blurred) * sharpness;\n\tCOLOR = vec4(clamp(sharpened, 0.0, 1.0), 1.0);\n}"
-const LUT_SHADER_CODE: String = "shader_type canvas_item;\nrender_mode unshaded;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\nuniform sampler2D lut;\nuniform float lut_strength : hint_range(0.0, 1.0) = 0.35;\nvoid fragment() {\n\tvec3 src = texture(screen_texture, SCREEN_UV).rgb;\n\tfloat lum = clamp(dot(src, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);\n\tvec3 graded = texture(lut, vec2(lum, 0.5)).rgb;\n\tCOLOR = vec4(mix(src, src * graded, lut_strength), 1.0);\n}"
-const SSAO_SHADER_CODE: String = "shader_type canvas_item;\nrender_mode unshaded;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\nuniform float strength : hint_range(0.0, 1.0) = 0.25;\nvoid fragment() {\n\tvec2 px = SCREEN_PIXEL_SIZE * 2.0;\n\tvec3 c = texture(screen_texture, SCREEN_UV).rgb;\n\tfloat lc = dot(c, vec3(0.299, 0.587, 0.114));\n\tfloat ln = dot(texture(screen_texture, SCREEN_UV + vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat ls = dot(texture(screen_texture, SCREEN_UV - vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat le = dot(texture(screen_texture, SCREEN_UV + vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat lw = dot(texture(screen_texture, SCREEN_UV - vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));\n\tfloat neighbors = min(min(ln, ls), min(le, lw));\n\tfloat occlusion = clamp(lc - neighbors, 0.0, 1.0);\n\tCOLOR = vec4(c * (1.0 - occlusion * strength), 1.0);\n}"
+const FSR_SHADER_CODE: String = (
+	"shader_type canvas_item;\n"
+	+ "render_mode unshaded;\n"
+	+ "uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\n"
+	+ "uniform float sharpness : hint_range(0.0, 1.0) = 0.35;\n"
+	+ "void fragment() {\n"
+	+ "\tvec2 px = SCREEN_PIXEL_SIZE;\n"
+	+ "\tvec3 c = texture(screen_texture, SCREEN_UV).rgb;\n"
+	+ "\tvec3 n = texture(screen_texture, SCREEN_UV + vec2(0.0, px.y)).rgb;\n"
+	+ "\tvec3 s = texture(screen_texture, SCREEN_UV - vec2(0.0, px.y)).rgb;\n"
+	+ "\tvec3 e = texture(screen_texture, SCREEN_UV + vec2(px.x, 0.0)).rgb;\n"
+	+ "\tvec3 w = texture(screen_texture, SCREEN_UV - vec2(px.x, 0.0)).rgb;\n"
+	+ "\tvec3 blurred = (c * 4.0 + n + s + e + w) / 8.0;\n"
+	+ "\tvec3 sharpened = c + (c - blurred) * sharpness;\n"
+	+ "\tCOLOR = vec4(clamp(sharpened, 0.0, 1.0), 1.0);\n"
+	+ "}"
+)
+const LUT_SHADER_CODE: String = (
+	"shader_type canvas_item;\n"
+	+ "render_mode unshaded;\n"
+	+ "uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\n"
+	+ "uniform sampler2D lut;\n"
+	+ "uniform float lut_strength : hint_range(0.0, 1.0) = 0.35;\n"
+	+ "void fragment() {\n"
+	+ "\tvec3 src = texture(screen_texture, SCREEN_UV).rgb;\n"
+	+ "\tfloat lum = clamp(dot(src, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);\n"
+	+ "\tvec3 graded = texture(lut, vec2(lum, 0.5)).rgb;\n"
+	+ "\tCOLOR = vec4(mix(src, src * graded, lut_strength), 1.0);\n"
+	+ "}"
+)
+const SSAO_SHADER_CODE: String = (
+	"shader_type canvas_item;\n"
+	+ "render_mode unshaded;\n"
+	+ "uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;\n"
+	+ "uniform float strength : hint_range(0.0, 1.0) = 0.25;\n"
+	+ "void fragment() {\n"
+	+ "\tvec2 px = SCREEN_PIXEL_SIZE * 2.0;\n"
+	+ "\tvec3 c = texture(screen_texture, SCREEN_UV).rgb;\n"
+	+ "\tfloat lc = dot(c, vec3(0.299, 0.587, 0.114));\n"
+	+ "\tfloat ln = dot(texture(screen_texture, SCREEN_UV + vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));\n"
+	+ "\tfloat ls = dot(texture(screen_texture, SCREEN_UV - vec2(0.0, px.y)).rgb, vec3(0.299, 0.587, 0.114));\n"
+	+ "\tfloat le = dot(texture(screen_texture, SCREEN_UV + vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));\n"
+	+ "\tfloat lw = dot(texture(screen_texture, SCREEN_UV - vec2(px.x, 0.0)).rgb, vec3(0.299, 0.587, 0.114));\n"
+	+ "\tfloat neighbors = min(min(ln, ls), min(le, lw));\n"
+	+ "\tfloat occlusion = clamp(lc - neighbors, 0.0, 1.0);\n"
+	+ "\tCOLOR = vec4(c * (1.0 - occlusion * strength), 1.0);\n"
+	+ "}"
+)
 
 static var _light_texture: Texture2D = null
 static var _lut_shader: Shader = null

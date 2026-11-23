@@ -123,7 +123,14 @@ func test_fuzz_play_sfx_positions_priorities_and_feature_toggles() -> void:
 			AudioManager.play_synth_laser(pos)
 		if i % 4 == 0:
 			AudioManager.play_bunny_hit(pos)
-		assert_true(AudioManager.is_polyphonic_sfx_active() == (SettingsManager.is_feature_enabled(_am.FEATURE_POLYPHONIC_SFX, false) and is_instance_valid(AudioManager.polyphonic_player) and AudioManager._polyphonic_stream != null))
+		assert_true(
+			AudioManager.is_polyphonic_sfx_active()
+			== (
+				SettingsManager.is_feature_enabled(_am.FEATURE_POLYPHONIC_SFX, false)
+				and is_instance_valid(AudioManager.polyphonic_player)
+				and AudioManager._polyphonic_stream != null
+			)
+		)
 
 func test_fuzz_music_track_ids_and_feature_defaults() -> void:
 	var alphabet := "abcdefghijklmnopqrstuvwxyz_0123456789"
@@ -142,3 +149,10 @@ func test_fuzz_music_track_ids_and_feature_defaults() -> void:
 	assert_true(AudioManager.is_valid_music_track("synthwave_chase"))
 	assert_true(AudioManager.is_valid_music_track("cyberpunk_boss"))
 	assert_false(AudioManager.is_valid_music_track("not_a_real_track"))
+
+func test_fuzz_stream_synthesis_base_generates_wavs():
+	var synth = load("res://scripts/autoload/AudioManagerStreams.gd").new()
+	for i in 3:
+		var stream = synth._generate_laser_stream()
+		assert_not_null(stream)
+	synth.free()

@@ -2,12 +2,22 @@
 
 This roadmap supersedes the previous technical roadmap. It is derived from a deep analysis of Spy Hunter-style vehicular combat games and the full Godot 4.7.2 feature set (see [genre-analysis.md](genre-analysis.md)). The goal is to push **performance, graphic resolution, and sound fidelity** to the ceiling of what Godot 4.7.2 can deliver, while adding **more soundtracks and skins**.
 
-## Current Baseline (`v0.2.6`)
+## Current Baseline (`v0.2.7`)
 
 - **Engine & Builds**: Godot 4.7.2-stable with automated Web (COI service worker + SHA-256), Linux x86_64, Windows x86_64, macOS Universal, Android, and iOS export targets.
 - **Verification & Tooling**: 64 GUT test scripts (1,306 tests / 9,612 assertions) across unit, integration, fuzz, and regression suites plus Python `unittest` (`tests/python/test_scripts.py`), `scripts/check_coverage.py` (100% unit + 100% fuzz + 100% Python script coverage), `scripts/check_deadcode.py` (`make deadcode`), `make check-leaks` / `make check-memory-leaks` (verbose exit ObjectDB, RID, resource, StringName, and orphan node leak verification), `.gdlintrc`, `.markdownlint.json`, and `.githooks/pre-commit`.
 - **Gameplay**: Procedural 4-lane highway (5 chunk types), 4 bosses + Sasquatch mini-boss, 6 weapon types, weather system, meta-progression, daily runs, local and online leaderboards, achievements, remappable input, touch overlay, F12 screenshots, 10 Interceptor skins, 13 procedural music options (including adaptive 4-stem `AudioStreamInteractive` mix), `PostProcessing` autoload (scanlines, vignette, chromatic aberration, bloom, film grain).
 - **Roadmap state**: All 15 points and their subtasks are implemented, feature-gated via `SettingsManager`, and verified by unit, integration, fuzz, regression, deadcode, and zero-leak checks. See the historical baseline gap analysis and the post-`v0.2.6` further gap analysis below.
+
+---
+
+## Lint Cleanup & Tooling (`v0.2.7`)
+
+- Added `gdtoolkit==4.5.0` to `scripts/requirements.txt` and taught `Makefile` to discover `gdlint`/`gdformat` from the project `venv`.
+- Rewrote malformed one-line `if` lambdas in `TransitionLayer.gd`, `WeatherSystem.gd`, and `test_weather_system.gd` as multi-line blocks, including a missing `queue_free()` call in the weather fuzz fixture.
+- Cleared all gdlint findings: replaced a ternary expression statement in `HUD.gd`, wrapped over-long lines in `InterceptorInfo.gd`, `RoadmapWorld.gd`, and `test_fuzz_audio_roadmap.gd`, and reduced `_resolve_track_stream()` to a single return.
+- Extracted `HighwayMeshFactory.gd` and `AudioManagerStreams.gd` so `Highway.gd` and `AudioManager.gd` stay under the 1200-line limit, with new unit/fuzz coverage and orphan-cache reset in `gut_orphan_guard.gd`.
+- `make check` now runs gdlint automatically when the venv tools are installed; all 55 GDScript files pass the coverage and dead-code gates.
 
 ---
 

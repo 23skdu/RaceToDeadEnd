@@ -36,7 +36,15 @@ func refresh_control_hints() -> void:
 			wd.base_ammo = int(entry.get("base_ammo", 0))
 			wd.description = str(descriptions.get(wd.type_name, ""))
 			weapon_lines.append("%s: %s" % [wd.display_name, wd.description])
-		weapons_text.text = "%s = Primary Fire (rapid-fire machine gun)\n%s = Cycle weapon (Missile -> Mine -> EMP)\n%s = Fire selected secondary weapon\n\n%s\n\n%s = Fire EMP directly\n%s = Drop Mine directly\n%s = Take Screenshot" % [
+		weapons_text.text = (
+			"%s = Primary Fire (rapid-fire machine gun)\n"
+			+ "%s = Cycle weapon (Missile -> Mine -> EMP)\n"
+			+ "%s = Fire selected secondary weapon\n\n"
+			+ "%s\n\n"
+			+ "%s = Fire EMP directly\n"
+			+ "%s = Drop Mine directly\n"
+			+ "%s = Take Screenshot"
+		) % [
 			_format_action_keys("primary_fire"),
 			_format_action_keys("cycle_weapon"),
 			_format_action_keys("secondary_fire"),

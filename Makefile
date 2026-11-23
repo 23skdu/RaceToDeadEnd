@@ -7,7 +7,7 @@ GODOT        ?= $(shell command -v godot 2>/dev/null || command -v godot4 2>/dev
 PYTHON       ?= $(shell if [ -x venv/bin/python3 ]; then echo venv/bin/python3; else command -v python3 2>/dev/null || echo python3; fi)
 CURL         ?= $(shell command -v curl 2>/dev/null || echo curl)
 UNZIP        ?= $(shell command -v unzip 2>/dev/null || echo unzip)
-GDLINT       ?= $(shell command -v gdlint 2>/dev/null || true)
+GDLINT       ?= $(shell if [ -x venv/bin/gdlint ]; then echo venv/bin/gdlint; else command -v gdlint 2>/dev/null || true; fi)
 GDFORMAT     ?= $(shell command -v gdformat 2>/dev/null || true)
 MARKDOWNLINT ?= $(shell command -v markdownlint 2>/dev/null || true)
 

@@ -146,7 +146,10 @@ func _setup_boss_bar() -> void:
 	_boss_name_label = Label.new()
 	_boss_name_label.name = "BossNameLabel"
 	_boss_name_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.25))
-	_boss_name_label.add_theme_font_sizes_override("font_size", 16) if _boss_name_label.has_method("add_theme_font_sizes_override") else _boss_name_label.add_theme_font_size_override("font_size", 16)
+	if _boss_name_label.has_method("add_theme_font_sizes_override"):
+		_boss_name_label.add_theme_font_sizes_override("font_size", 16)
+	else:
+		_boss_name_label.add_theme_font_size_override("font_size", 16)
 	header.add_child(_boss_name_label)
 
 	_boss_phase_label = Label.new()

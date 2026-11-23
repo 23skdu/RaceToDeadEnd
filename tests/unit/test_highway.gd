@@ -775,3 +775,13 @@ func test_weight_formula_consistent_step():
 	add_child_autofree(tier_10)
 	tier_10._pick_chunk_type()
 	assert_true(true, "Weight formula should not error at tier 10")
+
+func test_mesh_factory_builds_mesh_and_resets_cache():
+	var factory = load("res://scripts/utils/HighwayMeshFactory.gd")
+	var node := Line2D.new()
+	node.points = PackedVector2Array([Vector2.ZERO, Vector2(10, 0)])
+	var mesh = factory._node_to_mesh(node)
+	node.free()
+	assert_gt(mesh.get_surface_count(), 0, "Mesh factory should create a surface")
+	factory.reset_caches()
+	assert_null(factory._bridge_structure_mesh_cache, "Reset should clear the bridge cache")
