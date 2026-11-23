@@ -274,7 +274,11 @@ func test_lightning_tween_callback_valid_instance():
 	ws.add_child(flash)
 	var tween = ws.create_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.01)
-	tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free)
+	tween.tween_callback(
+		func():
+			if is_instance_valid(flash):
+				flash.queue_free()
+	)
 	tween.tween_callback(func(): assert_true(true, "Tween should complete without error"))
 	await tween.finished
 	await get_tree().process_frame
@@ -315,7 +319,11 @@ func test_lightning_flash_cleaned_after_tween():
 	ws.lightning_container.add_child(flash)
 	var tween = ws.create_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.01)
-	tween.tween_callback(func(): if is_instance_valid(flash): flash.queue_free())
+	tween.tween_callback(
+		func():
+			if is_instance_valid(flash):
+				flash.queue_free()
+	)
 	await tween.finished
 	await get_tree().process_frame
 	assert_false(is_instance_valid(flash), "Flash should be freed after tween")
@@ -328,7 +336,11 @@ func test_lightning_bolt_cleaned_after_tween():
 	ws.lightning_container.add_child(bolt)
 	var tween = ws.create_tween()
 	tween.tween_property(bolt, "modulate:a", 0.0, 0.01)
-	tween.tween_callback(func(): if is_instance_valid(bolt): bolt.queue_free())
+	tween.tween_callback(
+		func():
+			if is_instance_valid(bolt):
+				bolt.queue_free()
+	)
 	await tween.finished
 	await get_tree().process_frame
 	assert_false(is_instance_valid(bolt), "Bolt should be freed after tween")

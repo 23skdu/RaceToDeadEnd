@@ -18,8 +18,19 @@ func fade_to_black(duration: float = 0.3) -> void:
 		_tween.kill()
 	_tween = create_tween()
 	_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	_tween.tween_method(func(a): if _overlay: _overlay.modulate.a = a, 0.0, 1.0, duration)
-	_tween.tween_callback(func(): if _overlay: _overlay.mouse_filter = Control.MOUSE_FILTER_STOP)
+	_tween.tween_method(
+		func(a):
+			if _overlay:
+				_overlay.modulate.a = a,
+		0.0,
+		1.0,
+		duration
+	)
+	_tween.tween_callback(
+		func():
+			if _overlay:
+				_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	)
 	await _tween.finished
 
 func fade_from_black(duration: float = 0.3) -> void:
@@ -27,7 +38,14 @@ func fade_from_black(duration: float = 0.3) -> void:
 		_tween.kill()
 	_tween = create_tween()
 	_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	_tween.tween_method(func(a): if _overlay: _overlay.modulate.a = a, 1.0, 0.0, duration)
+	_tween.tween_method(
+		func(a):
+			if _overlay:
+				_overlay.modulate.a = a,
+		1.0,
+		0.0,
+		duration
+	)
 	_tween.tween_callback(func():
 		if _overlay:
 			_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
